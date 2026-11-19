@@ -6,6 +6,7 @@ import { Text, Sky, Environment } from "@react-three/drei";
 import * as THREE from "three";
 import { io, Socket } from "socket.io-client";
 import pjokData from "./data/pjokData.json";
+import { AVATAR_35_LIST, AvatarPreset } from "./page";
 
 const ARENA_TILES = [
   { id: 0, label: "A", color: "#ef4444", pos: [-4.2, 0, 13.8] as [number, number, number] },
@@ -76,16 +77,16 @@ function CheerfulBGM({ muted }: { muted: boolean }) {
 
 function VoxelCharacter({
   shirtColor,
-  pantsColor,
+  pantsColor = "#1e293b",
   skinColor = "#fcd34d",
-  avatarType = "boy",
+  headStyle = "boy",
   isMoving,
   isCoach = false,
 }: {
   shirtColor: string;
-  pantsColor: string;
+  pantsColor?: string;
   skinColor?: string;
-  avatarType?: string;
+  headStyle?: string;
   isMoving: boolean;
   isCoach?: boolean;
 }) {
@@ -106,6 +107,7 @@ function VoxelCharacter({
 
   return (
     <group>
+      {/* Kaki */}
       <mesh ref={leftLeg} position={[-0.25, 0.45, 0]} castShadow>
         <boxGeometry args={[0.38, 0.9, 0.42]} />
         <meshStandardMaterial color={pantsColor} />
@@ -114,16 +116,22 @@ function VoxelCharacter({
         <boxGeometry args={[0.38, 0.9, 0.42]} />
         <meshStandardMaterial color={pantsColor} />
       </mesh>
+
+      {/* Badan */}
       <mesh position={[0, 1.4, 0]} castShadow>
         <boxGeometry args={[0.95, 1.05, 0.55]} />
         <meshStandardMaterial color={shirtColor} />
       </mesh>
+
+      {/* Peluit Emas Khusus Coach */}
       {isCoach && (
         <mesh position={[0, 1.65, 0.3]} castShadow>
           <boxGeometry args={[0.22, 0.25, 0.15]} />
           <meshStandardMaterial color="#facc15" metalness={0.6} roughness={0.2} />
         </mesh>
       )}
+
+      {/* Tangan */}
       <mesh ref={leftArm} position={[-0.68, 1.4, 0]} castShadow>
         <boxGeometry args={[0.32, 0.95, 0.38]} />
         <meshStandardMaterial color={skinColor} />
@@ -132,10 +140,14 @@ function VoxelCharacter({
         <boxGeometry args={[0.32, 0.95, 0.38]} />
         <meshStandardMaterial color={skinColor} />
       </mesh>
+
+      {/* Kepala */}
       <mesh position={[0, 2.38, 0]} castShadow>
         <boxGeometry args={[0.85, 0.85, 0.85]} />
         <meshStandardMaterial color={skinColor} />
       </mesh>
+
+      {/* Mata */}
       <mesh position={[-0.2, 2.42, 0.44]}>
         <boxGeometry args={[0.12, 0.12, 0.05]} />
         <meshStandardMaterial color="#1e293b" />
@@ -145,14 +157,15 @@ function VoxelCharacter({
         <meshStandardMaterial color="#1e293b" />
       </mesh>
 
-      {!isCoach && avatarType === "boy" && (
+      {/* Variasi 7 Gaya Kepala / Aksesori untuk 35 Avatar */}
+      {!isCoach && headStyle === "boy" && (
         <mesh position={[0, 2.83, -0.02]} castShadow>
           <boxGeometry args={[0.88, 0.22, 0.88]} />
           <meshStandardMaterial color="#1e293b" />
         </mesh>
       )}
 
-      {!isCoach && avatarType === "girl" && (
+      {!isCoach && headStyle === "girl" && (
         <group>
           <mesh position={[0, 2.83, -0.02]} castShadow>
             <boxGeometry args={[0.88, 0.24, 0.88]} />
@@ -165,7 +178,7 @@ function VoxelCharacter({
         </group>
       )}
 
-      {!isCoach && avatarType === "hijab" && (
+      {!isCoach && headStyle === "hijab" && (
         <group>
           <mesh position={[0, 2.42, -0.06]} castShadow>
             <boxGeometry args={[0.94, 0.94, 0.86]} />
@@ -178,15 +191,54 @@ function VoxelCharacter({
         </group>
       )}
 
-      {!isCoach && avatarType === "cap" && (
+      {!isCoach && headStyle === "cap" && (
         <group position={[0, 2.84, 0]}>
           <mesh castShadow>
             <boxGeometry args={[0.9, 0.22, 0.9]} />
-            <meshStandardMaterial color="#ef4444" />
+            <meshStandardMaterial color={shirtColor} />
           </mesh>
           <mesh position={[0, -0.05, 0.35]} castShadow>
             <boxGeometry args={[0.86, 0.08, 0.45]} />
-            <meshStandardMaterial color="#dc2626" />
+            <meshStandardMaterial color="#0f172a" />
+          </mesh>
+        </group>
+      )}
+
+      {!isCoach && headStyle === "bandana" && (
+        <group>
+          <mesh position={[0, 2.83, -0.02]} castShadow>
+            <boxGeometry args={[0.88, 0.22, 0.88]} />
+            <meshStandardMaterial color="#1e293b" />
+          </mesh>
+          <mesh position={[0, 2.66, 0]}>
+            <boxGeometry args={[0.9, 0.14, 0.9]} />
+            <meshStandardMaterial color="#ffffff" />
+          </mesh>
+        </group>
+      )}
+
+      {!isCoach && headStyle === "glasses" && (
+        <group>
+          <mesh position={[0, 2.83, -0.02]} castShadow>
+            <boxGeometry args={[0.88, 0.22, 0.88]} />
+            <meshStandardMaterial color="#1e293b" />
+          </mesh>
+          <mesh position={[0, 2.42, 0.45]}>
+            <boxGeometry args={[0.78, 0.18, 0.06]} />
+            <meshStandardMaterial color="#0f172a" />
+          </mesh>
+        </group>
+      )}
+
+      {!isCoach && headStyle === "crown" && (
+        <group>
+          <mesh position={[0, 2.83, -0.02]} castShadow>
+            <boxGeometry args={[0.88, 0.2, 0.88]} />
+            <meshStandardMaterial color="#1e293b" />
+          </mesh>
+          <mesh position={[0, 3.05, 0]} castShadow>
+            <cylinderGeometry args={[0.32, 0.36, 0.26, 8]} />
+            <meshStandardMaterial color="#facc15" metalness={0.7} roughness={0.2} />
           </mesh>
         </group>
       )}
@@ -209,6 +261,7 @@ function VoxelCharacter({
 
 function RemotePlayer({ data, isHighlighted = false }: { data: any; isHighlighted?: boolean }) {
   const groupRef = useRef<THREE.Group>(null);
+  const preset = AVATAR_35_LIST.find((a) => a.id === data.avatarType);
 
   useFrame((_, delta) => {
     if (!groupRef.current || !data.pos) return;
@@ -226,29 +279,26 @@ function RemotePlayer({ data, isHighlighted = false }: { data: any; isHighlighte
   return (
     <group ref={groupRef} position={data.pos || [0, 0, 5]}>
       <VoxelCharacter
-        shirtColor={data.color || "#3b82f6"}
-        pantsColor="#1e293b"
-        avatarType={data.avatarType || "boy"}
+        shirtColor={preset?.shirtColor || data.color || "#3b82f6"}
+        pantsColor={preset?.pantsColor || "#1e293b"}
+        skinColor={preset?.skinColor || "#fcd34d"}
+        headStyle={preset?.headStyle || "boy"}
         isMoving={data.isMoving || false}
       />
-      {(isHighlighted || data.isTalking) && (
+      {isHighlighted && (
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.06, 0]}>
           <ringGeometry args={[0.9, 1.35, 32]} />
-          <meshStandardMaterial
-            color={data.isTalking ? "#22c55e" : "#facc15"}
-            emissive={data.isTalking ? "#22c55e" : "#facc15"}
-            emissiveIntensity={0.7}
-          />
+          <meshStandardMaterial color="#facc15" emissive="#facc15" emissiveIntensity={0.7} />
         </mesh>
       )}
       <Text
         position={[0, 3.25, 0]}
         fontSize={isHighlighted ? 0.55 : 0.4}
-        color={data.isTalking ? "#4ade80" : isHighlighted ? "#facc15" : "#38bdf8"}
+        color={isHighlighted ? "#facc15" : "#38bdf8"}
         outlineWidth={0.05}
         outlineColor="black"
       >
-        {`${data.isTalking ? "🔊 " : ""}${data.name || "Teman"}`}
+        {data.name || "Teman"}
       </Text>
     </group>
   );
@@ -357,10 +407,7 @@ function SpectatorCameraController({
 
 function Player({
   playerName,
-  shirtColor,
-  avatarType,
-  isTalking,
-  localPosRef,
+  avatarPreset,
   socketRef,
   joyVector,
   jumpTrigger,
@@ -448,9 +495,6 @@ function Player({
     }
 
     const pos = groupRef.current.position;
-    if (localPosRef) {
-      localPosRef.current = [pos.x, pos.y, pos.z];
-    }
 
     let currentTileId: number | null = null;
     for (const tile of ARENA_TILES) {
@@ -490,8 +534,8 @@ function Player({
       });
     }
 
-    const camHeight = isMiniGame ? 13 : 9;
-    const camDist = isMiniGame ? 18.5 : 15;
+    const camHeight = isMiniGame ? 13.5 : 10;
+    const camDist = isMiniGame ? 19.5 : 16;
     state.camera.position.lerp(
       new THREE.Vector3(pos.x, Math.max(pos.y, 0) + camHeight, pos.z + camDist),
       0.1
@@ -520,25 +564,20 @@ function Player({
   return (
     <group ref={groupRef} position={[0, 0, 5]}>
       <VoxelCharacter
-        shirtColor={shirtColor}
-        pantsColor="#1e293b"
-        avatarType={avatarType}
+        shirtColor={avatarPreset.shirtColor}
+        pantsColor={avatarPreset.pantsColor}
+        skinColor={avatarPreset.skinColor}
+        headStyle={avatarPreset.headStyle}
         isMoving={moving}
       />
-      {isTalking && (
-        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.06, 0]}>
-          <ringGeometry args={[0.9, 1.35, 32]} />
-          <meshStandardMaterial color="#22c55e" emissive="#22c55e" emissiveIntensity={0.8} />
-        </mesh>
-      )}
       <Text
         position={[0, 3.25, 0]}
         fontSize={0.4}
-        color={isTalking ? "#4ade80" : "white"}
+        color="white"
         outlineWidth={0.05}
         outlineColor="black"
       >
-        {`${isTalking ? "🎙️ " : ""}${playerName}`}
+        {playerName}
       </Text>
     </group>
   );
@@ -786,31 +825,21 @@ function VirtualJoystick({ onMove }: { onMove: (vec: { x: number; y: number }) =
 export default function GameWorld({
   faseData,
   playerName,
-  shirtColor,
-  avatarType = "boy",
+  avatarPreset,
   isSpectator = false,
   isMuted = false,
   onBack,
-}: any) {
+}: {
+  faseData: any;
+  playerName: string;
+  avatarPreset: AvatarPreset;
+  isSpectator?: boolean;
+  isMuted?: boolean;
+  onBack: () => void;
+}) {
   const socketRef = useRef<Socket | null>(null);
-  const localPosRef = useRef<[number, number, number]>([0, 0, 5]);
   const [otherPlayers, setOtherPlayers] = useState<{ [id: string]: any }>({});
-  const otherPlayersRef = useRef<{ [id: string]: any }>({});
   const [onlineCount, setOnlineCount] = useState(isSpectator ? 0 : 1);
-  const [isPortraitMobile, setIsPortraitMobile] = useState(false);
-
-  // State Layar Penuh untuk Android & iPhone
-  const [isFullscreen, setIsFullscreen] = useState(false);
-  const [isIOSDevice, setIsIOSDevice] = useState(false);
-  const [showIOSFullscreenGuide, setShowIOSFullscreenGuide] = useState(false);
-
-  // Voice Chat
-  const [isTalking, setIsTalking] = useState(false);
-  const [micReady, setMicReady] = useState(false);
-  const [micError, setMicError] = useState<string | null>(null);
-  const localStreamRef = useRef<MediaStream | null>(null);
-  const peersRef = useRef<{ [peerId: string]: RTCPeerConnection }>({});
-  const audioElsRef = useRef<{ [peerId: string]: HTMLAudioElement }>({});
 
   const [cameraPreset, setCameraPreset] = useState<"overview" | "arena">("overview");
   const [followedPlayerId, setFollowedPlayerId] = useState<string | null>(null);
@@ -834,207 +863,6 @@ export default function GameWorld({
   const [mgStatusText, setMgStatusText] = useState("");
 
   useEffect(() => {
-    otherPlayersRef.current = otherPlayers;
-  }, [otherPlayers]);
-
-  useEffect(() => {
-    const ua = navigator.userAgent || "";
-    const ios = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-    setIsIOSDevice(ios);
-
-    const isStandalone =
-      (window.navigator as any).standalone === true ||
-      window.matchMedia("(display-mode: standalone)").matches;
-    if (isStandalone) setIsFullscreen(true);
-
-    const handleFsChange = () => {
-      const fsEl =
-        document.fullscreenElement ||
-        (document as any).webkitFullscreenElement ||
-        (document as any).msFullscreenElement;
-      setIsFullscreen(Boolean(fsEl) || isStandalone);
-    };
-
-    document.addEventListener("fullscreenchange", handleFsChange);
-    document.addEventListener("webkitfullscreenchange", handleFsChange);
-    return () => {
-      document.removeEventListener("fullscreenchange", handleFsChange);
-      document.removeEventListener("webkitfullscreenchange", handleFsChange);
-    };
-  }, []);
-
-  useEffect(() => {
-    const checkOrientation = () => {
-      const isMobile = window.innerWidth < 950;
-      const isPortrait = window.innerHeight > window.innerWidth;
-      setIsPortraitMobile(!isSpectator && isMobile && isPortrait);
-    };
-
-    checkOrientation();
-    window.addEventListener("resize", checkOrientation);
-    window.addEventListener("orientationchange", checkOrientation);
-
-    return () => {
-      window.removeEventListener("resize", checkOrientation);
-      window.removeEventListener("orientationchange", checkOrientation);
-    };
-  }, [isSpectator]);
-
-  const toggleMobileFullscreen = async () => {
-    const docEl = document.documentElement as any;
-    const doc = document as any;
-
-    const fsElement =
-      doc.fullscreenElement || doc.webkitFullscreenElement || doc.msFullscreenElement;
-
-    if (fsElement) {
-      try {
-        if (doc.exitFullscreen) await doc.exitFullscreen();
-        else if (doc.webkitExitFullscreen) await doc.webkitExitFullscreen();
-      } catch {}
-      return;
-    }
-
-    const requestFs =
-      docEl.requestFullscreen ||
-      docEl.webkitRequestFullscreen ||
-      docEl.msRequestFullscreen;
-
-    if (requestFs && !isIOSDevice) {
-      try {
-        await requestFs.call(docEl);
-        const orientation = (window.screen as any)?.orientation;
-        if (orientation && orientation.lock) {
-          await orientation.lock("landscape");
-        }
-        return;
-      } catch {}
-    }
-
-    window.scrollTo(0, 1);
-    setShowIOSFullscreenGuide(true);
-  };
-
-  useEffect(() => {
-    if (isSpectator) return;
-    const interval = setInterval(() => {
-      const [lx, , lz] = localPosRef.current;
-      Object.entries(audioElsRef.current).forEach(([peerId, audioEl]) => {
-        const peerPlayer = otherPlayersRef.current[peerId];
-        if (!peerPlayer || !peerPlayer.pos) {
-          audioEl.volume = 0.5;
-          return;
-        }
-        const dist = Math.hypot(lx - peerPlayer.pos[0], lz - peerPlayer.pos[2]);
-        const maxDist = 14;
-        const vol = Math.max(0, Math.min(1, 1 - dist / maxDist));
-        audioEl.volume = vol;
-      });
-    }, 250);
-
-    return () => clearInterval(interval);
-  }, [isSpectator]);
-
-  const createPeerConnection = (peerId: string, initiator: boolean) => {
-    if (peersRef.current[peerId]) return peersRef.current[peerId];
-
-    const pc = new RTCPeerConnection({
-      iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
-    });
-    peersRef.current[peerId] = pc;
-
-    if (localStreamRef.current) {
-      localStreamRef.current.getTracks().forEach((track) => {
-        pc.addTrack(track, localStreamRef.current!);
-      });
-    }
-
-    pc.onicecandidate = (e) => {
-      if (e.candidate && socketRef.current) {
-        socketRef.current.emit("voice-signal", {
-          to: peerId,
-          signal: { candidate: e.candidate },
-        });
-      }
-    };
-
-    pc.ontrack = (e) => {
-      let audio = audioElsRef.current[peerId];
-      if (!audio) {
-        audio = new Audio();
-        audio.autoplay = true;
-        audioElsRef.current[peerId] = audio;
-      }
-      audio.srcObject = e.streams[0];
-      audio.play().catch(() => {});
-    };
-
-    if (initiator) {
-      pc.createOffer()
-        .then((offer) => pc.setLocalDescription(offer))
-        .then(() => {
-          socketRef.current?.emit("voice-signal", {
-            to: peerId,
-            signal: { sdp: pc.localDescription },
-          });
-        })
-        .catch(() => {});
-    }
-
-    return pc;
-  };
-
-  const ensureMicrophone = async () => {
-    if (localStreamRef.current) return true;
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      stream.getAudioTracks().forEach((t) => (t.enabled = false));
-      localStreamRef.current = stream;
-      setMicReady(true);
-      setMicError(null);
-
-      Object.keys(otherPlayersRef.current).forEach((peerId) => {
-        const pc = peersRef.current[peerId];
-        if (pc) {
-          stream.getTracks().forEach((track) => pc.addTrack(track, stream));
-          pc.createOffer()
-            .then((offer) => pc.setLocalDescription(offer))
-            .then(() => {
-              socketRef.current?.emit("voice-signal", {
-                to: peerId,
-                signal: { sdp: pc.localDescription },
-              });
-            })
-            .catch(() => {});
-        } else {
-          createPeerConnection(peerId, true);
-        }
-      });
-
-      return true;
-    } catch {
-      setMicError("Izin mikrofon ditolak browser HP.");
-      return false;
-    }
-  };
-
-  const startTalking = async () => {
-    const ok = await ensureMicrophone();
-    if (!ok || !localStreamRef.current) return;
-    localStreamRef.current.getAudioTracks().forEach((t) => (t.enabled = true));
-    setIsTalking(true);
-    socketRef.current?.emit("talkingState", true);
-  };
-
-  const stopTalking = () => {
-    if (localStreamRef.current) {
-      localStreamRef.current.getAudioTracks().forEach((t) => (t.enabled = false));
-    }
-    setIsTalking(false);
-    socketRef.current?.emit("talkingState", false);
-  };
-
-  useEffect(() => {
     const serverHost = typeof window !== "undefined" ? window.location.hostname : "localhost";
     const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || `http://${serverHost}:4000`;
     const socket = io(socketUrl);
@@ -1045,8 +873,8 @@ export default function GameWorld({
         socket.emit("joinGame", {
           name: playerName,
           faseId: faseData.id,
-          color: shirtColor,
-          avatarType,
+          color: avatarPreset.shirtColor,
+          avatarType: avatarPreset.id,
         });
       }
     });
@@ -1059,18 +887,7 @@ export default function GameWorld({
           count++;
           if (id !== socket.id) {
             filtered[id] = p;
-            if (!isSpectator && !peersRef.current[id]) {
-              createPeerConnection(id, true);
-            }
           }
-        }
-      });
-
-      Object.keys(peersRef.current).forEach((peerId) => {
-        if (!filtered[peerId]) {
-          peersRef.current[peerId].close();
-          delete peersRef.current[peerId];
-          delete audioElsRef.current[peerId];
         }
       });
 
@@ -1087,43 +904,10 @@ export default function GameWorld({
       }
     });
 
-    socket.on("playerTalking", ({ id, isTalking: talking }: { id: string; isTalking: boolean }) => {
-      setOtherPlayers((prev) => {
-        if (!prev[id]) return prev;
-        return {
-          ...prev,
-          [id]: { ...prev[id], isTalking: talking },
-        };
-      });
-    });
-
-    socket.on("voice-signal", async ({ from, signal }: { from: string; signal: any }) => {
-      if (isSpectator) return;
-      const pc = createPeerConnection(from, false);
-      try {
-        if (signal.sdp) {
-          await pc.setRemoteDescription(new RTCSessionDescription(signal.sdp));
-          if (signal.sdp.type === "offer") {
-            const answer = await pc.createAnswer();
-            await pc.setLocalDescription(answer);
-            socket.emit("voice-signal", {
-              to: from,
-              signal: { sdp: pc.localDescription },
-            });
-          }
-        } else if (signal.candidate) {
-          await pc.addIceCandidate(new RTCIceCandidate(signal.candidate));
-        }
-      } catch {}
-    });
-
     return () => {
-      localStreamRef.current?.getTracks().forEach((t) => t.stop());
-      Object.values(peersRef.current).forEach((pc) => pc.close());
-      peersRef.current = {};
       socket.disconnect();
     };
-  }, [faseData.id, playerName, shirtColor, avatarType, isSpectator]);
+  }, [faseData.id, playerName, avatarPreset, isSpectator]);
 
   const studentList = useMemo(() => Object.values(otherPlayers), [otherPlayers]);
   const followedPlayer = followedPlayerId ? otherPlayers[followedPlayerId] || null : null;
@@ -1225,96 +1009,29 @@ export default function GameWorld({
     <div className="relative w-full h-[100dvh] overflow-hidden select-none">
       <CheerfulBGM muted={isMuted} />
 
-      {/* Peringatan Putar HP ke Landscape */}
-      {isPortraitMobile && (
-        <div className="fixed inset-0 z-50 bg-slate-950/95 text-white flex flex-col items-center justify-center p-6 text-center backdrop-blur-md">
-          <div className="text-5xl mb-4 animate-bounce">📱🔄</div>
-          <h2 className="text-xl font-extrabold text-yellow-400 mb-2">
-            Putar HP ke Mode Landscape
-          </h2>
-          <p className="text-sm text-slate-300 max-w-xs mb-5 leading-relaxed">
-            Miringkan layar HP kamu ke posisi mendatar agar arena permainan dan tombol kontrol terlihat luas.
-          </p>
-          <button
-            onClick={toggleMobileFullscreen}
-            className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold px-5 py-2.5 rounded-full text-sm shadow-lg"
-          >
-            Aktifkan Layar Penuh Landscape
-          </button>
-        </div>
-      )}
-
-      {/* Panduan Layar Penuh Khusus iPhone Safari */}
-      {showIOSFullscreenGuide && (
-        <div className="fixed inset-0 z-50 bg-black/80 text-white flex items-center justify-center p-4 backdrop-blur-sm">
-          <div className="bg-slate-900 border-2 border-yellow-400 rounded-2xl p-5 max-w-md w-full shadow-2xl">
-            <div className="flex justify-between items-center mb-2">
-              <h3 className="font-extrabold text-yellow-400 text-base">
-                📱 Layar Penuh di iPhone (Safari)
-              </h3>
-              <button
-                onClick={() => setShowIOSFullscreenGuide(false)}
-                className="text-slate-400 hover:text-white font-bold text-lg"
-              >
-                ✕
-              </button>
-            </div>
-            <p className="text-xs text-slate-300 mb-3 leading-relaxed">
-              Safari di iPhone mengunci mode layar penuh lewat menu browser. Pilih salah satu cara cepat berikut:
-            </p>
-            <div className="space-y-2.5 text-xs bg-slate-800/90 p-3.5 rounded-xl border border-slate-700">
-              <p>
-                <b className="text-emerald-400">Cara 1 (Instan 1 Detik):</b> Ketuk ikon{" "}
-                <b className="bg-slate-700 px-1.5 py-0.5 rounded">☰ / AA</b> di sebelah kiri kolom alamat atas Safari → pilih{" "}
-                <b>Sembunyikan Bar Alat</b> (<i>Hide Toolbar</i>).
-              </p>
-              <p>
-                <b className="text-sky-400">Cara 2 (Layar Penuh Total):</b> Ketuk ikon{" "}
-                <b className="bg-slate-700 px-1.5 py-0.5 rounded">Bagikan (Kotak Panah Atas)</b> → pilih{" "}
-                <b>Tambah ke Layar Utama</b> (<i>Add to Home Screen</i>), lalu buka ikon <b>PJOKVerse SD</b> dari layar utama iPhone.
-              </p>
-            </div>
-            <button
-              onClick={() => setShowIOSFullscreenGuide(false)}
-              className="mt-4 w-full bg-yellow-400 hover:bg-yellow-300 text-slate-950 font-extrabold py-2 rounded-xl text-xs"
-            >
-              Mengerti, Kembali ke Permainan
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* HUD Atas Ramping (Tanpa Tombol Musik) */}
+      {/* HUD Atas Ramping untuk Mode Portrait & Desktop */}
       <div
         style={{
-          paddingTop: "max(0.35rem, env(safe-area-inset-top))",
-          paddingLeft: "max(0.6rem, env(safe-area-inset-left))",
-          paddingRight: "max(0.6rem, env(safe-area-inset-right))",
+          paddingTop: "max(0.5rem, env(safe-area-inset-top))",
+          paddingLeft: "max(0.75rem, env(safe-area-inset-left))",
+          paddingRight: "max(0.75rem, env(safe-area-inset-right))",
         }}
         className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between pointer-events-none gap-2"
       >
-        {/* Tombol Ramping Pojok Kiri Atas */}
-        <div className="flex items-center gap-1.5 bg-slate-900/85 text-white px-2 py-1 rounded-xl border border-slate-700 shadow pointer-events-auto">
+        <div className="flex items-center gap-1.5 bg-slate-900/90 text-white px-2.5 py-1.5 rounded-xl border border-slate-700 shadow pointer-events-auto">
           <button
             onClick={onBack}
-            title="Ganti Fase"
-            className="bg-red-600 hover:bg-red-500 px-2 py-1 rounded-lg text-[10px] md:text-xs font-extrabold"
+            className="bg-red-600 hover:bg-red-500 px-2.5 py-1 rounded-lg text-xs font-extrabold"
           >
             ← Fase
           </button>
-          <button
-            onClick={toggleMobileFullscreen}
-            title="Layar Penuh"
-            className="bg-indigo-600 hover:bg-indigo-500 px-2 py-1 rounded-lg text-[10px] md:text-xs font-extrabold border border-indigo-400"
-          >
-            {isFullscreen ? "🗗" : "⛶"}
-          </button>
+          <span className="text-xs font-bold text-yellow-400 truncate max-w-[110px] sm:max-w-none">
+            {faseData.nama_fase}
+          </span>
         </div>
 
-        {/* Info Singkat Pojok Kanan Atas */}
         {!isSpectator ? (
-          <div className="flex items-center gap-2 bg-slate-900/85 text-white px-2.5 py-1 rounded-xl border border-slate-700 shadow pointer-events-auto text-[10px] md:text-xs">
-            <span className="font-bold text-yellow-400 hidden sm:inline">{faseData.nama_dunia}</span>
+          <div className="flex items-center gap-2 bg-slate-900/90 text-white px-3 py-1.5 rounded-xl border border-slate-700 shadow pointer-events-auto text-xs">
             <span className="text-emerald-400 font-extrabold">{score} XP</span>
             <span className="text-sky-400 font-bold">👥 {onlineCount}</span>
           </div>
@@ -1355,7 +1072,7 @@ export default function GameWorld({
 
       {/* Daftar Siswa Layar Pemantau Guru */}
       {isSpectator && (
-        <div className="absolute top-14 right-4 z-10 w-64 max-h-[75vh] overflow-y-auto bg-slate-900/90 backdrop-blur-md text-white p-3.5 rounded-2xl border border-slate-700 shadow-2xl">
+        <div className="absolute top-16 right-3 z-10 w-60 max-h-[75vh] overflow-y-auto bg-slate-900/90 backdrop-blur-md text-white p-3.5 rounded-2xl border border-slate-700 shadow-2xl">
           <div className="flex items-center justify-between border-b border-slate-700 pb-2 mb-2.5">
             <span className="text-xs font-extrabold text-yellow-400 uppercase tracking-wide">
               📋 Daftar Siswa ({studentList.length})
@@ -1394,10 +1111,7 @@ export default function GameWorld({
                         style={{ backgroundColor: student.color || "#3b82f6" }}
                         className="w-3 h-3 rounded-full shrink-0 border border-white"
                       />
-                      <span className="font-bold truncate">
-                        {student.isTalking ? "🔊 " : ""}
-                        {student.name || "Siswa"}
-                      </span>
+                      <span className="font-bold truncate">{student.name || "Siswa"}</span>
                     </div>
                     {tileOn ? (
                       <span
@@ -1419,13 +1133,13 @@ export default function GameWorld({
         </div>
       )}
 
-      {/* Panel Soal Mini-Game: Jawaban Utuh Tidak Terpotong & Tidak Menutupi Karakter */}
+      {/* Panel Soal Mini-Game: Jawaban Utuh Tidak Terpotong */}
       {!isSpectator && miniGameActive && currentMgQuestion && (
         <div
-          style={{ top: "max(2.6rem, calc(env(safe-area-inset-top) + 2.2rem))" }}
-          className="fixed left-1/2 -translate-x-1/2 z-20 w-[94%] max-w-2xl bg-slate-950/75 backdrop-blur-sm text-white px-3 py-2 rounded-xl border border-yellow-400/90 shadow-lg pointer-events-auto"
+          style={{ top: "max(3.1rem, calc(env(safe-area-inset-top) + 2.7rem))" }}
+          className="fixed left-1/2 -translate-x-1/2 z-20 w-[94%] max-w-xl bg-slate-950/80 backdrop-blur-sm text-white px-3 py-2.5 rounded-2xl border border-yellow-400/90 shadow-lg pointer-events-auto"
         >
-          <div className="flex justify-between items-center gap-2 mb-1">
+          <div className="flex justify-between items-center gap-2 mb-1.5">
             <div className="flex items-center gap-1.5">
               <span className="bg-yellow-400 text-slate-950 text-[11px] font-extrabold px-2 py-0.5 rounded-full">
                 ⏱️ {mgTimeLeft}d
@@ -1447,16 +1161,16 @@ export default function GameWorld({
             </button>
           </div>
 
-          <p className="font-bold text-xs md:text-sm mb-1.5 text-center leading-snug">
+          <p className="font-bold text-xs md:text-sm mb-2 text-center leading-snug">
             {currentMgQuestion.pertanyaan}
           </p>
 
-          <div className="grid grid-cols-2 gap-1.5 text-[11px] md:text-xs font-bold">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-[11px] md:text-xs font-bold">
             {currentMgQuestion.pilihan.map((opsi: string, i: number) => (
               <div
                 key={i}
                 style={{ backgroundColor: ARENA_TILES[i]?.color || "#334155" }}
-                className={`px-2 py-1 rounded-lg text-white shadow flex items-start gap-1.5 leading-tight ${
+                className={`px-2.5 py-1.5 rounded-lg text-white shadow flex items-start gap-1.5 leading-snug ${
                   standingTile === i ? "ring-2 ring-white scale-[1.01]" : "opacity-95"
                 }`}
               >
@@ -1470,13 +1184,13 @@ export default function GameWorld({
         </div>
       )}
 
-      {/* Kontrol Layar Sentuh dengan Safe-Area iPhone & Android */}
+      {/* Kontrol Layar Sentuh Mode Portrait (Tanpa Mikrofon) */}
       {!isSpectator && !showModal && (
         <>
           <div
             style={{
-              bottom: "max(1.25rem, env(safe-area-inset-bottom))",
-              left: "max(1.5rem, env(safe-area-inset-left))",
+              bottom: "max(1.5rem, env(safe-area-inset-bottom))",
+              left: "max(1.25rem, env(safe-area-inset-left))",
             }}
             className="absolute z-10"
           >
@@ -1485,32 +1199,11 @@ export default function GameWorld({
 
           <div
             style={{
-              bottom: "max(1.5rem, env(safe-area-inset-bottom))",
-              right: "max(1.5rem, env(safe-area-inset-right))",
+              bottom: "max(1.75rem, env(safe-area-inset-bottom))",
+              right: "max(1.25rem, env(safe-area-inset-right))",
             }}
-            className="absolute z-10 flex flex-col items-end gap-2.5"
+            className="absolute z-10"
           >
-            {micError && (
-              <span className="bg-red-600 text-white text-[10px] font-bold px-2.5 py-1 rounded-full shadow">
-                {micError}
-              </span>
-            )}
-            <button
-              onPointerDown={(e) => {
-                e.currentTarget.setPointerCapture(e.pointerId);
-                startTalking();
-              }}
-              onPointerUp={stopTalking}
-              onPointerCancel={stopTalking}
-              className={`px-3.5 py-2 rounded-full font-extrabold text-xs shadow-xl border-2 border-white touch-none transition ${
-                isTalking
-                  ? "bg-red-500 text-white scale-105 animate-pulse"
-                  : "bg-sky-500/95 hover:bg-sky-400 text-slate-950"
-              }`}
-            >
-              {isTalking ? "🔴 Bicara..." : micReady ? "🎙️ Tahan Bicara" : "🎙️ Aktifkan Mic"}
-            </button>
-
             <button
               onPointerDown={() => setJumpTrigger((n) => n + 1)}
               className="w-20 h-20 rounded-full bg-emerald-500/90 active:bg-emerald-400 border-4 border-white text-slate-950 font-extrabold text-sm shadow-xl touch-none"
@@ -1522,18 +1215,18 @@ export default function GameWorld({
       )}
 
       {!isSpectator && nearPortal && !miniGameActive && !showModal && (
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10">
+        <div className="absolute bottom-36 left-1/2 -translate-x-1/2 z-10 w-[85%] max-w-xs text-center">
           <button
             onClick={startMiniGame}
-            className="bg-amber-400 hover:bg-amber-300 text-slate-950 font-extrabold px-5 py-2.5 rounded-full shadow-2xl border-2 border-white animate-bounce text-xs md:text-sm"
+            className="w-full bg-amber-400 hover:bg-amber-300 text-slate-950 font-extrabold px-4 py-3 rounded-full shadow-2xl border-2 border-white animate-bounce text-xs md:text-sm"
           >
-            🏆 Mulai Lomba Jatuh Bangun 4 Warna!
+            🏆 Mulai Lomba Jatuh Bangun!
           </button>
         </div>
       )}
 
       {!isSpectator && nearCoach && !miniGameActive && !showModal && (
-        <div className="absolute top-14 left-1/2 -translate-x-1/2 z-10 w-[90%] max-w-lg bg-slate-900/95 text-white p-3.5 rounded-2xl border-2 border-yellow-400 shadow-2xl">
+        <div className="absolute top-16 left-1/2 -translate-x-1/2 z-10 w-[92%] max-w-lg bg-slate-900/95 text-white p-3.5 rounded-2xl border-2 border-yellow-400 shadow-2xl">
           <div className="flex justify-between items-center mb-1">
             <span className="font-bold text-yellow-400 text-sm md:text-base">🧢 {pjokData.npc_utama.nama}</span>
             <button
@@ -1551,14 +1244,14 @@ export default function GameWorld({
       )}
 
       {!isSpectator && activeBuilding && !miniGameActive && !showModal && (
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10">
+        <div className="absolute bottom-36 left-1/2 -translate-x-1/2 z-10 w-[85%] max-w-xs text-center">
           <button
             onClick={() => {
               setShowModal(true);
               setQuizIndex(0);
               setFeedback(null);
             }}
-            className="bg-yellow-400 hover:bg-yellow-300 text-slate-950 font-extrabold px-5 py-2.5 rounded-full shadow-2xl border-2 border-white animate-bounce text-xs md:text-sm"
+            className="w-full bg-yellow-400 hover:bg-yellow-300 text-slate-950 font-extrabold px-4 py-3 rounded-full shadow-2xl border-2 border-white animate-bounce text-xs md:text-sm"
           >
             🚪 Masuk: {activeBuilding.nama_gedung}
           </button>
@@ -1567,7 +1260,7 @@ export default function GameWorld({
 
       {!isSpectator && showModal && activeBuilding && (
         <div className="absolute inset-0 z-20 bg-black/75 flex items-center justify-center p-4">
-          <div className="bg-white text-slate-900 max-w-2xl w-full rounded-2xl p-5 shadow-2xl max-h-[90dvh] overflow-y-auto">
+          <div className="bg-white text-slate-900 max-w-2xl w-full rounded-2xl p-5 shadow-2xl max-h-[88dvh] overflow-y-auto">
             <div className="flex justify-between items-start border-b pb-3 mb-3">
               <div>
                 <h2 className="text-lg md:text-xl font-extrabold text-blue-700">{activeBuilding.nama_gedung}</h2>
@@ -1625,7 +1318,7 @@ export default function GameWorld({
         </div>
       )}
 
-      <Canvas shadows camera={{ position: [0, 9, 15], fov: 50 }}>
+      <Canvas shadows camera={{ position: [0, 10, 16], fov: 50 }}>
         <Sky sunPosition={[100, 30, 100]} />
         <ambientLight intensity={0.65} />
         <directionalLight position={[15, 25, 15]} intensity={1.2} castShadow />
@@ -1645,10 +1338,7 @@ export default function GameWorld({
         ) : (
           <Player
             playerName={playerName}
-            shirtColor={shirtColor}
-            avatarType={avatarType}
-            isTalking={isTalking}
-            localPosRef={localPosRef}
+            avatarPreset={avatarPreset}
             socketRef={socketRef}
             joyVector={joyVector}
             jumpTrigger={jumpTrigger}
