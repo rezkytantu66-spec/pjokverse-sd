@@ -54,7 +54,7 @@ function CheerfulBGM({ muted }: { muted: boolean }) {
       osc.type = "triangle";
       osc.frequency.setValueAtTime(melody[step % melody.length], ctx.currentTime);
 
-      gain.gain.setValueAtTime(0.035, ctx.currentTime);
+      gain.gain.setValueAtTime(0.03, ctx.currentTime);
       gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.28);
 
       osc.connect(gain);
@@ -231,20 +231,24 @@ function RemotePlayer({ data, isHighlighted = false }: { data: any; isHighlighte
         avatarType={data.avatarType || "boy"}
         isMoving={data.isMoving || false}
       />
-      {isHighlighted && (
+      {(isHighlighted || data.isTalking) && (
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.06, 0]}>
           <ringGeometry args={[0.9, 1.35, 32]} />
-          <meshStandardMaterial color="#facc15" emissive="#facc15" emissiveIntensity={0.6} />
+          <meshStandardMaterial
+            color={data.isTalking ? "#22c55e" : "#facc15"}
+            emissive={data.isTalking ? "#22c55e" : "#facc15"}
+            emissiveIntensity={0.7}
+          />
         </mesh>
       )}
       <Text
         position={[0, 3.25, 0]}
         fontSize={isHighlighted ? 0.55 : 0.4}
-        color={isHighlighted ? "#facc15" : "#38bdf8"}
+        color={data.isTalking ? "#4ade80" : isHighlighted ? "#facc15" : "#38bdf8"}
         outlineWidth={0.05}
         outlineColor="black"
       >
-        {data.name || "Teman"}
+        {`${data.isTalking ? "🔊 " : ""}${data.name || "Teman"}`}
       </Text>
     </group>
   );
@@ -355,6 +359,8 @@ function Player({
   playerName,
   shirtColor,
   avatarType,
+  isTalking,
+  localPosRef,
   socketRef,
   joyVector,
   jumpTrigger,
@@ -441,6 +447,9 @@ function Player({
     }
 
     const pos = groupRef.current.position;
+    if (localPosRef) {
+      localPosRef.current = [pos.x, pos.y, pos.z];
+    }
 
     let currentTileId: number | null = null;
     for (const tile of ARENA_TILES) {
@@ -513,8 +522,20 @@ function Player({
         avatarType={avatarType}
         isMoving={moving}
       />
-      <Text position={[0, 3.25, 0]} fontSize={0.4} color="white" outlineWidth={0.05} outlineColor="black">
-        {playerName}
+      {isTalking && (
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.06, 0]}>
+          <ringGeometry args={[0.9, 1.35, 32]} />
+          <meshStandardMaterial color="#22c55e" emissive="#22c55e" emissiveIntensity={0.8} />
+        </mesh>
+      )}
+      <Text
+        position={[0, 3.25, 0]}
+        fontSize={0.4}
+        color={isTalking ? "#4ade80" : "white"}
+        outlineWidth={0.05}
+        outlineColor="black"
+      >
+        {`${isTalking ? "🎙️ " : ""}${playerName}`}
       </Text>
     </group>
   );
@@ -768,10 +789,20 @@ export default function GameWorld({
   onBack,
 }: any) {
   const socketRef = useRef<Socket | null>(null);
+  const localPosRef = useRef<[number, number, number]>([0, 0, 5]);
   const [otherPlayers, setOtherPlayers] = useState<{ [id: string]: any }>({});
+  const otherPlayersRef = useRef<{ [id: string]: any }>({});
   const [onlineCount, setOnlineCount] = useState(isSpectator ? 0 : 1);
   const [isPortraitMobile, setIsPortraitMobile] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
+
+  // Voice Chat (Push-to-Talk + Proximity Audio)
+  const [isTalking, setIsTalking] = useState(false);
+  const [micReady, setMicReady] = useState(false);
+  const [micError, setMicError] = useState<string | null>(null);
+  const localStreamRef = useRef<MediaStream | null>(null);
+  const peersRef = useRef<{ [peerId: string]: RTCPeerConnection }>({});
+  const audioElsRef = useRef<{ [peerId: string]: HTMLAudioElement }>({});
 
   const [cameraPreset, setCameraPreset] = useState<"overview" | "arena">("overview");
   const [followedPlayerId, setFollowedPlayerId] = useState<string | null>(null);
@@ -793,6 +824,10 @@ export default function GameWorld({
   const [mgTimeLeft, setMgTimeLeft] = useState(8);
   const [mgPhase, setMgPhase] = useState<"running" | "dropped">("running");
   const [mgStatusText, setMgStatusText] = useState("");
+
+  useEffect(() => {
+    otherPlayersRef.current = otherPlayers;
+  }, [otherPlayers]);
 
   useEffect(() => {
     const checkOrientation = () => {
@@ -823,6 +858,129 @@ export default function GameWorld({
     } catch {}
   };
 
+  // Mengatur volume suara teman berdasarkan jarak karakter (Proximity Voice)
+  useEffect(() => {
+    if (isSpectator) return;
+    const interval = setInterval(() => {
+      const [lx, , lz] = localPosRef.current;
+      Object.entries(audioElsRef.current).forEach(([peerId, audioEl]) => {
+        const peerPlayer = otherPlayersRef.current[peerId];
+        if (!peerPlayer || !peerPlayer.pos) {
+          audioEl.volume = 0.5;
+          return;
+        }
+        const dist = Math.hypot(lx - peerPlayer.pos[0], lz - peerPlayer.pos[2]);
+        const maxDist = 14; // Terdengar dalam radius 14 meter di lapangan
+        const vol = Math.max(0, Math.min(1, 1 - dist / maxDist));
+        audioEl.volume = vol;
+      });
+    }, 250);
+
+    return () => clearInterval(interval);
+  }, [isSpectator]);
+
+  const createPeerConnection = (peerId: string, initiator: boolean) => {
+    if (peersRef.current[peerId]) return peersRef.current[peerId];
+
+    const pc = new RTCPeerConnection({
+      iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
+    });
+    peersRef.current[peerId] = pc;
+
+    if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach((track) => {
+        pc.addTrack(track, localStreamRef.current!);
+      });
+    }
+
+    pc.onicecandidate = (e) => {
+      if (e.candidate && socketRef.current) {
+        socketRef.current.emit("voice-signal", {
+          to: peerId,
+          signal: { candidate: e.candidate },
+        });
+      }
+    };
+
+    pc.ontrack = (e) => {
+      let audio = audioElsRef.current[peerId];
+      if (!audio) {
+        audio = new Audio();
+        audio.autoplay = true;
+        audioElsRef.current[peerId] = audio;
+      }
+      audio.srcObject = e.streams[0];
+      audio.play().catch(() => {});
+    };
+
+    if (initiator) {
+      pc.createOffer()
+        .then((offer) => pc.setLocalDescription(offer))
+        .then(() => {
+          socketRef.current?.emit("voice-signal", {
+            to: peerId,
+            signal: { sdp: pc.localDescription },
+          });
+        })
+        .catch(() => {});
+    }
+
+    return pc;
+  };
+
+  // Mengaktifkan mikrofon saat pertama kali tombol bicara ditekan
+  const ensureMicrophone = async () => {
+    if (localStreamRef.current) return true;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // Default mute sampai tombol ditahan
+      stream.getAudioTracks().forEach((t) => (t.enabled = false));
+      localStreamRef.current = stream;
+      setMicReady(true);
+      setMicError(null);
+
+      // Sambungkan ke semua teman yang sudah ada di kelas
+      Object.keys(otherPlayersRef.current).forEach((peerId) => {
+        const pc = peersRef.current[peerId];
+        if (pc) {
+          stream.getTracks().forEach((track) => pc.addTrack(track, stream));
+          pc.createOffer()
+            .then((offer) => pc.setLocalDescription(offer))
+            .then(() => {
+              socketRef.current?.emit("voice-signal", {
+                to: peerId,
+                signal: { sdp: pc.localDescription },
+              });
+            })
+            .catch(() => {});
+        } else {
+          createPeerConnection(peerId, true);
+        }
+      });
+
+      return true;
+    } catch {
+      setMicError("Izin mikrofon ditolak browser HP.");
+      return false;
+    }
+  };
+
+  const startTalking = async () => {
+    const ok = await ensureMicrophone();
+    if (!ok || !localStreamRef.current) return;
+    localStreamRef.current.getAudioTracks().forEach((t) => (t.enabled = true));
+    setIsTalking(true);
+    socketRef.current?.emit("talkingState", true);
+  };
+
+  const stopTalking = () => {
+    if (localStreamRef.current) {
+      localStreamRef.current.getAudioTracks().forEach((t) => (t.enabled = false));
+    }
+    setIsTalking(false);
+    socketRef.current?.emit("talkingState", false);
+  };
+
   useEffect(() => {
     const serverHost = typeof window !== "undefined" ? window.location.hostname : "localhost";
     const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || `http://${serverHost}:4000`;
@@ -846,9 +1004,24 @@ export default function GameWorld({
       Object.entries(allPlayers).forEach(([id, p]) => {
         if (p.faseId === faseData.id) {
           count++;
-          if (id !== socket.id) filtered[id] = p;
+          if (id !== socket.id) {
+            filtered[id] = p;
+            if (!isSpectator && !peersRef.current[id]) {
+              createPeerConnection(id, true);
+            }
+          }
         }
       });
+
+      // Bersihkan koneksi peer yang sudah keluar
+      Object.keys(peersRef.current).forEach((peerId) => {
+        if (!filtered[peerId]) {
+          peersRef.current[peerId].close();
+          delete peersRef.current[peerId];
+          delete audioElsRef.current[peerId];
+        }
+      });
+
       setOtherPlayers(filtered);
       setOnlineCount(isSpectator ? count : Math.max(count, 1));
     });
@@ -862,7 +1035,40 @@ export default function GameWorld({
       }
     });
 
+    socket.on("playerTalking", ({ id, isTalking: talking }: { id: string; isTalking: boolean }) => {
+      setOtherPlayers((prev) => {
+        if (!prev[id]) return prev;
+        return {
+          ...prev,
+          [id]: { ...prev[id], isTalking: talking },
+        };
+      });
+    });
+
+    socket.on("voice-signal", async ({ from, signal }: { from: string; signal: any }) => {
+      if (isSpectator) return;
+      const pc = createPeerConnection(from, false);
+      try {
+        if (signal.sdp) {
+          await pc.setRemoteDescription(new RTCSessionDescription(signal.sdp));
+          if (signal.sdp.type === "offer") {
+            const answer = await pc.createAnswer();
+            await pc.setLocalDescription(answer);
+            socket.emit("voice-signal", {
+              to: from,
+              signal: { sdp: pc.localDescription },
+            });
+          }
+        } else if (signal.candidate) {
+          await pc.addIceCandidate(new RTCIceCandidate(signal.candidate));
+        }
+      } catch {}
+    });
+
     return () => {
+      localStreamRef.current?.getTracks().forEach((t) => t.stop());
+      Object.values(peersRef.current).forEach((pc) => pc.close());
+      peersRef.current = {};
       socket.disconnect();
     };
   }, [faseData.id, playerName, shirtColor, avatarType, isSpectator]);
@@ -987,6 +1193,7 @@ export default function GameWorld({
         </div>
       )}
 
+      {/* HUD Atas */}
       <div className="absolute top-3 left-4 right-4 z-10 flex items-start justify-between pointer-events-none gap-3">
         <div className="flex flex-wrap items-center gap-2.5 bg-slate-900/90 text-white px-4 py-2 rounded-2xl border border-slate-700 shadow-lg pointer-events-auto">
           <button onClick={onBack} className="bg-red-600 hover:bg-red-500 px-3 py-1.5 rounded-xl text-xs font-bold">
@@ -1057,6 +1264,7 @@ export default function GameWorld({
         )}
       </div>
 
+      {/* Daftar Siswa Layar Pemantau Guru */}
       {isSpectator && (
         <div className="absolute top-20 right-4 z-10 w-64 max-h-[75vh] overflow-y-auto bg-slate-900/90 backdrop-blur-md text-white p-3.5 rounded-2xl border border-slate-700 shadow-2xl">
           <div className="flex items-center justify-between border-b border-slate-700 pb-2 mb-2.5">
@@ -1097,7 +1305,10 @@ export default function GameWorld({
                         style={{ backgroundColor: student.color || "#3b82f6" }}
                         className="w-3 h-3 rounded-full shrink-0 border border-white"
                       />
-                      <span className="font-bold truncate">{student.name || "Siswa"}</span>
+                      <span className="font-bold truncate">
+                        {student.isTalking ? "🔊 " : ""}
+                        {student.name || "Siswa"}
+                      </span>
                     </div>
                     {tileOn ? (
                       <span
@@ -1116,13 +1327,10 @@ export default function GameWorld({
               })}
             </div>
           )}
-
-          <p className="text-[10px] text-slate-400 mt-3 pt-2 border-t border-slate-800 leading-relaxed">
-            💡 Klik nama siswa untuk menyorot di layar, atau gunakan <b>WASD / Panah</b> & <b>Q/E</b> untuk menggeser kamera.
-          </p>
         </div>
       )}
 
+      {/* Panel Soal Mini-Game */}
       {!isSpectator && miniGameActive && currentMgQuestion && (
         <div className="absolute top-16 left-1/2 -translate-x-1/2 z-20 w-[92%] max-w-2xl bg-slate-950/95 text-white p-3 md:p-4 rounded-2xl border-2 border-yellow-400 shadow-2xl">
           <div className="flex justify-between items-center mb-1.5">
@@ -1157,12 +1365,35 @@ export default function GameWorld({
         </div>
       )}
 
+      {/* Kontrol Layar Sentuh + Tombol Mikrofon Push-to-Talk */}
       {!isSpectator && !showModal && (
         <>
           <div className="absolute bottom-5 left-8 z-10">
             <VirtualJoystick onMove={setJoyVector} />
           </div>
-          <div className="absolute bottom-7 right-8 z-10">
+
+          <div className="absolute bottom-7 right-8 z-10 flex flex-col items-center gap-3">
+            {micError && (
+              <span className="bg-red-600 text-white text-[10px] font-bold px-2.5 py-1 rounded-full shadow">
+                {micError}
+              </span>
+            )}
+            <button
+              onPointerDown={(e) => {
+                e.currentTarget.setPointerCapture(e.pointerId);
+                startTalking();
+              }}
+              onPointerUp={stopTalking}
+              onPointerCancel={stopTalking}
+              className={`px-4 py-2.5 rounded-full font-extrabold text-xs shadow-xl border-2 border-white touch-none transition ${
+                isTalking
+                  ? "bg-red-500 text-white scale-110 animate-pulse"
+                  : "bg-sky-500/95 hover:bg-sky-400 text-slate-950"
+              }`}
+            >
+              {isTalking ? "🔴 Sedang Bicara..." : micReady ? "🎙️ Tahan Bicara" : "🎙️ Aktifkan Mic"}
+            </button>
+
             <button
               onPointerDown={() => setJumpTrigger((n) => n + 1)}
               className="w-20 h-20 rounded-full bg-emerald-500/90 active:bg-emerald-400 border-4 border-white text-slate-950 font-extrabold text-sm shadow-xl touch-none"
@@ -1299,6 +1530,8 @@ export default function GameWorld({
             playerName={playerName}
             shirtColor={shirtColor}
             avatarType={avatarType}
+            isTalking={isTalking}
+            localPosRef={localPosRef}
             socketRef={socketRef}
             joyVector={joyVector}
             jumpTrigger={jumpTrigger}
