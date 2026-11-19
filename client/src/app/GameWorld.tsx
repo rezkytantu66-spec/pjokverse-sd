@@ -14,6 +14,15 @@ const ARENA_TILES = [
   { id: 3, label: "D", color: "#22c55e", pos: [4.2, 0, 22.2] as [number, number, number] },
 ];
 
+const BUILDING_COLORS = [
+  "#f97316",
+  "#8b5cf6",
+  "#0ea5e9",
+  "#10b981",
+  "#ec4899",
+  "#eab308",
+];
+
 function getStandingTileLabel(pos?: [number, number, number]) {
   if (!pos) return null;
   for (const tile of ARENA_TILES) {
@@ -21,6 +30,47 @@ function getStandingTileLabel(pos?: [number, number, number]) {
       return tile;
     }
   }
+  return null;
+}
+
+function CheerfulBGM({ muted }: { muted: boolean }) {
+  useEffect(() => {
+    if (muted) return;
+    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioCtx) return;
+
+    const ctx = new AudioCtx();
+    const melody = [
+      523.25, 659.25, 783.99, 659.25, 880.0, 783.99, 659.25, 587.33,
+      523.25, 587.33, 659.25, 783.99, 659.25, 587.33, 523.25, 659.25,
+    ];
+    let step = 0;
+
+    const interval = setInterval(() => {
+      if (ctx.state === "suspended") ctx.resume();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.type = "triangle";
+      osc.frequency.setValueAtTime(melody[step % melody.length], ctx.currentTime);
+
+      gain.gain.setValueAtTime(0.035, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.28);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start();
+      osc.stop(ctx.currentTime + 0.3);
+      step++;
+    }, 360);
+
+    return () => {
+      clearInterval(interval);
+      ctx.close();
+    };
+  }, [muted]);
+
   return null;
 }
 
@@ -616,6 +666,7 @@ export default function GameWorld({
   const [otherPlayers, setOtherPlayers] = useState<{ [id: string]: any }>({});
   const [onlineCount, setOnlineCount] = useState(isSpectator ? 0 : 1);
   const [isPortraitMobile, setIsPortraitMobile] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
 
   const [cameraPreset, setCameraPreset] = useState<"overview" | "arena">("overview");
   const [followedPlayerId, setFollowedPlayerId] = useState<string | null>(null);
@@ -811,6 +862,8 @@ export default function GameWorld({
 
   return (
     <div className="relative w-full h-[100dvh] overflow-hidden select-none">
+      <CheerfulBGM muted={isMuted} />
+
       {isPortraitMobile && (
         <div className="fixed inset-0 z-50 bg-slate-950/95 text-white flex flex-col items-center justify-center p-6 text-center backdrop-blur-md">
           <div className="text-5xl mb-4 animate-bounce">📱🔄</div>
@@ -831,9 +884,15 @@ export default function GameWorld({
 
       {/* HUD Atas */}
       <div className="absolute top-3 left-4 right-4 z-10 flex items-start justify-between pointer-events-none gap-3">
-        <div className="flex items-center gap-3 bg-slate-900/90 text-white px-4 py-2 rounded-2xl border border-slate-700 shadow-lg pointer-events-auto">
+        <div className="flex flex-wrap items-center gap-2.5 bg-slate-900/90 text-white px-4 py-2 rounded-2xl border border-slate-700 shadow-lg pointer-events-auto">
           <button onClick={onBack} className="bg-red-600 hover:bg-red-500 px-3 py-1.5 rounded-xl text-xs font-bold">
             ← Ganti Fase
+          </button>
+          <button
+            onClick={() => setIsMuted((m) => !m)}
+            className="bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-xl text-xs font-bold border border-slate-600"
+          >
+            {isMuted ? "🔇 Musik Mati" : "🎵 Musik Nyala"}
           </button>
           <div>
             <div className="flex items-center gap-2">
@@ -1173,7 +1232,7 @@ export default function GameWorld({
           <group key={gedung.id} position={gedung.posisi_3d}>
             <mesh position={[0, 2.5, 0]} castShadow>
               <boxGeometry args={[5.5, 5, 5.5]} />
-             <meshStandardMaterial color={["#f97316", "#8b5cf6", "#0ea5e9", "#10b981", "#ec4899", "#eab308"][index % 6]} />
+              <meshStandardMaterial color={BUILDING_COLORS[index % BUILDING_COLORS.length]} />
             </mesh>
             <mesh position={[0, 5.3, 0]} castShadow>
               <boxGeometry args={[6.1, 0.6, 6.1]} />
