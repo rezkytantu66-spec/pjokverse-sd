@@ -24,6 +24,73 @@ const BUILDING_COLORS = [
   "#eab308",
 ];
 
+// 6 Objek Benda Olahraga di Dunia Explore PJOK (masing-masing memuat 1 materi PJOK)
+const EXPLORE_OBJECTS = [
+  {
+    id: "obj-bola-sepak",
+    nama: "Bola & Gawang Sepak",
+    ikon: "⚽",
+    kategori: "Permainan Invasi",
+    pos: [-12, 0, -10] as [number, number, number],
+    materi:
+      "Menendang, menggiring, dan mengoper bola merupakan gerak dasar manipulatif dalam permainan invasi seperti sepak bola. Gunakan kaki bagian dalam agar arah operan lebih akurat kepada teman satu tim serta selalu jaga sportivitas di lapangan.",
+  },
+  {
+    id: "obj-ring-basket",
+    nama: "Ring & Bola Basket",
+    ikon: "🏀",
+    kategori: "Koordinasi Tangan & Mata",
+    pos: [12, 0, -10] as [number, number, number],
+    materi:
+      "Memantulkan bola ke lantai (dribbling), melempar (passing), dan menembak ke arah ring (shooting) melatih kelincahan serta koordinasi mata dan tangan. Tekuk sedikit lutut saat memantulkan bola agar keseimbangan tubuh tetap terjaga.",
+  },
+  {
+    id: "obj-net-voli",
+    nama: "Net & Bola Voli",
+    ikon: "🏐",
+    kategori: "Permainan Net",
+    pos: [-14, 0, 6] as [number, number, number],
+    materi:
+      "Dalam permainan net seperti bola voli dan bulu tangkis, pemain memukul bola melewati atas jaring (net) tanpa menyentuhnya. Passing bawah dilakukan dengan merapatkan kedua lengan lurus ke depan untuk memantulkan bola ke atas.",
+  },
+  {
+    id: "obj-lintasan-lari",
+    nama: "Lintasan & Cone Lari",
+    ikon: "🏃",
+    kategori: "Atletik & Gerak Lokomotor",
+    pos: [14, 0, 6] as [number, number, number],
+    materi:
+      "Berjalan, berlari, dan melompat adalah gerak dasar lokomotor yang memindahkan tubuh dari satu tempat ke tempat lain. Saat berlari cepat, ayunkan lengan secara bergantian di samping badan dan condongkan tubuh sedikit ke depan.",
+  },
+  {
+    id: "obj-matras-senam",
+    nama: "Matras & Simpai Senam",
+    ikon: "🤸",
+    kategori: "Senam Lantai & Keseimbangan",
+    pos: [-10, 0, 20] as [number, number, number],
+    materi:
+      "Senam lantai menggunakan matras empuk untuk menjaga keselamatan tubuh saat melakukan gerak keseimbangan, bertumpu, dan berguling. Selalu lakukan pemanasan peregangan otot leher, bahu, dan pinggang sebelum berlatih di atas matras.",
+  },
+  {
+    id: "obj-pos-sehat",
+    nama: "Pos P3K & Air Mineral",
+    ikon: "🩺",
+    kategori: "Perilaku Hidup Sehat",
+    pos: [10, 0, 20] as [number, number, number],
+    materi:
+      "Tubuh membutuhkan cairan yang cukup sebelum, selama, dan setelah berolahraga agar tidak mengalami dehidrasi. Selain minum air putih, istirahat cukup dan menjaga kebersihan pakaian olahraga membuat tubuh tetap bugar dan sehat.",
+  },
+];
+
+function shuffleArray<T>(items: T[]): T[] {
+  const arr = [...items];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
 function getStandingTileLabel(pos?: [number, number, number]) {
   if (!pos) return null;
   for (const tile of ARENA_TILES) {
@@ -82,6 +149,7 @@ function VoxelCharacter({
   headStyle = "boy",
   isMoving,
   isCoach = false,
+  isGhost = false,
 }: {
   shirtColor: string;
   pantsColor?: string;
@@ -89,6 +157,7 @@ function VoxelCharacter({
   headStyle?: string;
   isMoving: boolean;
   isCoach?: boolean;
+  isGhost?: boolean;
 }) {
   const leftLeg = useRef<THREE.Mesh>(null);
   const rightLeg = useRef<THREE.Mesh>(null);
@@ -105,140 +174,130 @@ function VoxelCharacter({
     if (rightArm.current) rightArm.current.rotation.x = swing;
   });
 
+  const opacity = isGhost ? 0.35 : 1;
+
   return (
     <group>
-      {/* Kaki */}
-      <mesh ref={leftLeg} position={[-0.25, 0.45, 0]} castShadow>
+      <mesh ref={leftLeg} position={[-0.25, 0.45, 0]} castShadow={!isGhost}>
         <boxGeometry args={[0.38, 0.9, 0.42]} />
-        <meshStandardMaterial color={pantsColor} />
+        <meshStandardMaterial color={pantsColor} transparent={isGhost} opacity={opacity} />
       </mesh>
-      <mesh ref={rightLeg} position={[0.25, 0.45, 0]} castShadow>
+      <mesh ref={rightLeg} position={[0.25, 0.45, 0]} castShadow={!isGhost}>
         <boxGeometry args={[0.38, 0.9, 0.42]} />
-        <meshStandardMaterial color={pantsColor} />
+        <meshStandardMaterial color={pantsColor} transparent={isGhost} opacity={opacity} />
       </mesh>
-
-      {/* Badan */}
-      <mesh position={[0, 1.4, 0]} castShadow>
+      <mesh position={[0, 1.4, 0]} castShadow={!isGhost}>
         <boxGeometry args={[0.95, 1.05, 0.55]} />
-        <meshStandardMaterial color={shirtColor} />
+        <meshStandardMaterial color={shirtColor} transparent={isGhost} opacity={opacity} />
       </mesh>
-
-      {/* Peluit Emas Khusus Coach */}
       {isCoach && (
         <mesh position={[0, 1.65, 0.3]} castShadow>
           <boxGeometry args={[0.22, 0.25, 0.15]} />
           <meshStandardMaterial color="#facc15" metalness={0.6} roughness={0.2} />
         </mesh>
       )}
-
-      {/* Tangan */}
-      <mesh ref={leftArm} position={[-0.68, 1.4, 0]} castShadow>
+      <mesh ref={leftArm} position={[-0.68, 1.4, 0]} castShadow={!isGhost}>
         <boxGeometry args={[0.32, 0.95, 0.38]} />
-        <meshStandardMaterial color={skinColor} />
+        <meshStandardMaterial color={skinColor} transparent={isGhost} opacity={opacity} />
       </mesh>
-      <mesh ref={rightArm} position={[0.68, 1.4, 0]} castShadow>
+      <mesh ref={rightArm} position={[0.68, 1.4, 0]} castShadow={!isGhost}>
         <boxGeometry args={[0.32, 0.95, 0.38]} />
-        <meshStandardMaterial color={skinColor} />
+        <meshStandardMaterial color={skinColor} transparent={isGhost} opacity={opacity} />
       </mesh>
-
-      {/* Kepala */}
-      <mesh position={[0, 2.38, 0]} castShadow>
+      <mesh position={[0, 2.38, 0]} castShadow={!isGhost}>
         <boxGeometry args={[0.85, 0.85, 0.85]} />
-        <meshStandardMaterial color={skinColor} />
+        <meshStandardMaterial color={skinColor} transparent={isGhost} opacity={opacity} />
       </mesh>
-
-      {/* Mata */}
       <mesh position={[-0.2, 2.42, 0.44]}>
         <boxGeometry args={[0.12, 0.12, 0.05]} />
-        <meshStandardMaterial color="#1e293b" />
+        <meshStandardMaterial color="#1e293b" transparent={isGhost} opacity={opacity} />
       </mesh>
       <mesh position={[0.2, 2.42, 0.44]}>
         <boxGeometry args={[0.12, 0.12, 0.05]} />
-        <meshStandardMaterial color="#1e293b" />
+        <meshStandardMaterial color="#1e293b" transparent={isGhost} opacity={opacity} />
       </mesh>
 
-      {/* Variasi 7 Gaya Kepala / Aksesori untuk 35 Avatar */}
       {!isCoach && headStyle === "boy" && (
-        <mesh position={[0, 2.83, -0.02]} castShadow>
+        <mesh position={[0, 2.83, -0.02]}>
           <boxGeometry args={[0.88, 0.22, 0.88]} />
-          <meshStandardMaterial color="#1e293b" />
+          <meshStandardMaterial color="#1e293b" transparent={isGhost} opacity={opacity} />
         </mesh>
       )}
 
       {!isCoach && headStyle === "girl" && (
         <group>
-          <mesh position={[0, 2.83, -0.02]} castShadow>
+          <mesh position={[0, 2.83, -0.02]}>
             <boxGeometry args={[0.88, 0.24, 0.88]} />
-            <meshStandardMaterial color="#451a03" />
+            <meshStandardMaterial color="#451a03" transparent={isGhost} opacity={opacity} />
           </mesh>
-          <mesh position={[0, 2.55, -0.55]} castShadow>
+          <mesh position={[0, 2.55, -0.55]}>
             <boxGeometry args={[0.35, 0.55, 0.3]} />
-            <meshStandardMaterial color="#451a03" />
+            <meshStandardMaterial color="#451a03" transparent={isGhost} opacity={opacity} />
           </mesh>
         </group>
       )}
 
       {!isCoach && headStyle === "hijab" && (
         <group>
-          <mesh position={[0, 2.42, -0.06]} castShadow>
+          <mesh position={[0, 2.42, -0.06]}>
             <boxGeometry args={[0.94, 0.94, 0.86]} />
-            <meshStandardMaterial color="#f8fafc" />
+            <meshStandardMaterial color="#f8fafc" transparent={isGhost} opacity={opacity} />
           </mesh>
-          <mesh position={[0, 1.92, 0]} castShadow>
+          <mesh position={[0, 1.92, 0]}>
             <boxGeometry args={[0.98, 0.25, 0.65]} />
-            <meshStandardMaterial color="#f8fafc" />
+            <meshStandardMaterial color="#f8fafc" transparent={isGhost} opacity={opacity} />
           </mesh>
         </group>
       )}
 
       {!isCoach && headStyle === "cap" && (
         <group position={[0, 2.84, 0]}>
-          <mesh castShadow>
+          <mesh>
             <boxGeometry args={[0.9, 0.22, 0.9]} />
-            <meshStandardMaterial color={shirtColor} />
+            <meshStandardMaterial color={shirtColor} transparent={isGhost} opacity={opacity} />
           </mesh>
-          <mesh position={[0, -0.05, 0.35]} castShadow>
+          <mesh position={[0, -0.05, 0.35]}>
             <boxGeometry args={[0.86, 0.08, 0.45]} />
-            <meshStandardMaterial color="#0f172a" />
+            <meshStandardMaterial color="#0f172a" transparent={isGhost} opacity={opacity} />
           </mesh>
         </group>
       )}
 
       {!isCoach && headStyle === "bandana" && (
         <group>
-          <mesh position={[0, 2.83, -0.02]} castShadow>
+          <mesh position={[0, 2.83, -0.02]}>
             <boxGeometry args={[0.88, 0.22, 0.88]} />
-            <meshStandardMaterial color="#1e293b" />
+            <meshStandardMaterial color="#1e293b" transparent={isGhost} opacity={opacity} />
           </mesh>
           <mesh position={[0, 2.66, 0]}>
             <boxGeometry args={[0.9, 0.14, 0.9]} />
-            <meshStandardMaterial color="#ffffff" />
+            <meshStandardMaterial color="#ffffff" transparent={isGhost} opacity={opacity} />
           </mesh>
         </group>
       )}
 
       {!isCoach && headStyle === "glasses" && (
         <group>
-          <mesh position={[0, 2.83, -0.02]} castShadow>
+          <mesh position={[0, 2.83, -0.02]}>
             <boxGeometry args={[0.88, 0.22, 0.88]} />
-            <meshStandardMaterial color="#1e293b" />
+            <meshStandardMaterial color="#1e293b" transparent={isGhost} opacity={opacity} />
           </mesh>
           <mesh position={[0, 2.42, 0.45]}>
             <boxGeometry args={[0.78, 0.18, 0.06]} />
-            <meshStandardMaterial color="#0f172a" />
+            <meshStandardMaterial color="#0f172a" transparent={isGhost} opacity={opacity} />
           </mesh>
         </group>
       )}
 
       {!isCoach && headStyle === "crown" && (
         <group>
-          <mesh position={[0, 2.83, -0.02]} castShadow>
+          <mesh position={[0, 2.83, -0.02]}>
             <boxGeometry args={[0.88, 0.2, 0.88]} />
-            <meshStandardMaterial color="#1e293b" />
+            <meshStandardMaterial color="#1e293b" transparent={isGhost} opacity={opacity} />
           </mesh>
-          <mesh position={[0, 3.05, 0]} castShadow>
+          <mesh position={[0, 3.05, 0]}>
             <cylinderGeometry args={[0.32, 0.36, 0.26, 8]} />
-            <meshStandardMaterial color="#facc15" metalness={0.7} roughness={0.2} />
+            <meshStandardMaterial color="#facc15" metalness={0.7} roughness={0.2} transparent={isGhost} opacity={opacity} />
           </mesh>
         </group>
       )}
@@ -284,6 +343,7 @@ function RemotePlayer({ data, isHighlighted = false }: { data: any; isHighlighte
         skinColor={preset?.skinColor || "#fcd34d"}
         headStyle={preset?.headStyle || "boy"}
         isMoving={data.isMoving || false}
+        isGhost={Boolean(data.isEliminated)}
       />
       {isHighlighted && (
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.06, 0]}>
@@ -294,11 +354,11 @@ function RemotePlayer({ data, isHighlighted = false }: { data: any; isHighlighte
       <Text
         position={[0, 3.25, 0]}
         fontSize={isHighlighted ? 0.55 : 0.4}
-        color={isHighlighted ? "#facc15" : "#38bdf8"}
+        color={data.isEliminated ? "#94a3b8" : isHighlighted ? "#facc15" : "#38bdf8"}
         outlineWidth={0.05}
         outlineColor="black"
       >
-        {data.name || "Teman"}
+        {`${data.isEliminated ? "👻 " : ""}${data.name || "Teman"}`}
       </Text>
     </group>
   );
@@ -408,6 +468,8 @@ function SpectatorCameraController({
 function Player({
   playerName,
   avatarPreset,
+  isEliminated,
+  worldMap,
   socketRef,
   joyVector,
   jumpTrigger,
@@ -415,6 +477,10 @@ function Player({
   onInteractBuilding,
   onNearCoach,
   onNearPortal,
+  onNearAdventurePortal,
+  onNearExplorePortal,
+  onNearReturnPortal,
+  onNearExploreObject,
   onStandingTileChange,
   gedungList,
   isTileFallen,
@@ -497,10 +563,12 @@ function Player({
     const pos = groupRef.current.position;
 
     let currentTileId: number | null = null;
-    for (const tile of ARENA_TILES) {
-      if (Math.abs(pos.x - tile.pos[0]) < 3.9 && Math.abs(pos.z - tile.pos[2]) < 3.9) {
-        currentTileId = tile.id;
-        break;
+    if (worldMap === "stadium") {
+      for (const tile of ARENA_TILES) {
+        if (Math.abs(pos.x - tile.pos[0]) < 3.9 && Math.abs(pos.z - tile.pos[2]) < 3.9) {
+          currentTileId = tile.id;
+          break;
+        }
       }
     }
     onStandingTileChange(currentTileId);
@@ -531,6 +599,7 @@ function Player({
         pos: [pos.x, pos.y, pos.z],
         rotY: groupRef.current.rotation.y,
         isMoving: isCurrentlyMoving,
+        worldMap,
       });
     }
 
@@ -542,23 +611,56 @@ function Player({
     );
     state.camera.lookAt(pos.x, Math.max(pos.y, 0) + 1.5, pos.z);
 
-    const distCoach = new THREE.Vector2(pos.x, pos.z).distanceTo(new THREE.Vector2(0, -4));
-    onNearCoach(distCoach < 3.8);
+    if (worldMap === "stadium") {
+      onNearReturnPortal(false);
+      onNearExploreObject(null);
 
-    const distPortal = new THREE.Vector2(pos.x, pos.z).distanceTo(new THREE.Vector2(14, -4));
-    onNearPortal(distPortal < 3.8);
+      const distCoach = new THREE.Vector2(pos.x, pos.z).distanceTo(new THREE.Vector2(0, -4));
+      onNearCoach(distCoach < 3.8);
 
-    let foundBuilding = null;
-    for (const gedung of gedungList) {
-      const distB = new THREE.Vector2(pos.x, pos.z).distanceTo(
-        new THREE.Vector2(gedung.posisi_3d[0], gedung.posisi_3d[2])
-      );
-      if (distB < 4.5) {
-        foundBuilding = gedung;
-        break;
+      const distPortal = new THREE.Vector2(pos.x, pos.z).distanceTo(new THREE.Vector2(14, -4));
+      onNearPortal(distPortal < 3.8);
+
+      const distAdventure = new THREE.Vector2(pos.x, pos.z).distanceTo(new THREE.Vector2(-14, -4));
+      onNearAdventurePortal(distAdventure < 3.8);
+
+      const distExplore = new THREE.Vector2(pos.x, pos.z).distanceTo(new THREE.Vector2(0, -15));
+      onNearExplorePortal(distExplore < 3.8);
+
+      let foundBuilding = null;
+      for (const gedung of gedungList) {
+        const distB = new THREE.Vector2(pos.x, pos.z).distanceTo(
+          new THREE.Vector2(gedung.posisi_3d[0], gedung.posisi_3d[2])
+        );
+        if (distB < 4.5) {
+          foundBuilding = gedung;
+          break;
+        }
       }
+      onInteractBuilding(foundBuilding);
+    } else {
+      // Deteksi jarak pada Peta Dunia Explore PJOK
+      onNearCoach(false);
+      onNearPortal(false);
+      onNearAdventurePortal(false);
+      onNearExplorePortal(false);
+      onInteractBuilding(null);
+
+      const distReturn = new THREE.Vector2(pos.x, pos.z).distanceTo(new THREE.Vector2(0, -18));
+      onNearReturnPortal(distReturn < 3.8);
+
+      let foundExploreObj = null;
+      for (const obj of EXPLORE_OBJECTS) {
+        const distObj = new THREE.Vector2(pos.x, pos.z).distanceTo(
+          new THREE.Vector2(obj.pos[0], obj.pos[2])
+        );
+        if (distObj < 3.8) {
+          foundExploreObj = obj;
+          break;
+        }
+      }
+      onNearExploreObject(foundExploreObj);
     }
-    onInteractBuilding(foundBuilding);
   });
 
   return (
@@ -569,16 +671,209 @@ function Player({
         skinColor={avatarPreset.skinColor}
         headStyle={avatarPreset.headStyle}
         isMoving={moving}
+        isGhost={isEliminated}
       />
       <Text
         position={[0, 3.25, 0]}
         fontSize={0.4}
-        color="white"
+        color={isEliminated ? "#94a3b8" : "white"}
         outlineWidth={0.05}
         outlineColor="black"
       >
-        {playerName}
+        {`${isEliminated ? "👻 (Gugur) " : ""}${playerName}`}
       </Text>
+    </group>
+  );
+}
+
+// Peta 2: Dunia Explore PJOK dengan 6 Objek Benda Olahraga 3D
+function ExploreWorldEnvironment({ readIds }: { readIds: string[] }) {
+  const treePositions: [number, number, number][] = [
+    [-26, 0, -24],
+    [26, 0, -24],
+    [-28, 0, 4],
+    [28, 0, 4],
+    [-24, 0, 28],
+    [24, 0, 28],
+  ];
+
+  return (
+    <group>
+      {/* Hamparan Taman Rumput Cerah */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+        <planeGeometry args={[100, 100]} />
+        <meshStandardMaterial color="#4ade80" />
+      </mesh>
+
+      {/* Jalur Setapak Taman */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 4]} receiveShadow>
+        <ringGeometry args={[12, 15.5, 48]} />
+        <meshStandardMaterial color="#fde68a" />
+      </mesh>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.03, 0]}>
+        <planeGeometry args={[3.5, 36]} />
+        <meshStandardMaterial color="#fef3c7" />
+      </mesh>
+
+      {/* Portal Kembali ke Stadion Utama */}
+      <group position={[0, 0, -18]}>
+        <mesh position={[-1.6, 2, 0]} castShadow>
+          <boxGeometry args={[0.4, 4, 0.4]} />
+          <meshStandardMaterial color="#f97316" metalness={0.5} />
+        </mesh>
+        <mesh position={[1.6, 2, 0]} castShadow>
+          <boxGeometry args={[0.4, 4, 0.4]} />
+          <meshStandardMaterial color="#f97316" metalness={0.5} />
+        </mesh>
+        <mesh position={[0, 4, 0]} castShadow>
+          <boxGeometry args={[3.6, 0.5, 0.5]} />
+          <meshStandardMaterial color="#f97316" metalness={0.5} />
+        </mesh>
+        <mesh position={[0, 2, 0]}>
+          <planeGeometry args={[2.8, 3.6]} />
+          <meshStandardMaterial color="#fdba74" transparent opacity={0.75} side={THREE.DoubleSide} />
+        </mesh>
+        <Text position={[0, 4.9, 0]} fontSize={0.55} color="#ffedd5" outlineWidth={0.07} outlineColor="black">
+          🏟️ Kembali ke Stadion Utama
+        </Text>
+      </group>
+
+      {/* 1. Benda: Bola & Gawang Sepak */}
+      <group position={EXPLORE_OBJECTS[0].pos}>
+        <mesh position={[-1.6, 1.1, -0.8]} castShadow>
+          <boxGeometry args={[0.2, 2.2, 0.2]} />
+          <meshStandardMaterial color="#ffffff" />
+        </mesh>
+        <mesh position={[1.6, 1.1, -0.8]} castShadow>
+          <boxGeometry args={[0.2, 2.2, 0.2]} />
+          <meshStandardMaterial color="#ffffff" />
+        </mesh>
+        <mesh position={[0, 2.2, -0.8]} castShadow>
+          <boxGeometry args={[3.4, 0.2, 0.2]} />
+          <meshStandardMaterial color="#ffffff" />
+        </mesh>
+        <mesh position={[0, 0.55, 0.6]} castShadow>
+          <sphereGeometry args={[0.55, 20, 20]} />
+          <meshStandardMaterial color="#f8fafc" />
+        </mesh>
+        <Text position={[0, 3.1, 0]} fontSize={0.48} color={readIds.includes(EXPLORE_OBJECTS[0].id) ? "#86efac" : "#fef08a"} outlineWidth={0.06} outlineColor="black">
+          {`${readIds.includes(EXPLORE_OBJECTS[0].id) ? "✅ " : "🔍 "}⚽ Bola & Gawang`}
+        </Text>
+      </group>
+
+      {/* 2. Benda: Ring & Bola Basket */}
+      <group position={EXPLORE_OBJECTS[1].pos}>
+        <mesh position={[0, 2, -0.8]} castShadow>
+          <boxGeometry args={[0.25, 4, 0.25]} />
+          <meshStandardMaterial color="#1e293b" />
+        </mesh>
+        <mesh position={[0, 3.3, -0.55]} castShadow>
+          <boxGeometry args={[2, 1.3, 0.15]} />
+          <meshStandardMaterial color="#ffffff" />
+        </mesh>
+        <mesh position={[0, 2.9, 0]} rotation={[Math.PI / 2, 0, 0]}>
+          <torusGeometry args={[0.45, 0.06, 12, 24]} />
+          <meshStandardMaterial color="#ea580c" />
+        </mesh>
+        <mesh position={[0.7, 0.45, 0.7]} castShadow>
+          <sphereGeometry args={[0.45, 20, 20]} />
+          <meshStandardMaterial color="#f97316" />
+        </mesh>
+        <Text position={[0, 4.4, 0]} fontSize={0.48} color={readIds.includes(EXPLORE_OBJECTS[1].id) ? "#86efac" : "#fef08a"} outlineWidth={0.06} outlineColor="black">
+          {`${readIds.includes(EXPLORE_OBJECTS[1].id) ? "✅ " : "🔍 "}🏀 Ring Basket`}
+        </Text>
+      </group>
+
+      {/* 3. Benda: Net & Bola Voli */}
+      <group position={EXPLORE_OBJECTS[2].pos}>
+        <mesh position={[-1.8, 1.4, 0]} castShadow>
+          <cylinderGeometry args={[0.1, 0.1, 2.8, 12]} />
+          <meshStandardMaterial color="#334155" />
+        </mesh>
+        <mesh position={[1.8, 1.4, 0]} castShadow>
+          <cylinderGeometry args={[0.1, 0.1, 2.8, 12]} />
+          <meshStandardMaterial color="#334155" />
+        </mesh>
+        <mesh position={[0, 2.1, 0]}>
+          <boxGeometry args={[3.5, 0.9, 0.08]} />
+          <meshStandardMaterial color="#e2e8f0" transparent opacity={0.85} />
+        </mesh>
+        <mesh position={[0, 0.45, 0.8]} castShadow>
+          <sphereGeometry args={[0.45, 20, 20]} />
+          <meshStandardMaterial color="#38bdf8" />
+        </mesh>
+        <Text position={[0, 3.2, 0]} fontSize={0.48} color={readIds.includes(EXPLORE_OBJECTS[2].id) ? "#86efac" : "#fef08a"} outlineWidth={0.06} outlineColor="black">
+          {`${readIds.includes(EXPLORE_OBJECTS[2].id) ? "✅ " : "🔍 "}🏐 Net & Bola Voli`}
+        </Text>
+      </group>
+
+      {/* 4. Benda: Lintasan & Cone Lari */}
+      <group position={EXPLORE_OBJECTS[3].pos}>
+        <mesh position={[0, 0.05, 0]} receiveShadow>
+          <boxGeometry args={[3.6, 0.1, 3.6]} />
+          <meshStandardMaterial color="#dc2626" />
+        </mesh>
+        {[-1, 0, 1].map((cx, idx) => (
+          <mesh key={idx} position={[cx, 0.55, 0]} castShadow>
+            <coneGeometry args={[0.35, 0.9, 16]} />
+            <meshStandardMaterial color={idx === 1 ? "#facc15" : "#f97316"} />
+          </mesh>
+        ))}
+        <Text position={[0, 2.2, 0]} fontSize={0.48} color={readIds.includes(EXPLORE_OBJECTS[3].id) ? "#86efac" : "#fef08a"} outlineWidth={0.06} outlineColor="black">
+          {`${readIds.includes(EXPLORE_OBJECTS[3].id) ? "✅ " : "🔍 "}🏃 Cone Atletik`}
+        </Text>
+      </group>
+
+      {/* 5. Benda: Matras & Simpai Senam */}
+      <group position={EXPLORE_OBJECTS[4].pos}>
+        <mesh position={[0, 0.15, 0]} receiveShadow castShadow>
+          <boxGeometry args={[3.4, 0.3, 2.2]} />
+          <meshStandardMaterial color="#2563eb" />
+        </mesh>
+        <mesh position={[0, 1.1, -0.6]} castShadow>
+          <torusGeometry args={[0.65, 0.08, 12, 28]} />
+          <meshStandardMaterial color="#ec4899" />
+        </mesh>
+        <Text position={[0, 2.4, 0]} fontSize={0.48} color={readIds.includes(EXPLORE_OBJECTS[4].id) ? "#86efac" : "#fef08a"} outlineWidth={0.06} outlineColor="black">
+          {`${readIds.includes(EXPLORE_OBJECTS[4].id) ? "✅ " : "🔍 "}🤸 Matras Senam`}
+        </Text>
+      </group>
+
+      {/* 6. Benda: Pos P3K & Air Mineral */}
+      <group position={EXPLORE_OBJECTS[5].pos}>
+        <mesh position={[0, 0.65, 0]} castShadow>
+          <boxGeometry args={[2.2, 1.3, 1.4]} />
+          <meshStandardMaterial color="#ffffff" />
+        </mesh>
+        <mesh position={[0, 0.65, 0.72]}>
+          <boxGeometry args={[0.7, 0.22, 0.05]} />
+          <meshStandardMaterial color="#ef4444" />
+        </mesh>
+        <mesh position={[0, 0.65, 0.72]}>
+          <boxGeometry args={[0.22, 0.7, 0.05]} />
+          <meshStandardMaterial color="#ef4444" />
+        </mesh>
+        <mesh position={[0.5, 1.65, 0]} castShadow>
+          <cylinderGeometry args={[0.22, 0.22, 0.7, 16]} />
+          <meshStandardMaterial color="#0ea5e9" />
+        </mesh>
+        <Text position={[0, 2.6, 0]} fontSize={0.48} color={readIds.includes(EXPLORE_OBJECTS[5].id) ? "#86efac" : "#fef08a"} outlineWidth={0.06} outlineColor="black">
+          {`${readIds.includes(EXPLORE_OBJECTS[5].id) ? "✅ " : "🔍 "}🩺 Pos Hidup Sehat`}
+        </Text>
+      </group>
+
+      {treePositions.map((pos, idx) => (
+        <group key={idx} position={pos}>
+          <mesh position={[0, 1.5, 0]} castShadow>
+            <boxGeometry args={[0.9, 3, 0.9]} />
+            <meshStandardMaterial color="#78350f" />
+          </mesh>
+          <mesh position={[0, 3.8, 0]} castShadow>
+            <boxGeometry args={[3.2, 2.6, 3.2]} />
+            <meshStandardMaterial color="#16a34a" />
+          </mesh>
+        </group>
+      ))}
     </group>
   );
 }
@@ -622,7 +917,7 @@ function SportsEnvironment({ faseId }: { faseId: string }) {
       {faseId === "fase-a" && (
         <group>
           {[-8, -4, 0, 4, 8].map((xPos, i) => (
-            <mesh key={i} position={[xPos, 0.45, -18]} castShadow>
+            <mesh key={i} position={[xPos, 0.45, -21]} castShadow>
               <coneGeometry args={[0.45, 0.9, 16]} />
               <meshStandardMaterial color={i % 2 === 0 ? "#f97316" : "#ec4899"} />
             </mesh>
@@ -631,7 +926,7 @@ function SportsEnvironment({ faseId }: { faseId: string }) {
             <boxGeometry args={[0.8, 0.4, 7]} />
             <meshStandardMaterial color="#f59e0b" />
           </mesh>
-          <mesh position={[0, 0.1, -24]} rotation={[0, 0, 0]}>
+          <mesh position={[0, 0.1, -26]} rotation={[0, 0, 0]}>
             <torusGeometry args={[2.5, 0.35, 16, 32, Math.PI]} />
             <meshStandardMaterial color="#3b82f6" />
           </mesh>
@@ -644,7 +939,7 @@ function SportsEnvironment({ faseId }: { faseId: string }) {
             <planeGeometry args={[18, 0.25]} />
             <meshStandardMaterial color="#ffffff" />
           </mesh>
-          <group position={[0, 0, -26]}>
+          <group position={[0, 0, -27]}>
             <mesh position={[-3.2, 1.3, 0]} castShadow>
               <boxGeometry args={[0.25, 2.6, 0.25]} />
               <meshStandardMaterial color="#ffffff" />
@@ -673,7 +968,7 @@ function SportsEnvironment({ faseId }: { faseId: string }) {
 
       {faseId === "fase-c" && (
         <group>
-          <group position={[0, 0, -25]}>
+          <group position={[0, 0, -26]}>
             <mesh position={[-2.2, 0.6, 0]} castShadow>
               <boxGeometry args={[2, 1.2, 2]} />
               <meshStandardMaterial color="#cbd5e1" />
@@ -697,7 +992,7 @@ function SportsEnvironment({ faseId }: { faseId: string }) {
             </Text>
           </group>
 
-          <group position={[-10, 0, -25]}>
+          <group position={[-10, 0, -26]}>
             <mesh position={[0, 2.5, 0]} castShadow>
               <cylinderGeometry args={[0.5, 0.9, 5, 16]} />
               <meshStandardMaterial color="#e2e8f0" metalness={0.5} />
@@ -708,7 +1003,7 @@ function SportsEnvironment({ faseId }: { faseId: string }) {
             </mesh>
           </group>
 
-          <group position={[10, 0, -25]}>
+          <group position={[10, 0, -26]}>
             <mesh position={[0, 2.2, 0]} castShadow>
               <boxGeometry args={[0.3, 4.4, 0.3]} />
               <meshStandardMaterial color="#1e293b" />
@@ -725,6 +1020,7 @@ function SportsEnvironment({ faseId }: { faseId: string }) {
         </group>
       )}
 
+      {/* Portal 1 (Kanan): Lomba Latihan 4 Warna */}
       <group position={[14, 0, -4]}>
         <mesh position={[-1.6, 2, 0]} castShadow>
           <boxGeometry args={[0.4, 4, 0.4]} />
@@ -742,8 +1038,54 @@ function SportsEnvironment({ faseId }: { faseId: string }) {
           <planeGeometry args={[2.8, 3.6]} />
           <meshStandardMaterial color="#fef08a" transparent opacity={0.65} side={THREE.DoubleSide} />
         </mesh>
-        <Text position={[0, 4.9, 0]} fontSize={0.55} color="#fde047" outlineWidth={0.07} outlineColor="black">
+        <Text position={[0, 4.9, 0]} fontSize={0.52} color="#fde047" outlineWidth={0.07} outlineColor="black">
           🏆 Arena Jatuh Bangun
+        </Text>
+      </group>
+
+      {/* Portal 2 (Kiri): Mode Petualangan Eliminasi (1 Siswa Tersisa) */}
+      <group position={[-14, 0, -4]}>
+        <mesh position={[-1.6, 2, 0]} castShadow>
+          <boxGeometry args={[0.4, 4, 0.4]} />
+          <meshStandardMaterial color="#9333ea" metalness={0.6} />
+        </mesh>
+        <mesh position={[1.6, 2, 0]} castShadow>
+          <boxGeometry args={[0.4, 4, 0.4]} />
+          <meshStandardMaterial color="#9333ea" metalness={0.6} />
+        </mesh>
+        <mesh position={[0, 4, 0]} castShadow>
+          <boxGeometry args={[3.6, 0.5, 0.5]} />
+          <meshStandardMaterial color="#9333ea" metalness={0.6} />
+        </mesh>
+        <mesh position={[0, 2, 0]}>
+          <planeGeometry args={[2.8, 3.6]} />
+          <meshStandardMaterial color="#d8b4fe" transparent opacity={0.7} side={THREE.DoubleSide} />
+        </mesh>
+        <Text position={[0, 4.9, 0]} fontSize={0.52} color="#e9d5ff" outlineWidth={0.07} outlineColor="black">
+          👑 Petualangan Eliminasi
+        </Text>
+      </group>
+
+      {/* Portal 3 (Belakang Tengah): Dunia Explore PJOK */}
+      <group position={[0, 0, -15]}>
+        <mesh position={[-1.6, 2, 0]} castShadow>
+          <boxGeometry args={[0.4, 4, 0.4]} />
+          <meshStandardMaterial color="#0284c7" metalness={0.6} />
+        </mesh>
+        <mesh position={[1.6, 2, 0]} castShadow>
+          <boxGeometry args={[0.4, 4, 0.4]} />
+          <meshStandardMaterial color="#0284c7" metalness={0.6} />
+        </mesh>
+        <mesh position={[0, 4, 0]} castShadow>
+          <boxGeometry args={[3.6, 0.5, 0.5]} />
+          <meshStandardMaterial color="#0284c7" metalness={0.6} />
+        </mesh>
+        <mesh position={[0, 2, 0]}>
+          <planeGeometry args={[2.8, 3.6]} />
+          <meshStandardMaterial color="#7dd3fc" transparent opacity={0.75} side={THREE.DoubleSide} />
+        </mesh>
+        <Text position={[0, 4.9, 0]} fontSize={0.55} color="#bae6fd" outlineWidth={0.07} outlineColor="black">
+          🌍 Dunia Explore PJOK
         </Text>
       </group>
 
@@ -841,6 +1183,14 @@ export default function GameWorld({
   const [otherPlayers, setOtherPlayers] = useState<{ [id: string]: any }>({});
   const [onlineCount, setOnlineCount] = useState(isSpectator ? 0 : 1);
 
+  // Dunia / Peta Aktif: "stadium" (Utama) atau "explore" (Dunia Explore PJOK)
+  const [worldMap, setWorldMap] = useState<"stadium" | "explore">("stadium");
+  const [nearExplorePortal, setNearExplorePortal] = useState(false);
+  const [nearReturnPortal, setNearReturnPortal] = useState(false);
+  const [nearbyExploreObj, setNearbyExploreObj] = useState<(typeof EXPLORE_OBJECTS)[0] | null>(null);
+  const [selectedExploreModal, setSelectedExploreModal] = useState<(typeof EXPLORE_OBJECTS)[0] | null>(null);
+  const [readExploreIds, setReadExploreIds] = useState<string[]>([]);
+
   const [cameraPreset, setCameraPreset] = useState<"overview" | "arena">("overview");
   const [followedPlayerId, setFollowedPlayerId] = useState<string | null>(null);
 
@@ -849,18 +1199,92 @@ export default function GameWorld({
   const [teleportTrigger, setTeleportTrigger] = useState<{ pos: [number, number, number]; id: number } | null>(null);
   const [nearCoach, setNearCoach] = useState(false);
   const [nearPortal, setNearPortal] = useState(false);
+  const [nearAdventurePortal, setNearAdventurePortal] = useState(false);
   const [activeBuilding, setActiveBuilding] = useState<any>(null);
   const [showModal, setShowModal] = useState(false);
   const [quizIndex, setQuizIndex] = useState(0);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [score, setScore] = useState(0);
 
+  // State Mini-Game & Mode Petualangan Eliminasi
   const [standingTile, setStandingTile] = useState<number | null>(null);
   const [miniGameActive, setMiniGameActive] = useState(false);
+  const [gameMode, setGameMode] = useState<"practice" | "adventure">("practice");
+  const [isEliminated, setIsEliminated] = useState(false);
+  const [championBanner, setChampionBanner] = useState<string | null>(null);
+  const [shuffledQuestions, setShuffledQuestions] = useState<any[]>([]);
   const [mgIndex, setMgIndex] = useState(0);
   const [mgTimeLeft, setMgTimeLeft] = useState(8);
   const [mgPhase, setMgPhase] = useState<"running" | "dropped">("running");
   const [mgStatusText, setMgStatusText] = useState("");
+
+  const allCollectedQuestions = useMemo(() => {
+    const list: any[] = [];
+    faseData.gedung_materi.forEach((g: any) => {
+      g.kuis.forEach((k: any) => {
+        list.push({
+          ...k,
+          sumberGedung: g.nama_gedung,
+        });
+      });
+    });
+    return list;
+  }, [faseData]);
+
+  const activeQuestionPool =
+    shuffledQuestions.length > 0 ? shuffledQuestions : allCollectedQuestions;
+  const currentMgQuestion = activeQuestionPool[mgIndex % activeQuestionPool.length];
+
+  const speakText = (text: string) => {
+    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = "id-ID";
+      utterance.rate = 0.95;
+      window.speechSynthesis.speak(utterance);
+    }
+  };
+
+  const enterExploreWorld = () => {
+    setWorldMap("explore");
+    setNearExplorePortal(false);
+    setSelectedExploreModal(null);
+    setTeleportTrigger({ pos: [0, 0, -10], id: Date.now() });
+    speakText("Selamat datang di Dunia Explore PJOK! Dekati benda olahraga untuk membaca materinya.");
+  };
+
+  const returnToStadiumWorld = () => {
+    setWorldMap("stadium");
+    setNearReturnPortal(false);
+    setNearbyExploreObj(null);
+    setSelectedExploreModal(null);
+    setTeleportTrigger({ pos: [0, 0, 5], id: Date.now() });
+  };
+
+  const openExploreObjectMaterial = (obj: (typeof EXPLORE_OBJECTS)[0]) => {
+    setSelectedExploreModal(obj);
+    if (!readExploreIds.includes(obj.id)) {
+      setReadExploreIds((prev) => [...prev, obj.id]);
+      setScore((s) => s + 50);
+    }
+  };
+
+  const launchAdventureSession = () => {
+    setWorldMap("stadium");
+    const randomized = shuffleArray(allCollectedQuestions);
+    setShuffledQuestions(randomized);
+    setGameMode("adventure");
+    setIsEliminated(false);
+    setChampionBanner(null);
+    setMiniGameActive(true);
+    setMgIndex(0);
+    setMgTimeLeft(9);
+    setMgPhase("running");
+    setMgStatusText("👑 Bertahan hidup! Jawab benar agar tidak gugur!");
+    setTeleportTrigger({ pos: [0, 0.5, 18], id: Date.now() });
+    socketRef.current?.emit("eliminationState", false);
+    if (randomized[0]) speakText(randomized[0].pertanyaan);
+  };
 
   useEffect(() => {
     const serverHost = typeof window !== "undefined" ? window.location.hostname : "localhost";
@@ -904,47 +1328,71 @@ export default function GameWorld({
       }
     });
 
+    socket.on("adventureStarted", ({ faseId }: { faseId: string }) => {
+      if (faseId === faseData.id && !isSpectator) {
+        launchAdventureSession();
+      }
+    });
+
     return () => {
       socket.disconnect();
     };
   }, [faseData.id, playerName, avatarPreset, isSpectator]);
 
   const studentList = useMemo(() => Object.values(otherPlayers), [otherPlayers]);
+  const visibleRemotePlayers = useMemo(
+    () =>
+      studentList.filter(
+        (p: any) => (p.worldMap || "stadium") === (isSpectator ? "stadium" : worldMap)
+      ),
+    [studentList, worldMap, isSpectator]
+  );
   const followedPlayer = followedPlayerId ? otherPlayers[followedPlayerId] || null : null;
 
-  const allMiniGameQuestions = useMemo(() => {
-    const list: any[] = [];
-    faseData.gedung_materi.forEach((g: any) => {
-      g.kuis.forEach((k: any) => list.push(k));
+  const survivors = useMemo(() => {
+    const list: { id: string; name: string; isSelf: boolean }[] = [];
+    if (!isSpectator && !isEliminated) {
+      list.push({ id: "self", name: playerName, isSelf: true });
+    }
+    studentList.forEach((p: any) => {
+      if (!p.isEliminated) {
+        list.push({ id: p.id, name: p.name || "Siswa", isSelf: false });
+      }
     });
     return list;
-  }, [faseData]);
+  }, [isSpectator, isEliminated, playerName, studentList]);
 
-  const currentMgQuestion = allMiniGameQuestions[mgIndex % allMiniGameQuestions.length];
-
-  const speakText = (text: string) => {
-    if ("speechSynthesis" in window) {
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = "id-ID";
-      utterance.rate = 0.95;
-      window.speechSynthesis.speak(utterance);
-    }
-  };
-
-  const startMiniGame = () => {
+  const startPracticeMiniGame = () => {
+    const randomized = shuffleArray(allCollectedQuestions);
+    setShuffledQuestions(randomized);
+    setGameMode("practice");
+    setIsEliminated(false);
+    setChampionBanner(null);
     setMiniGameActive(true);
     setMgIndex(0);
     setMgTimeLeft(8);
     setMgPhase("running");
     setMgStatusText("Lari ke ubin jawaban!");
     setTeleportTrigger({ pos: [0, 0.5, 18], id: Date.now() });
-    speakText(allMiniGameQuestions[0].pertanyaan);
+    if (randomized[0]) speakText(randomized[0].pertanyaan);
+  };
+
+  const triggerGlobalAdventure = () => {
+    socketRef.current?.emit("startAdventureAll", { faseId: faseData.id });
+    if (!isSpectator) {
+      launchAdventureSession();
+    } else {
+      setCameraPreset("arena");
+      setFollowedPlayerId(null);
+    }
   };
 
   const stopMiniGame = () => {
     setMiniGameActive(false);
     setMgPhase("running");
+    setIsEliminated(false);
+    setChampionBanner(null);
+    socketRef.current?.emit("eliminationState", false);
     setTeleportTrigger({ pos: [0, 0, 5], id: Date.now() });
   };
 
@@ -958,27 +1406,84 @@ export default function GameWorld({
         if (mgPhase === "running") {
           setMgPhase("dropped");
           const correctId = currentMgQuestion.jawaban_benar;
-          if (standingTile === correctId) {
-            setScore((s) => s + 200);
-            setMgStatusText(`🎉 BENAR (${ARENA_TILES[correctId].label}) +200 XP`);
+          const correctLabel = ARENA_TILES[correctId].label;
+
+          if (gameMode === "adventure") {
+            if (!isEliminated) {
+              if (standingTile === correctId) {
+                setScore((s) => s + 250);
+                setMgStatusText(`✅ LOLOS! Jawaban ${correctLabel} (+250 XP)`);
+              } else {
+                setIsEliminated(true);
+                socketRef.current?.emit("eliminationState", true);
+                setMgStatusText(`❌ TERELIMINASI! Jawaban benar: ${correctLabel}`);
+              }
+            } else {
+              setMgStatusText(`👻 Penonton • Jawaban benar: ${correctLabel}`);
+            }
           } else {
-            setMgStatusText(`💥 Salah! Jawaban: ${ARENA_TILES[correctId].label}`);
+            if (standingTile === correctId) {
+              setScore((s) => s + 200);
+              setMgStatusText(`🎉 BENAR (${correctLabel}) +200 XP`);
+            } else {
+              setMgStatusText(`💥 Salah! Jawaban: ${correctLabel}`);
+            }
           }
           return 4;
         } else {
+          if (gameMode === "adventure") {
+            const totalParticipants = 1 + studentList.length;
+            if (totalParticipants > 1 && survivors.length === 1) {
+              const winner = survivors[0];
+              const winText = winner.isSelf
+                ? `🏆 SELAMAT ${playerName.toUpperCase()}! Kamu adalah 1 Siswa Terakhir yang Bertahan!`
+                : `🏆 PEMENANG PETUALANGAN: ${winner.name}!`;
+              setChampionBanner(winText);
+              setScore((s) => (winner.isSelf ? s + 500 : s));
+              speakText(winText);
+              return 0;
+            }
+            if (survivors.length === 0) {
+              setChampionBanner("😅 Semua peserta tereliminasi pada ronde terakhir!");
+              return 0;
+            }
+          }
+
           const nextIdx = mgIndex + 1;
           setMgIndex(nextIdx);
           setMgPhase("running");
-          setMgStatusText("Lari ke ubin jawaban!");
-          setTeleportTrigger({ pos: [0, 0.5, 18], id: Date.now() });
-          speakText(allMiniGameQuestions[nextIdx % allMiniGameQuestions.length].pertanyaan);
-          return 8;
+          setMgStatusText(
+            gameMode === "adventure"
+              ? isEliminated
+                ? "👻 Kamu sudah gugur, saksikan temanmu bertanding!"
+                : "👑 Lari ke ubin jawaban benar untuk bertahan!"
+              : "Lari ke ubin jawaban!"
+          );
+          if (!isEliminated) {
+            setTeleportTrigger({ pos: [0, 0.5, 18], id: Date.now() });
+          }
+          const nextQ = activeQuestionPool[nextIdx % activeQuestionPool.length];
+          if (nextQ) speakText(nextQ.pertanyaan);
+          return gameMode === "adventure" ? 9 : 8;
         }
       });
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [miniGameActive, mgPhase, mgIndex, standingTile, currentMgQuestion, allMiniGameQuestions, isSpectator]);
+  }, [
+    miniGameActive,
+    mgPhase,
+    mgIndex,
+    standingTile,
+    currentMgQuestion,
+    activeQuestionPool,
+    isSpectator,
+    gameMode,
+    isEliminated,
+    survivors,
+    studentList.length,
+    playerName,
+  ]);
 
   const isTileFallen = (tileId: number) => {
     if (!miniGameActive || mgPhase !== "dropped") return false;
@@ -1009,7 +1514,7 @@ export default function GameWorld({
     <div className="relative w-full h-[100dvh] overflow-hidden select-none">
       <CheerfulBGM muted={isMuted} />
 
-      {/* HUD Atas Ramping untuk Mode Portrait & Desktop */}
+      {/* HUD Atas Ramping */}
       <div
         style={{
           paddingTop: "max(0.5rem, env(safe-area-inset-top))",
@@ -1025,21 +1530,37 @@ export default function GameWorld({
           >
             ← Fase
           </button>
-          <span className="text-xs font-bold text-yellow-400 truncate max-w-[110px] sm:max-w-none">
-            {faseData.nama_fase}
+          <span className="text-xs font-bold text-yellow-400 truncate max-w-[125px] sm:max-w-none">
+            {worldMap === "explore" ? "🌍 Explore PJOK" : faseData.nama_fase}
           </span>
+          {!isSpectator && worldMap === "explore" && (
+            <button
+              onClick={returnToStadiumWorld}
+              className="bg-orange-500 hover:bg-orange-400 text-slate-950 px-2 py-1 rounded-lg text-[11px] font-extrabold"
+            >
+              🏟️ Stadion
+            </button>
+          )}
         </div>
 
         {!isSpectator ? (
           <div className="flex items-center gap-2 bg-slate-900/90 text-white px-3 py-1.5 rounded-xl border border-slate-700 shadow pointer-events-auto text-xs">
+            {worldMap === "explore" && (
+              <span className="text-sky-300 font-bold">
+                🔍 {readExploreIds.length}/{EXPLORE_OBJECTS.length}
+              </span>
+            )}
             <span className="text-emerald-400 font-extrabold">{score} XP</span>
             <span className="text-sky-400 font-bold">👥 {onlineCount}</span>
           </div>
         ) : (
           <div className="flex flex-wrap items-center gap-1.5 bg-slate-900/90 text-white p-1.5 rounded-xl border border-slate-700 shadow-lg pointer-events-auto">
-            <span className="bg-emerald-500 text-slate-950 text-[10px] font-extrabold px-2 py-0.5 rounded-full uppercase">
-              🖥️ Pemantau Guru
-            </span>
+            <button
+              onClick={triggerGlobalAdventure}
+              className="bg-purple-600 hover:bg-purple-500 text-white text-xs font-extrabold px-2.5 py-1 rounded-lg shadow"
+            >
+              👑 Mulai Eliminasi Kelas
+            </button>
             <button
               onClick={() => {
                 setFollowedPlayerId(null);
@@ -1064,7 +1585,7 @@ export default function GameWorld({
                   : "bg-slate-800 hover:bg-slate-700 text-slate-200"
               }`}
             >
-              🏆 Arena 4 Warna
+              🏆 Arena
             </button>
           </div>
         )}
@@ -1075,14 +1596,14 @@ export default function GameWorld({
         <div className="absolute top-16 right-3 z-10 w-60 max-h-[75vh] overflow-y-auto bg-slate-900/90 backdrop-blur-md text-white p-3.5 rounded-2xl border border-slate-700 shadow-2xl">
           <div className="flex items-center justify-between border-b border-slate-700 pb-2 mb-2.5">
             <span className="text-xs font-extrabold text-yellow-400 uppercase tracking-wide">
-              📋 Daftar Siswa ({studentList.length})
+              📋 Siswa ({survivors.length}/{studentList.length} Bertahan)
             </span>
             {followedPlayer && (
               <button
                 onClick={() => setFollowedPlayerId(null)}
                 className="text-[11px] bg-slate-700 hover:bg-slate-600 px-2 py-0.5 rounded font-bold"
               >
-                Lepas Fokus
+                Lepas
               </button>
             )}
           </div>
@@ -1111,9 +1632,19 @@ export default function GameWorld({
                         style={{ backgroundColor: student.color || "#3b82f6" }}
                         className="w-3 h-3 rounded-full shrink-0 border border-white"
                       />
-                      <span className="font-bold truncate">{student.name || "Siswa"}</span>
+                      <span className={`font-bold truncate ${student.isEliminated ? "line-through text-slate-400" : ""}`}>
+                        {student.name || "Siswa"}
+                      </span>
                     </div>
-                    {tileOn ? (
+                    {student.worldMap === "explore" ? (
+                      <span className="px-2 py-0.5 rounded text-[10px] font-extrabold bg-sky-600 text-white shrink-0">
+                        🌍 Explore
+                      </span>
+                    ) : student.isEliminated ? (
+                      <span className="px-2 py-0.5 rounded text-[10px] font-extrabold bg-slate-700 text-slate-300 shrink-0">
+                        👻 Gugur
+                      </span>
+                    ) : tileOn ? (
                       <span
                         style={{ backgroundColor: tileOn.color }}
                         className="px-2 py-0.5 rounded text-[10px] font-extrabold text-white shrink-0"
@@ -1121,8 +1652,8 @@ export default function GameWorld({
                         Ubin {tileOn.label}
                       </span>
                     ) : (
-                      <span className="text-[10px] text-slate-400 shrink-0">
-                        {student.isMoving ? "🏃 Berlari" : "🧍 Diam"}
+                      <span className="text-[10px] text-emerald-400 font-bold shrink-0">
+                        ✅ Aktif
                       </span>
                     )}
                   </button>
@@ -1133,32 +1664,73 @@ export default function GameWorld({
         </div>
       )}
 
-      {/* Panel Soal Mini-Game: Jawaban Utuh Tidak Terpotong */}
-      {!isSpectator && miniGameActive && currentMgQuestion && (
+      {/* Pengumuman Pemenang 1 Siswa Terakhir */}
+      {championBanner && (
+        <div className="fixed inset-0 z-30 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-gradient-to-b from-purple-900 to-slate-900 border-4 border-yellow-400 rounded-3xl p-6 max-w-md w-full text-center text-white shadow-2xl">
+            <div className="text-5xl mb-3 animate-bounce">👑🏆</div>
+            <h2 className="text-lg md:text-xl font-extrabold text-yellow-300 mb-2">
+              {championBanner}
+            </h2>
+            <p className="text-xs text-slate-300 mb-5">
+              Seluruh pertanyaan dari bank soal {faseData.nama_fase} berhasil ditaklukkan!
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={triggerGlobalAdventure}
+                className="flex-1 bg-yellow-400 hover:bg-yellow-300 text-slate-950 font-extrabold py-2.5 rounded-xl text-xs"
+              >
+                🔄 Main Lagi
+              </button>
+              <button
+                onClick={stopMiniGame}
+                className="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-bold py-2.5 rounded-xl text-xs"
+              >
+                Kembali ke Lapangan
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Panel Soal Mini-Game & Mode Petualangan Eliminasi */}
+      {!isSpectator && worldMap === "stadium" && miniGameActive && currentMgQuestion && !championBanner && (
         <div
           style={{ top: "max(3.1rem, calc(env(safe-area-inset-top) + 2.7rem))" }}
-          className="fixed left-1/2 -translate-x-1/2 z-20 w-[94%] max-w-xl bg-slate-950/80 backdrop-blur-sm text-white px-3 py-2.5 rounded-2xl border border-yellow-400/90 shadow-lg pointer-events-auto"
+          className={`fixed left-1/2 -translate-x-1/2 z-20 w-[94%] max-w-xl bg-slate-950/85 backdrop-blur-sm text-white px-3 py-2.5 rounded-2xl border-2 shadow-lg pointer-events-auto ${
+            gameMode === "adventure" ? "border-purple-400" : "border-yellow-400/90"
+          }`}
         >
-          <div className="flex justify-between items-center gap-2 mb-1.5">
+          <div className="flex flex-wrap justify-between items-center gap-1.5 mb-1.5">
             <div className="flex items-center gap-1.5">
               <span className="bg-yellow-400 text-slate-950 text-[11px] font-extrabold px-2 py-0.5 rounded-full">
                 ⏱️ {mgTimeLeft}d
               </span>
+              {gameMode === "adventure" && (
+                <span className="bg-purple-600 text-white text-[11px] font-extrabold px-2 py-0.5 rounded-full">
+                  👑 Bertahan: {survivors.length} Siswa
+                </span>
+              )}
               <span className="bg-slate-800/90 text-sky-300 text-[11px] font-bold px-2 py-0.5 rounded-full border border-slate-600">
-                {standingTile !== null
+                {isEliminated
+                  ? "👻 Penonton"
+                  : standingTile !== null
                   ? `📍 Ubin ${ARENA_TILES[standingTile].label}`
                   : "📍 Di Tengah"}
               </span>
             </div>
-            <span className="text-[11px] font-bold text-emerald-300">
-              {mgStatusText}
-            </span>
             <button
               onClick={stopMiniGame}
               className="bg-red-600 hover:bg-red-500 text-[11px] px-2 py-0.5 rounded font-bold shrink-0"
             >
               Keluar
             </button>
+          </div>
+
+          <div className="text-center mb-1">
+            <span className="text-[10px] uppercase tracking-wider text-amber-300 font-bold">
+              📚 Materi: {currentMgQuestion.sumberGedung} • {mgStatusText}
+            </span>
           </div>
 
           <p className="font-bold text-xs md:text-sm mb-2 text-center leading-snug">
@@ -1171,7 +1743,7 @@ export default function GameWorld({
                 key={i}
                 style={{ backgroundColor: ARENA_TILES[i]?.color || "#334155" }}
                 className={`px-2.5 py-1.5 rounded-lg text-white shadow flex items-start gap-1.5 leading-snug ${
-                  standingTile === i ? "ring-2 ring-white scale-[1.01]" : "opacity-95"
+                  !isEliminated && standingTile === i ? "ring-2 ring-white scale-[1.01]" : "opacity-95"
                 }`}
               >
                 <span className="bg-black/40 px-1.5 py-0.5 rounded font-extrabold shrink-0">
@@ -1184,8 +1756,8 @@ export default function GameWorld({
         </div>
       )}
 
-      {/* Kontrol Layar Sentuh Mode Portrait (Tanpa Mikrofon) */}
-      {!isSpectator && !showModal && (
+      {/* Kontrol Layar Sentuh Mode Portrait */}
+      {!isSpectator && !showModal && !selectedExploreModal && (
         <>
           <div
             style={{
@@ -1214,10 +1786,11 @@ export default function GameWorld({
         </>
       )}
 
-      {!isSpectator && nearPortal && !miniGameActive && !showModal && (
+      {/* Tombol Portal 1 (Kanan): Lomba Latihan */}
+      {!isSpectator && worldMap === "stadium" && nearPortal && !miniGameActive && !showModal && (
         <div className="absolute bottom-36 left-1/2 -translate-x-1/2 z-10 w-[85%] max-w-xs text-center">
           <button
-            onClick={startMiniGame}
+            onClick={startPracticeMiniGame}
             className="w-full bg-amber-400 hover:bg-amber-300 text-slate-950 font-extrabold px-4 py-3 rounded-full shadow-2xl border-2 border-white animate-bounce text-xs md:text-sm"
           >
             🏆 Mulai Lomba Jatuh Bangun!
@@ -1225,7 +1798,108 @@ export default function GameWorld({
         </div>
       )}
 
-      {!isSpectator && nearCoach && !miniGameActive && !showModal && (
+      {/* Tombol Portal 2 (Kiri): Mode Petualangan Eliminasi */}
+      {!isSpectator && worldMap === "stadium" && nearAdventurePortal && !miniGameActive && !showModal && (
+        <div className="absolute bottom-36 left-1/2 -translate-x-1/2 z-10 w-[88%] max-w-xs text-center">
+          <button
+            onClick={triggerGlobalAdventure}
+            className="w-full bg-purple-600 hover:bg-purple-500 text-white font-extrabold px-4 py-3 rounded-full shadow-2xl border-2 border-yellow-300 animate-bounce text-xs md:text-sm"
+          >
+            👑 Mulai Petualangan Eliminasi (1 Pemenang)!
+          </button>
+        </div>
+      )}
+
+      {/* Tombol Portal 3 (Belakang Tengah): Masuk ke Dunia Explore PJOK */}
+      {!isSpectator && worldMap === "stadium" && nearExplorePortal && !miniGameActive && !showModal && (
+        <div className="absolute bottom-36 left-1/2 -translate-x-1/2 z-10 w-[88%] max-w-xs text-center">
+          <button
+            onClick={enterExploreWorld}
+            className="w-full bg-sky-500 hover:bg-sky-400 text-slate-950 font-extrabold px-4 py-3 rounded-full shadow-2xl border-2 border-white animate-bounce text-xs md:text-sm"
+          >
+            🌍 Masuk ke Dunia Explore PJOK!
+          </button>
+        </div>
+      )}
+
+      {/* Tombol di Dunia Explore PJOK: Kembali ke Stadion Utama */}
+      {!isSpectator && worldMap === "explore" && nearReturnPortal && !selectedExploreModal && (
+        <div className="absolute bottom-36 left-1/2 -translate-x-1/2 z-10 w-[88%] max-w-xs text-center">
+          <button
+            onClick={returnToStadiumWorld}
+            className="w-full bg-orange-500 hover:bg-orange-400 text-slate-950 font-extrabold px-4 py-3 rounded-full shadow-2xl border-2 border-white animate-bounce text-xs md:text-sm"
+          >
+            🏟️ Kembali ke Stadion Utama
+          </button>
+        </div>
+      )}
+
+      {/* Tombol di Dunia Explore PJOK: Dekat Benda Olahraga */}
+      {!isSpectator && worldMap === "explore" && nearbyExploreObj && !selectedExploreModal && (
+        <div className="absolute bottom-36 left-1/2 -translate-x-1/2 z-10 w-[88%] max-w-xs text-center">
+          <button
+            onClick={() => openExploreObjectMaterial(nearbyExploreObj)}
+            className="w-full bg-emerald-400 hover:bg-emerald-300 text-slate-950 font-extrabold px-4 py-3 rounded-full shadow-2xl border-2 border-white animate-bounce text-xs md:text-sm"
+          >
+            {nearbyExploreObj.ikon} Pelajari: {nearbyExploreObj.nama}
+          </button>
+        </div>
+      )}
+
+      {/* Modal Kartu 1 Materi PJOK saat Mendekati Objek Benda di Dunia Explore */}
+      {!isSpectator && selectedExploreModal && (
+        <div className="fixed inset-0 z-30 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-900 text-white border-2 border-sky-400 rounded-3xl p-5 max-w-md w-full shadow-2xl">
+            <div className="flex justify-between items-start border-b border-slate-700 pb-3 mb-3">
+              <div className="flex items-center gap-2.5">
+                <span className="text-3xl bg-slate-800 p-2 rounded-2xl border border-slate-700">
+                  {selectedExploreModal.ikon}
+                </span>
+                <div>
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-sky-400">
+                    {selectedExploreModal.kategori}
+                  </span>
+                  <h3 className="text-base md:text-lg font-extrabold text-yellow-300">
+                    {selectedExploreModal.nama}
+                  </h3>
+                </div>
+              </div>
+              <button
+                onClick={() => setSelectedExploreModal(null)}
+                className="text-slate-400 hover:text-white font-bold text-lg"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="bg-slate-800/90 border border-slate-700 rounded-2xl p-4 mb-4">
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-xs font-extrabold text-emerald-400">
+                  📖 Materi PJOK (+50 XP)
+                </span>
+                <button
+                  onClick={() => speakText(selectedExploreModal.materi)}
+                  className="bg-sky-600 hover:bg-sky-500 text-white text-xs px-3 py-1 rounded-full font-bold"
+                >
+                  🔊 Bacakan Materi
+                </button>
+              </div>
+              <p className="text-xs md:text-sm text-slate-200 leading-relaxed">
+                {selectedExploreModal.materi}
+              </p>
+            </div>
+
+            <button
+              onClick={() => setSelectedExploreModal(null)}
+              className="w-full bg-yellow-400 hover:bg-yellow-300 text-slate-950 font-extrabold py-2.5 rounded-xl text-xs md:text-sm"
+            >
+              ✅ Selesai Membaca & Lanjut Menjelajah
+            </button>
+          </div>
+        </div>
+      )}
+
+      {!isSpectator && worldMap === "stadium" && nearCoach && !miniGameActive && !showModal && (
         <div className="absolute top-16 left-1/2 -translate-x-1/2 z-10 w-[92%] max-w-lg bg-slate-900/95 text-white p-3.5 rounded-2xl border-2 border-yellow-400 shadow-2xl">
           <div className="flex justify-between items-center mb-1">
             <span className="font-bold text-yellow-400 text-sm md:text-base">🧢 {pjokData.npc_utama.nama}</span>
@@ -1238,12 +1912,12 @@ export default function GameWorld({
           </div>
           <p className="text-xs md:text-sm leading-relaxed">{pjokData.npc_utama.dialog_awal}</p>
           <p className="text-xs text-emerald-400 mt-1 font-medium">
-            👉 Dekati gedung materi atau masuk ke Portal Emas di kanan untuk lomba Jatuh Bangun!
+            👉 Portal Biru (Belakang): Dunia Explore PJOK • Portal Kanan: Latihan • Portal Kiri: Eliminasi 1 Pemenang!
           </p>
         </div>
       )}
 
-      {!isSpectator && activeBuilding && !miniGameActive && !showModal && (
+      {!isSpectator && worldMap === "stadium" && activeBuilding && !miniGameActive && !showModal && (
         <div className="absolute bottom-36 left-1/2 -translate-x-1/2 z-10 w-[85%] max-w-xs text-center">
           <button
             onClick={() => {
@@ -1319,16 +1993,49 @@ export default function GameWorld({
       )}
 
       <Canvas shadows camera={{ position: [0, 10, 16], fov: 50 }}>
-        <Sky sunPosition={[100, 30, 100]} />
+        <Sky sunPosition={worldMap === "explore" ? [60, 50, 80] : [100, 30, 100]} />
         <ambientLight intensity={0.65} />
         <directionalLight position={[15, 25, 15]} intensity={1.2} castShadow />
         <Environment preset="park" />
 
-        <SportsEnvironment faseId={faseData.id} />
+        {worldMap === "stadium" || isSpectator ? (
+          <>
+            <SportsEnvironment faseId={faseData.id} />
 
-        {ARENA_TILES.map((tile) => (
-          <ArenaFloorTile key={tile.id} tile={tile} isFallen={isTileFallen(tile.id)} />
-        ))}
+            {ARENA_TILES.map((tile) => (
+              <ArenaFloorTile key={tile.id} tile={tile} isFallen={isTileFallen(tile.id)} />
+            ))}
+
+            <group position={[0, 0, -4]}>
+              <VoxelCharacter shirtColor="#2563eb" pantsColor="#0f172a" isMoving={false} isCoach={true} />
+              <Text position={[0, 3.45, 0]} fontSize={0.45} color="#facc15" outlineWidth={0.06} outlineColor="black">
+                {nearCoach ? "💬 Coach Resky" : "❗ Coach Resky"}
+              </Text>
+            </group>
+
+            {faseData.gedung_materi.map((gedung: any, index: number) => (
+              <group key={gedung.id} position={gedung.posisi_3d}>
+                <mesh position={[0, 2.5, 0]} castShadow>
+                  <boxGeometry args={[5.5, 5, 5.5]} />
+                  <meshStandardMaterial color={BUILDING_COLORS[index % BUILDING_COLORS.length]} />
+                </mesh>
+                <mesh position={[0, 5.3, 0]} castShadow>
+                  <boxGeometry args={[6.1, 0.6, 6.1]} />
+                  <meshStandardMaterial color="#1e293b" />
+                </mesh>
+                <mesh position={[0, 1.3, 2.8]}>
+                  <boxGeometry args={[1.6, 2.6, 0.2]} />
+                  <meshStandardMaterial color="#facc15" />
+                </mesh>
+                <Text position={[0, 6.3, 0]} fontSize={0.55} color="white" outlineWidth={0.07} outlineColor="black">
+                  {gedung.nama_gedung}
+                </Text>
+              </group>
+            ))}
+          </>
+        ) : (
+          <ExploreWorldEnvironment readIds={readExploreIds} />
+        )}
 
         {isSpectator ? (
           <SpectatorCameraController
@@ -1339,6 +2046,8 @@ export default function GameWorld({
           <Player
             playerName={playerName}
             avatarPreset={avatarPreset}
+            isEliminated={isEliminated}
+            worldMap={worldMap}
             socketRef={socketRef}
             joyVector={joyVector}
             jumpTrigger={jumpTrigger}
@@ -1346,6 +2055,10 @@ export default function GameWorld({
             onInteractBuilding={setActiveBuilding}
             onNearCoach={setNearCoach}
             onNearPortal={setNearPortal}
+            onNearAdventurePortal={setNearAdventurePortal}
+            onNearExplorePortal={setNearExplorePortal}
+            onNearReturnPortal={setNearReturnPortal}
+            onNearExploreObject={setNearbyExploreObj}
             onStandingTileChange={setStandingTile}
             gedungList={faseData.gedung_materi}
             isTileFallen={isTileFallen}
@@ -1353,39 +2066,12 @@ export default function GameWorld({
           />
         )}
 
-        {Object.values(otherPlayers).map((p: any) => (
+        {visibleRemotePlayers.map((p: any) => (
           <RemotePlayer
             key={p.id}
             data={p}
             isHighlighted={isSpectator && followedPlayerId === p.id}
           />
-        ))}
-
-        <group position={[0, 0, -4]}>
-          <VoxelCharacter shirtColor="#2563eb" pantsColor="#0f172a" isMoving={false} isCoach={true} />
-          <Text position={[0, 3.45, 0]} fontSize={0.45} color="#facc15" outlineWidth={0.06} outlineColor="black">
-            {nearCoach ? "💬 Coach Resky" : "❗ Coach Resky"}
-          </Text>
-        </group>
-
-        {faseData.gedung_materi.map((gedung: any, index: number) => (
-          <group key={gedung.id} position={gedung.posisi_3d}>
-            <mesh position={[0, 2.5, 0]} castShadow>
-              <boxGeometry args={[5.5, 5, 5.5]} />
-              <meshStandardMaterial color={BUILDING_COLORS[index % BUILDING_COLORS.length]} />
-            </mesh>
-            <mesh position={[0, 5.3, 0]} castShadow>
-              <boxGeometry args={[6.1, 0.6, 6.1]} />
-              <meshStandardMaterial color="#1e293b" />
-            </mesh>
-            <mesh position={[0, 1.3, 2.8]}>
-              <boxGeometry args={[1.6, 2.6, 0.2]} />
-              <meshStandardMaterial color="#facc15" />
-            </mesh>
-            <Text position={[0, 6.3, 0]} fontSize={0.55} color="white" outlineWidth={0.07} outlineColor="black">
-              {gedung.nama_gedung}
-            </Text>
-          </group>
         ))}
       </Canvas>
     </div>
