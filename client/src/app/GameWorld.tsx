@@ -371,6 +371,7 @@ function Player({
   onStandingTileChange,
   gedungList,
   isTileFallen,
+  isMiniGame,
 }: any) {
   const groupRef = useRef<THREE.Group>(null);
   const keys = useRef<{ [key: string]: boolean }>({});
@@ -489,8 +490,10 @@ function Player({
       });
     }
 
+    const camHeight = isMiniGame ? 12.5 : 9;
+    const camDist = isMiniGame ? 18 : 15;
     state.camera.position.lerp(
-      new THREE.Vector3(pos.x, Math.max(pos.y, 0) + 9, pos.z + 15),
+      new THREE.Vector3(pos.x, Math.max(pos.y, 0) + camHeight, pos.z + camDist),
       0.1
     );
     state.camera.lookAt(pos.x, Math.max(pos.y, 0) + 1.5, pos.z);
@@ -908,7 +911,6 @@ export default function GameWorld({
       } catch {}
     }
 
-    // Jika di iPhone Safari (tidak mendukung Fullscreen API standar)
     window.scrollTo(0, 1);
     setShowIOSFullscreenGuide(true);
   };
@@ -1287,7 +1289,7 @@ export default function GameWorld({
       {/* HUD Atas dengan Safe-Area iPhone & Android */}
       <div
         style={{
-          paddingTop: "max(0.5rem, env(safe-area-inset-top))",
+          paddingTop: "max(0.4rem, env(safe-area-inset-top))",
           paddingLeft: "max(0.75rem, env(safe-area-inset-left))",
           paddingRight: "max(0.75rem, env(safe-area-inset-right))",
         }}
@@ -1431,32 +1433,48 @@ export default function GameWorld({
         </div>
       )}
 
-      {/* Panel Soal Mini-Game */}
+      {/* Panel Soal Mini-Game Ramping & Semi-Transparan */}
       {!isSpectator && miniGameActive && currentMgQuestion && (
-        <div className="absolute top-16 left-1/2 -translate-x-1/2 z-20 w-[92%] max-w-2xl bg-slate-950/95 text-white p-3 md:p-4 rounded-2xl border-2 border-yellow-400 shadow-2xl">
-          <div className="flex justify-between items-center mb-1.5">
-            <span className="bg-yellow-400 text-slate-950 text-xs font-extrabold px-3 py-0.5 rounded-full">
-              ⏱️ {mgTimeLeft} Detik
+        <div
+          style={{ top: "max(3.5rem, calc(env(safe-area-inset-top) + 3rem))" }}
+          className="fixed left-1/2 -translate-x-1/2 z-20 w-[94%] max-w-xl bg-slate-950/75 backdrop-blur-sm text-white px-3 py-2 rounded-xl border border-yellow-400/90 shadow-lg pointer-events-auto"
+        >
+          <div className="flex justify-between items-center gap-2 mb-1">
+            <div className="flex items-center gap-1.5">
+              <span className="bg-yellow-400 text-slate-950 text-[11px] font-extrabold px-2 py-0.5 rounded-full">
+                ⏱️ {mgTimeLeft}d
+              </span>
+              <span className="bg-slate-800/90 text-sky-300 text-[11px] font-bold px-2 py-0.5 rounded-full border border-slate-600">
+                {standingTile !== null
+                  ? `📍 Ubin ${ARENA_TILES[standingTile].label}`
+                  : "📍 Di Tengah"}
+              </span>
+            </div>
+            <span className="text-[11px] font-bold text-emerald-300 truncate">
+              {mgStatusText}
             </span>
-            <span className="text-xs font-bold text-emerald-400">{mgStatusText}</span>
             <button
               onClick={stopMiniGame}
-              className="bg-red-600 hover:bg-red-500 text-xs px-2.5 py-1 rounded-lg font-bold"
+              className="bg-red-600 hover:bg-red-500 text-[11px] px-2 py-0.5 rounded font-bold shrink-0"
             >
               Keluar
             </button>
           </div>
-          <p className="font-bold text-xs md:text-base mb-2 text-center">
+
+          <p className="font-bold text-xs md:text-sm mb-1.5 text-center leading-snug">
             {currentMgQuestion.pertanyaan}
           </p>
-          <div className="grid grid-cols-2 gap-1.5 text-xs font-bold">
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-1 text-[11px] font-bold">
             {currentMgQuestion.pilihan.map((opsi: string, i: number) => (
               <div
                 key={i}
                 style={{ backgroundColor: ARENA_TILES[i]?.color || "#334155" }}
-                className="px-2.5 py-1.5 rounded-xl text-white shadow flex items-center gap-2"
+                className={`px-2 py-1 rounded-lg text-white shadow flex items-center gap-1.5 ${
+                  standingTile === i ? "ring-2 ring-white scale-[1.02]" : "opacity-95"
+                }`}
               >
-                <span className="bg-black/40 px-1.5 py-0.5 rounded font-extrabold">
+                <span className="bg-black/40 px-1 rounded font-extrabold">
                   {ARENA_TILES[i]?.label}
                 </span>
                 <span className="truncate">{opsi}</span>
@@ -1655,6 +1673,7 @@ export default function GameWorld({
             onStandingTileChange={setStandingTile}
             gedungList={faseData.gedung_materi}
             isTileFallen={isTileFallen}
+            isMiniGame={miniGameActive}
           />
         )}
 
