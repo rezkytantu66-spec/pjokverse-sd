@@ -12,10 +12,18 @@ const SHIRT_COLORS = [
   { name: "Ungu", hex: "#a855f7" },
 ];
 
+const AVATAR_OPTIONS = [
+  { id: "boy", name: "Siswa Putra", icon: "👦" },
+  { id: "girl", name: "Siswi Putri", icon: "👧" },
+  { id: "hijab", name: "Siswi Berhijab", icon: "🧕" },
+  { id: "cap", name: "Atlet Bertopi", icon: "🧢" },
+];
+
 export default function Home() {
   const [selectedFase, setSelectedFase] = useState<any>(null);
   const [playerName, setPlayerName] = useState("");
   const [shirtColor, setShirtColor] = useState("#ef4444");
+  const [avatarType, setAvatarType] = useState("boy");
   const [isTeacherMode, setIsTeacherMode] = useState(false);
 
   if (selectedFase) {
@@ -24,6 +32,7 @@ export default function Home() {
         faseData={selectedFase}
         playerName={isTeacherMode ? "Guru Pemantau" : playerName.trim() || "Siswa PJOK"}
         shirtColor={shirtColor}
+        avatarType={avatarType}
         isSpectator={isTeacherMode}
         onBack={() => setSelectedFase(null)}
       />
@@ -40,10 +49,10 @@ export default function Home() {
           PJOK<span className="text-yellow-400">Verse</span> SD
         </h1>
         <p className="text-slate-300 text-sm md:text-base mb-6">
-          Isi namamu, pilih warna kaos olahraga, lalu masuk ke dunia 3D bersama <b>Coach Resky</b>!
+          Isi namamu, pilih karakter & warna kaos olahraga, lalu masuk ke dunia 3D bersama <b>Coach Resky</b>!
         </p>
 
-        {/* Pilihan Peran: Siswa atau Layar Pemantau Guru */}
+        {/* Pilihan Peran */}
         <div className="max-w-md mx-auto flex bg-slate-800 p-1.5 rounded-2xl border border-slate-600 mb-5">
           <button
             type="button"
@@ -69,7 +78,7 @@ export default function Home() {
           </button>
         </div>
 
-        {/* Input Nama Siswa & Warna Kaos (Hanya muncul di Mode Siswa) */}
+        {/* Form Pengaturan Karakter Siswa */}
         {!isTeacherMode ? (
           <div className="max-w-md mx-auto bg-slate-800/80 p-4 rounded-2xl border border-slate-600 mb-7 text-left">
             <label className="block text-xs font-bold text-yellow-400 uppercase mb-1.5">
@@ -83,6 +92,27 @@ export default function Home() {
               onChange={(e) => setPlayerName(e.target.value)}
               className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-600 text-white text-sm focus:outline-none focus:border-yellow-400 mb-4"
             />
+
+            <label className="block text-xs font-bold text-yellow-400 uppercase mb-1.5">
+              Pilih Karakter Atlet
+            </label>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
+              {AVATAR_OPTIONS.map((av) => (
+                <button
+                  key={av.id}
+                  type="button"
+                  onClick={() => setAvatarType(av.id)}
+                  className={`py-2 px-2 rounded-xl border text-xs font-bold flex flex-col items-center gap-1 transition ${
+                    avatarType === av.id
+                      ? "bg-yellow-400 text-slate-950 border-white scale-105 shadow"
+                      : "bg-slate-900 text-slate-200 border-slate-600 hover:border-yellow-400"
+                  }`}
+                >
+                  <span className="text-xl">{av.icon}</span>
+                  <span>{av.name}</span>
+                </button>
+              ))}
+            </div>
 
             <label className="block text-xs font-bold text-yellow-400 uppercase mb-1.5">
               Warna Kaos Olahraga

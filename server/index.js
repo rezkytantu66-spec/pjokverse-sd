@@ -20,16 +20,16 @@ io.on("connection", (socket) => {
   console.log("Siswa bergabung:", socket.id);
 
   socket.on("joinGame", (data) => {
-    players[socket.id] = {
+players[socket.id] = {
       id: socket.id,
       name: data.name || "Siswa",
       faseId: data.faseId,
       color: data.color || "#3b82f6",
+      avatarType: data.avatarType || "boy",
       pos: [0, 0, 5],
       rotY: 0,
       isMoving: false,
-    };
-    io.emit("updatePlayers", players);
+    };    io.emit("updatePlayers", players);
   });
 
   socket.on("movePlayer", (data) => {

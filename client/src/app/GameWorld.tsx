@@ -28,12 +28,14 @@ function VoxelCharacter({
   shirtColor,
   pantsColor,
   skinColor = "#fcd34d",
+  avatarType = "boy",
   isMoving,
   isCoach = false,
 }: {
   shirtColor: string;
   pantsColor: string;
   skinColor?: string;
+  avatarType?: string;
   isMoving: boolean;
   isCoach?: boolean;
 }) {
@@ -92,6 +94,58 @@ function VoxelCharacter({
         <boxGeometry args={[0.12, 0.12, 0.05]} />
         <meshStandardMaterial color="#1e293b" />
       </mesh>
+
+      {/* Rambut Siswa Putra */}
+      {!isCoach && avatarType === "boy" && (
+        <mesh position={[0, 2.83, -0.02]} castShadow>
+          <boxGeometry args={[0.88, 0.22, 0.88]} />
+          <meshStandardMaterial color="#1e293b" />
+        </mesh>
+      )}
+
+      {/* Rambut Siswi Putri + Kuncir Belakang */}
+      {!isCoach && avatarType === "girl" && (
+        <group>
+          <mesh position={[0, 2.83, -0.02]} castShadow>
+            <boxGeometry args={[0.88, 0.24, 0.88]} />
+            <meshStandardMaterial color="#451a03" />
+          </mesh>
+          <mesh position={[0, 2.55, -0.55]} castShadow>
+            <boxGeometry args={[0.35, 0.55, 0.3]} />
+            <meshStandardMaterial color="#451a03" />
+          </mesh>
+        </group>
+      )}
+
+      {/* Hijab Siswi */}
+      {!isCoach && avatarType === "hijab" && (
+        <group>
+          <mesh position={[0, 2.42, -0.06]} castShadow>
+            <boxGeometry args={[0.94, 0.94, 0.86]} />
+            <meshStandardMaterial color="#f8fafc" />
+          </mesh>
+          <mesh position={[0, 1.92, 0]} castShadow>
+            <boxGeometry args={[0.98, 0.25, 0.65]} />
+            <meshStandardMaterial color="#f8fafc" />
+          </mesh>
+        </group>
+      )}
+
+      {/* Topi Atlet */}
+      {!isCoach && avatarType === "cap" && (
+        <group position={[0, 2.84, 0]}>
+          <mesh castShadow>
+            <boxGeometry args={[0.9, 0.22, 0.9]} />
+            <meshStandardMaterial color="#ef4444" />
+          </mesh>
+          <mesh position={[0, -0.05, 0.35]} castShadow>
+            <boxGeometry args={[0.86, 0.08, 0.45]} />
+            <meshStandardMaterial color="#dc2626" />
+          </mesh>
+        </group>
+      )}
+
+      {/* Topi Coach Resky */}
       {isCoach && (
         <group position={[0, 2.85, 0]}>
           <mesh castShadow>
@@ -129,6 +183,7 @@ function RemotePlayer({ data, isHighlighted = false }: { data: any; isHighlighte
       <VoxelCharacter
         shirtColor={data.color || "#3b82f6"}
         pantsColor="#1e293b"
+        avatarType={data.avatarType || "boy"}
         isMoving={data.isMoving || false}
       />
       {isHighlighted && (
@@ -189,7 +244,6 @@ function ArenaFloorTile({
   );
 }
 
-// Kamera Pengawas Khusus Laptop Guru
 function SpectatorCameraController({
   preset,
   followedPlayer,
@@ -213,7 +267,6 @@ function SpectatorCameraController({
     };
   }, []);
 
-  // Reset geseran manual saat guru mengganti preset atau mengklik siswa baru
   useEffect(() => {
     manualOffset.current.set(0, 0, 0);
   }, [preset, followedPlayer?.id]);
@@ -256,6 +309,7 @@ function SpectatorCameraController({
 function Player({
   playerName,
   shirtColor,
+  avatarType,
   socketRef,
   joyVector,
   jumpTrigger,
@@ -408,7 +462,12 @@ function Player({
 
   return (
     <group ref={groupRef} position={[0, 0, 5]}>
-      <VoxelCharacter shirtColor={shirtColor} pantsColor="#1e293b" isMoving={moving} />
+      <VoxelCharacter
+        shirtColor={shirtColor}
+        pantsColor="#1e293b"
+        avatarType={avatarType}
+        isMoving={moving}
+      />
       <Text position={[0, 3.25, 0]} fontSize={0.4} color="white" outlineWidth={0.05} outlineColor="black">
         {playerName}
       </Text>
@@ -549,6 +608,7 @@ export default function GameWorld({
   faseData,
   playerName,
   shirtColor,
+  avatarType = "boy",
   isSpectator = false,
   onBack,
 }: any) {
@@ -557,7 +617,6 @@ export default function GameWorld({
   const [onlineCount, setOnlineCount] = useState(isSpectator ? 0 : 1);
   const [isPortraitMobile, setIsPortraitMobile] = useState(false);
 
-  // State Khusus Pemantau Guru
   const [cameraPreset, setCameraPreset] = useState<"overview" | "arena">("overview");
   const [followedPlayerId, setFollowedPlayerId] = useState<string | null>(null);
 
@@ -608,7 +667,6 @@ export default function GameWorld({
     } catch {}
   };
 
-  // Koneksi ke Server Multiplayer Socket.io
   useEffect(() => {
     const serverHost = typeof window !== "undefined" ? window.location.hostname : "localhost";
     const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || `http://${serverHost}:4000`;
@@ -616,12 +674,12 @@ export default function GameWorld({
     socketRef.current = socket;
 
     socket.on("connect", () => {
-      // Jika Mode Pemantau Guru, jangan daftarkan sebagai pemain agar avatar tidak muncul di lapangan
       if (!isSpectator) {
         socket.emit("joinGame", {
           name: playerName,
           faseId: faseData.id,
           color: shirtColor,
+          avatarType,
         });
       }
     });
@@ -651,7 +709,7 @@ export default function GameWorld({
     return () => {
       socket.disconnect();
     };
-  }, [faseData.id, playerName, shirtColor, isSpectator]);
+  }, [faseData.id, playerName, shirtColor, avatarType, isSpectator]);
 
   const studentList = useMemo(() => Object.values(otherPlayers), [otherPlayers]);
   const followedPlayer = followedPlayerId ? otherPlayers[followedPlayerId] || null : null;
@@ -753,7 +811,6 @@ export default function GameWorld({
 
   return (
     <div className="relative w-full h-[100dvh] overflow-hidden select-none">
-      {/* Peringatan Otomatis Saat HP Siswa Masih Berdiri (Portrait) */}
       {isPortraitMobile && (
         <div className="fixed inset-0 z-50 bg-slate-950/95 text-white flex flex-col items-center justify-center p-6 text-center backdrop-blur-md">
           <div className="text-5xl mb-4 animate-bounce">📱🔄</div>
@@ -799,7 +856,6 @@ export default function GameWorld({
           </div>
         </div>
 
-        {/* Kontrol Kamera Cepat untuk Guru di Layar Proyektor */}
         {isSpectator && (
           <div className="flex flex-wrap items-center gap-2 bg-slate-900/90 text-white p-2 rounded-2xl border border-slate-700 shadow-lg pointer-events-auto">
             <button
@@ -838,7 +894,7 @@ export default function GameWorld({
         )}
       </div>
 
-      {/* Panel Daftar Siswa Real-Time di Sisi Kanan (Khusus Layar Pemantau Guru) */}
+      {/* Daftar Siswa Layar Pemantau Guru */}
       {isSpectator && (
         <div className="absolute top-20 right-4 z-10 w-64 max-h-[75vh] overflow-y-auto bg-slate-900/90 backdrop-blur-md text-white p-3.5 rounded-2xl border border-slate-700 shadow-2xl">
           <div className="flex items-center justify-between border-b border-slate-700 pb-2 mb-2.5">
@@ -867,9 +923,7 @@ export default function GameWorld({
                 return (
                   <button
                     key={student.id}
-                    onClick={() =>
-                      setFollowedPlayerId(isFocused ? null : student.id)
-                    }
+                    onClick={() => setFollowedPlayerId(isFocused ? null : student.id)}
                     className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-left text-xs transition border ${
                       isFocused
                         ? "bg-yellow-400/20 border-yellow-400 text-white"
@@ -907,7 +961,7 @@ export default function GameWorld({
         </div>
       )}
 
-      {/* Panel Soal Atas Saat Mini-Game Aktif (Mode Siswa) */}
+      {/* Panel Soal Mini-Game */}
       {!isSpectator && miniGameActive && currentMgQuestion && (
         <div className="absolute top-16 left-1/2 -translate-x-1/2 z-20 w-[92%] max-w-2xl bg-slate-950/95 text-white p-3 md:p-4 rounded-2xl border-2 border-yellow-400 shadow-2xl">
           <div className="flex justify-between items-center mb-1.5">
@@ -942,7 +996,7 @@ export default function GameWorld({
         </div>
       )}
 
-      {/* Kontrol Layar Sentuh (Hanya Mode Siswa) */}
+      {/* Kontrol Layar Sentuh */}
       {!isSpectator && !showModal && (
         <>
           <div className="absolute bottom-5 left-8 z-10">
@@ -959,7 +1013,6 @@ export default function GameWorld({
         </>
       )}
 
-      {/* Tombol Masuk Mini-Game (Hanya Mode Siswa) */}
       {!isSpectator && nearPortal && !miniGameActive && !showModal && (
         <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10">
           <button
@@ -971,7 +1024,6 @@ export default function GameWorld({
         </div>
       )}
 
-      {/* Kotak Dialog Coach Resky (Hanya Mode Siswa) */}
       {!isSpectator && nearCoach && !miniGameActive && !showModal && (
         <div className="absolute top-16 left-1/2 -translate-x-1/2 z-10 w-[90%] max-w-lg bg-slate-900/95 text-white p-3.5 rounded-2xl border-2 border-yellow-400 shadow-2xl">
           <div className="flex justify-between items-center mb-1">
@@ -990,7 +1042,6 @@ export default function GameWorld({
         </div>
       )}
 
-      {/* Tombol Masuk Gedung (Hanya Mode Siswa) */}
       {!isSpectator && activeBuilding && !miniGameActive && !showModal && (
         <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10">
           <button
@@ -1006,7 +1057,7 @@ export default function GameWorld({
         </div>
       )}
 
-      {/* Layar Materi & Kuis Interaktif Gedung */}
+      {/* Layar Materi & Kuis Interaktif */}
       {!isSpectator && showModal && activeBuilding && (
         <div className="absolute inset-0 z-20 bg-black/75 flex items-center justify-center p-4">
           <div className="bg-white text-slate-900 max-w-2xl w-full rounded-2xl p-5 shadow-2xl max-h-[90dvh] overflow-y-auto">
@@ -1089,6 +1140,7 @@ export default function GameWorld({
           <Player
             playerName={playerName}
             shirtColor={shirtColor}
+            avatarType={avatarType}
             socketRef={socketRef}
             joyVector={joyVector}
             jumpTrigger={jumpTrigger}
