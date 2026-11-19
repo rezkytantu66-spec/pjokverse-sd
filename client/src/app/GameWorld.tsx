@@ -796,7 +796,12 @@ export default function GameWorld({
   const [isPortraitMobile, setIsPortraitMobile] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
 
-  // Voice Chat (Push-to-Talk + Proximity Audio)
+  // State Layar Penuh untuk Android & iPhone
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isIOSDevice, setIsIOSDevice] = useState(false);
+  const [showIOSFullscreenGuide, setShowIOSFullscreenGuide] = useState(false);
+
+  // Voice Chat
   const [isTalking, setIsTalking] = useState(false);
   const [micReady, setMicReady] = useState(false);
   const [micError, setMicError] = useState<string | null>(null);
@@ -830,8 +835,34 @@ export default function GameWorld({
   }, [otherPlayers]);
 
   useEffect(() => {
+    const ua = navigator.userAgent || "";
+    const ios = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+    setIsIOSDevice(ios);
+
+    const isStandalone =
+      (window.navigator as any).standalone === true ||
+      window.matchMedia("(display-mode: standalone)").matches;
+    if (isStandalone) setIsFullscreen(true);
+
+    const handleFsChange = () => {
+      const fsEl =
+        document.fullscreenElement ||
+        (document as any).webkitFullscreenElement ||
+        (document as any).msFullscreenElement;
+      setIsFullscreen(Boolean(fsEl) || isStandalone);
+    };
+
+    document.addEventListener("fullscreenchange", handleFsChange);
+    document.addEventListener("webkitfullscreenchange", handleFsChange);
+    return () => {
+      document.removeEventListener("fullscreenchange", handleFsChange);
+      document.removeEventListener("webkitfullscreenchange", handleFsChange);
+    };
+  }, []);
+
+  useEffect(() => {
     const checkOrientation = () => {
-      const isMobile = window.innerWidth < 900;
+      const isMobile = window.innerWidth < 950;
       const isPortrait = window.innerHeight > window.innerWidth;
       setIsPortraitMobile(!isSpectator && isMobile && isPortrait);
     };
@@ -846,19 +877,42 @@ export default function GameWorld({
     };
   }, [isSpectator]);
 
-  const enterLandscapeFullscreen = async () => {
-    try {
-      if (document.documentElement.requestFullscreen) {
-        await document.documentElement.requestFullscreen();
-      }
-      const orientation = (window.screen as any)?.orientation;
-      if (orientation && orientation.lock) {
-        await orientation.lock("landscape");
-      }
-    } catch {}
+  const toggleMobileFullscreen = async () => {
+    const docEl = document.documentElement as any;
+    const doc = document as any;
+
+    const fsElement =
+      doc.fullscreenElement || doc.webkitFullscreenElement || doc.msFullscreenElement;
+
+    if (fsElement) {
+      try {
+        if (doc.exitFullscreen) await doc.exitFullscreen();
+        else if (doc.webkitExitFullscreen) await doc.webkitExitFullscreen();
+      } catch {}
+      return;
+    }
+
+    const requestFs =
+      docEl.requestFullscreen ||
+      docEl.webkitRequestFullscreen ||
+      docEl.msRequestFullscreen;
+
+    if (requestFs && !isIOSDevice) {
+      try {
+        await requestFs.call(docEl);
+        const orientation = (window.screen as any)?.orientation;
+        if (orientation && orientation.lock) {
+          await orientation.lock("landscape");
+        }
+        return;
+      } catch {}
+    }
+
+    // Jika di iPhone Safari (tidak mendukung Fullscreen API standar)
+    window.scrollTo(0, 1);
+    setShowIOSFullscreenGuide(true);
   };
 
-  // Mengatur volume suara teman berdasarkan jarak karakter (Proximity Voice)
   useEffect(() => {
     if (isSpectator) return;
     const interval = setInterval(() => {
@@ -870,7 +924,7 @@ export default function GameWorld({
           return;
         }
         const dist = Math.hypot(lx - peerPlayer.pos[0], lz - peerPlayer.pos[2]);
-        const maxDist = 14; // Terdengar dalam radius 14 meter di lapangan
+        const maxDist = 14;
         const vol = Math.max(0, Math.min(1, 1 - dist / maxDist));
         audioEl.volume = vol;
       });
@@ -928,18 +982,15 @@ export default function GameWorld({
     return pc;
   };
 
-  // Mengaktifkan mikrofon saat pertama kali tombol bicara ditekan
   const ensureMicrophone = async () => {
     if (localStreamRef.current) return true;
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      // Default mute sampai tombol ditahan
       stream.getAudioTracks().forEach((t) => (t.enabled = false));
       localStreamRef.current = stream;
       setMicReady(true);
       setMicError(null);
 
-      // Sambungkan ke semua teman yang sudah ada di kelas
       Object.keys(otherPlayersRef.current).forEach((peerId) => {
         const pc = peersRef.current[peerId];
         if (pc) {
@@ -1013,7 +1064,6 @@ export default function GameWorld({
         }
       });
 
-      // Bersihkan koneksi peer yang sudah keluar
       Object.keys(peersRef.current).forEach((peerId) => {
         if (!filtered[peerId]) {
           peersRef.current[peerId].close();
@@ -1175,6 +1225,7 @@ export default function GameWorld({
     <div className="relative w-full h-[100dvh] overflow-hidden select-none">
       <CheerfulBGM muted={isMuted} />
 
+      {/* Peringatan Putar HP ke Landscape */}
       {isPortraitMobile && (
         <div className="fixed inset-0 z-50 bg-slate-950/95 text-white flex flex-col items-center justify-center p-6 text-center backdrop-blur-md">
           <div className="text-5xl mb-4 animate-bounce">📱🔄</div>
@@ -1185,7 +1236,7 @@ export default function GameWorld({
             Miringkan layar HP kamu ke posisi mendatar agar arena permainan dan tombol kontrol terlihat luas.
           </p>
           <button
-            onClick={enterLandscapeFullscreen}
+            onClick={toggleMobileFullscreen}
             className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold px-5 py-2.5 rounded-full text-sm shadow-lg"
           >
             Aktifkan Layar Penuh Landscape
@@ -1193,35 +1244,91 @@ export default function GameWorld({
         </div>
       )}
 
-      {/* HUD Atas */}
-      <div className="absolute top-3 left-4 right-4 z-10 flex items-start justify-between pointer-events-none gap-3">
-        <div className="flex flex-wrap items-center gap-2.5 bg-slate-900/90 text-white px-4 py-2 rounded-2xl border border-slate-700 shadow-lg pointer-events-auto">
-          <button onClick={onBack} className="bg-red-600 hover:bg-red-500 px-3 py-1.5 rounded-xl text-xs font-bold">
+      {/* Panduan Layar Penuh Khusus iPhone Safari */}
+      {showIOSFullscreenGuide && (
+        <div className="fixed inset-0 z-50 bg-black/80 text-white flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="bg-slate-900 border-2 border-yellow-400 rounded-2xl p-5 max-w-md w-full shadow-2xl">
+            <div className="flex justify-between items-center mb-2">
+              <h3 className="font-extrabold text-yellow-400 text-base">
+                📱 Layar Penuh di iPhone (Safari)
+              </h3>
+              <button
+                onClick={() => setShowIOSFullscreenGuide(false)}
+                className="text-slate-400 hover:text-white font-bold text-lg"
+              >
+                ✕
+              </button>
+            </div>
+            <p className="text-xs text-slate-300 mb-3 leading-relaxed">
+              Safari di iPhone mengunci mode layar penuh lewat menu browser. Pilih salah satu cara cepat berikut:
+            </p>
+            <div className="space-y-2.5 text-xs bg-slate-800/90 p-3.5 rounded-xl border border-slate-700">
+              <p>
+                <b className="text-emerald-400">Cara 1 (Instan 1 Detik):</b> Ketuk ikon{" "}
+                <b className="bg-slate-700 px-1.5 py-0.5 rounded">☰ / AA</b> di sebelah kiri kolom alamat atas Safari → pilih{" "}
+                <b>Sembunyikan Bar Alat</b> (<i>Hide Toolbar</i>).
+              </p>
+              <p>
+                <b className="text-sky-400">Cara 2 (Layar Penuh Total):</b> Ketuk ikon{" "}
+                <b className="bg-slate-700 px-1.5 py-0.5 rounded">Bagikan (Kotak Panah Atas)</b> → pilih{" "}
+                <b>Tambah ke Layar Utama</b> (<i>Add to Home Screen</i>), lalu buka ikon <b>PJOKVerse SD</b> dari layar utama iPhone.
+              </p>
+            </div>
+            <button
+              onClick={() => setShowIOSFullscreenGuide(false)}
+              className="mt-4 w-full bg-yellow-400 hover:bg-yellow-300 text-slate-950 font-extrabold py-2 rounded-xl text-xs"
+            >
+              Mengerti, Kembali ke Permainan
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* HUD Atas dengan Safe-Area iPhone & Android */}
+      <div
+        style={{
+          paddingTop: "max(0.5rem, env(safe-area-inset-top))",
+          paddingLeft: "max(0.75rem, env(safe-area-inset-left))",
+          paddingRight: "max(0.75rem, env(safe-area-inset-right))",
+        }}
+        className="absolute top-0 left-0 right-0 z-10 flex items-start justify-between pointer-events-none gap-2"
+      >
+        <div className="flex flex-wrap items-center gap-1.5 md:gap-2.5 bg-slate-900/90 text-white px-3 py-1.5 md:px-4 md:py-2 rounded-2xl border border-slate-700 shadow-lg pointer-events-auto">
+          <button
+            onClick={onBack}
+            className="bg-red-600 hover:bg-red-500 px-2.5 py-1 md:px-3 md:py-1.5 rounded-xl text-[11px] md:text-xs font-bold"
+          >
             ← Ganti Fase
           </button>
           <button
             onClick={() => setIsMuted((m) => !m)}
-            className="bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-xl text-xs font-bold border border-slate-600"
+            className="bg-slate-800 hover:bg-slate-700 px-2.5 py-1 md:px-3 md:py-1.5 rounded-xl text-[11px] md:text-xs font-bold border border-slate-600"
           >
-            {isMuted ? "🔇 Musik Mati" : "🎵 Musik Nyala"}
+            {isMuted ? "🔇 Musik" : "🎵 Musik"}
+          </button>
+          <button
+            onClick={toggleMobileFullscreen}
+            className="bg-indigo-600 hover:bg-indigo-500 px-2.5 py-1 md:px-3 md:py-1.5 rounded-xl text-[11px] md:text-xs font-bold border border-indigo-400"
+          >
+            {isFullscreen ? "🗗 Keluar Penuh" : "⛶ Layar Penuh"}
           </button>
           <div>
             <div className="flex items-center gap-2">
               <p className="font-bold text-yellow-400 text-xs md:text-base">{faseData.nama_dunia}</p>
               {isSpectator && (
                 <span className="bg-emerald-500 text-slate-950 text-[10px] font-extrabold px-2 py-0.5 rounded-full uppercase">
-                  🖥️ Layar Pemantau Guru
+                  🖥️ Pemantau Guru
                 </span>
               )}
             </div>
-            <p className="text-[11px] md:text-xs text-slate-300">
+            <p className="text-[10px] md:text-xs text-slate-300">
               {faseData.nama_fase} •{" "}
               {!isSpectator && (
                 <>
                   <span className="text-emerald-400 font-bold">{score} XP</span> •{" "}
                 </>
               )}
-              <span className="text-sky-400 font-bold">👥 {onlineCount} Siswa Aktif di Kelas</span>
+              <span className="text-sky-400 font-bold">👥 {onlineCount} Aktif</span>
             </p>
           </div>
         </div>
@@ -1253,12 +1360,6 @@ export default function GameWorld({
               }`}
             >
               🏆 Arena 4 Warna
-            </button>
-            <button
-              onClick={enterLandscapeFullscreen}
-              className="bg-blue-600 hover:bg-blue-500 px-3 py-1.5 rounded-xl text-xs font-bold"
-            >
-              ⛶ Layar Penuh
             </button>
           </div>
         )}
@@ -1365,14 +1466,26 @@ export default function GameWorld({
         </div>
       )}
 
-      {/* Kontrol Layar Sentuh + Tombol Mikrofon Push-to-Talk */}
+      {/* Kontrol Layar Sentuh dengan Safe-Area iPhone & Android */}
       {!isSpectator && !showModal && (
         <>
-          <div className="absolute bottom-5 left-8 z-10">
+          <div
+            style={{
+              bottom: "max(1.25rem, env(safe-area-inset-bottom))",
+              left: "max(1.5rem, env(safe-area-inset-left))",
+            }}
+            className="absolute z-10"
+          >
             <VirtualJoystick onMove={setJoyVector} />
           </div>
 
-          <div className="absolute bottom-7 right-8 z-10 flex flex-col items-center gap-3">
+          <div
+            style={{
+              bottom: "max(1.5rem, env(safe-area-inset-bottom))",
+              right: "max(1.5rem, env(safe-area-inset-right))",
+            }}
+            className="absolute z-10 flex flex-col items-end gap-2.5"
+          >
             {micError && (
               <span className="bg-red-600 text-white text-[10px] font-bold px-2.5 py-1 rounded-full shadow">
                 {micError}
@@ -1385,13 +1498,13 @@ export default function GameWorld({
               }}
               onPointerUp={stopTalking}
               onPointerCancel={stopTalking}
-              className={`px-4 py-2.5 rounded-full font-extrabold text-xs shadow-xl border-2 border-white touch-none transition ${
+              className={`px-3.5 py-2 rounded-full font-extrabold text-xs shadow-xl border-2 border-white touch-none transition ${
                 isTalking
-                  ? "bg-red-500 text-white scale-110 animate-pulse"
+                  ? "bg-red-500 text-white scale-105 animate-pulse"
                   : "bg-sky-500/95 hover:bg-sky-400 text-slate-950"
               }`}
             >
-              {isTalking ? "🔴 Sedang Bicara..." : micReady ? "🎙️ Tahan Bicara" : "🎙️ Aktifkan Mic"}
+              {isTalking ? "🔴 Bicara..." : micReady ? "🎙️ Tahan Bicara" : "🎙️ Aktifkan Mic"}
             </button>
 
             <button
