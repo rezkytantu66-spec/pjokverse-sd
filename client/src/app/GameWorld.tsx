@@ -24,7 +24,7 @@ const BUILDING_COLORS = [
   "#eab308",
 ];
 
-// 6 Objek Benda Olahraga di Dunia Explore PJOK (masing-masing memuat 1 materi PJOK)
+// 6 Objek Benda Olahraga di Dunia Explore PJOK
 const EXPLORE_OBJECTS = [
   {
     id: "obj-bola-sepak",
@@ -80,6 +80,30 @@ const EXPLORE_OBJECTS = [
     materi:
       "Tubuh membutuhkan cairan yang cukup sebelum, selama, dan setelah berolahraga agar tidak mengalami dehidrasi. Selain minum air putih, istirahat cukup dan menjaga kebersihan pakaian olahraga membuat tubuh tetap bugar dan sehat.",
   },
+];
+
+// Segmen Jembatan Juara dengan 3 Tingkat Kesulitan berbeda (dari Z = 26 menuju Finish di Z = -46)
+const BRIDGE_SEGMENTS = [
+  // Zona Start (Aman)
+  { id: "start", minX: -5, maxX: 5, minZ: 22, maxZ: 30, y: 0.4, color: "#10b981", stage: 1 },
+  // Tingkat 1: Mudah (Jembatan Lebar + Balok Lompat)
+  { id: "lvl1-a", minX: -3.2, maxX: 3.2, minZ: 12, maxZ: 22, y: 0.4, color: "#34d399", stage: 1 },
+  { id: "lvl1-b", minX: -3.2, maxX: 3.2, minZ: 4, maxZ: 12, y: 0.4, color: "#34d399", stage: 1 },
+  // Checkpoint 1
+  { id: "cp-1", minX: -4.5, maxX: 4.5, minZ: -1, maxZ: 4, y: 0.4, color: "#facc15", stage: 2 },
+  // Tingkat 2: Sedang (Jembatan Lebih Sempit + Pintu Geser + Celah Lompat)
+  { id: "lvl2-a", minX: -2.1, maxX: 2.1, minZ: -9, maxZ: -1, y: 0.4, color: "#38bdf8", stage: 2 },
+  // Celah Z = -9 sampai -11.4 (Harus dilompati!)
+  { id: "lvl2-b", minX: -2.1, maxX: 2.1, minZ: -20, maxZ: -11.4, y: 0.4, color: "#38bdf8", stage: 2 },
+  // Checkpoint 2
+  { id: "cp-2", minX: -4.5, maxX: 4.5, minZ: -25, maxZ: -20, y: 0.4, color: "#facc15", stage: 3 },
+  // Tingkat 3: Sulit (Zig-Zag Sempit + Palang Pemutar + Celah Lompat)
+  { id: "lvl3-a", minX: -3.2, maxX: -0.2, minZ: -31, maxZ: -25, y: 0.4, color: "#f43f5e", stage: 3 },
+  { id: "lvl3-b", minX: -0.8, maxX: 2.2, minZ: -36.5, maxZ: -30.5, y: 0.4, color: "#f43f5e", stage: 3 },
+  // Celah Z = -36.5 sampai -38.8 (Harus dilompati!)
+  { id: "lvl3-c", minX: -1.6, maxX: 1.6, minZ: -44, maxZ: -38.8, y: 0.4, color: "#fb7185", stage: 3 },
+  // Zona Finish Juara
+  { id: "finish", minX: -5.5, maxX: 5.5, minZ: -52, maxZ: -44, y: 0.4, color: "#f59e0b", stage: 3 },
 ];
 
 function shuffleArray<T>(items: T[]): T[] {
@@ -479,8 +503,12 @@ function Player({
   onNearPortal,
   onNearAdventurePortal,
   onNearExplorePortal,
+  onNearBridgePortal,
   onNearReturnPortal,
   onNearExploreObject,
+  onBridgeStageChange,
+  onBridgeFall,
+  onBridgeFinish,
   onStandingTileChange,
   gedungList,
   isTileFallen,
@@ -492,12 +520,14 @@ function Player({
   const isGrounded = useRef(true);
   const [moving, setMoving] = useState(false);
   const lastEmitTime = useRef(0);
+  const bridgeCheckpointRef = useRef<[number, number, number]>([0, 0.5, 26]);
+  const bridgeFinishedRef = useRef(false);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       keys.current[e.key.toLowerCase()] = true;
       if (e.code === "Space" && isGrounded.current) {
-        velocityY.current = 9;
+        velocityY.current = 9.5;
         isGrounded.current = false;
       }
     };
@@ -512,7 +542,7 @@ function Player({
 
   useEffect(() => {
     if (jumpTrigger > 0 && isGrounded.current) {
-      velocityY.current = 9;
+      velocityY.current = 9.5;
       isGrounded.current = false;
     }
   }, [jumpTrigger]);
@@ -526,8 +556,12 @@ function Player({
       );
       velocityY.current = 0;
       isGrounded.current = true;
+      if (worldMap === "bridge") {
+        bridgeCheckpointRef.current = [0, 0.5, 26];
+        bridgeFinishedRef.current = false;
+      }
     }
-  }, [teleportTrigger]);
+  }, [teleportTrigger, worldMap]);
 
   useFrame((state, delta) => {
     if (!groupRef.current) return;
@@ -561,36 +595,181 @@ function Player({
     }
 
     const pos = groupRef.current.position;
+    const t = state.clock.getElapsedTime();
 
-    let currentTileId: number | null = null;
-    if (worldMap === "stadium") {
-      for (const tile of ARENA_TILES) {
-        if (Math.abs(pos.x - tile.pos[0]) < 3.9 && Math.abs(pos.z - tile.pos[2]) < 3.9) {
-          currentTileId = tile.id;
-          break;
+    if (worldMap === "bridge") {
+      onStandingTileChange(null);
+      onNearCoach(false);
+      onNearPortal(false);
+      onNearAdventurePortal(false);
+      onNearExplorePortal(false);
+      onNearBridgePortal(false);
+      onNearExploreObject(null);
+      onInteractBuilding(null);
+
+      // Cek apakah karakter berada di atas segmen jembatan
+      const onSegment = BRIDGE_SEGMENTS.find(
+        (seg) =>
+          pos.x >= seg.minX - 0.35 &&
+          pos.x <= seg.maxX + 0.35 &&
+          pos.z >= seg.minZ - 0.35 &&
+          pos.z <= seg.maxZ + 0.35
+      );
+
+      // Ketinggian pijakan (termasuk balok lompat Tingkat 1 di Z = 16 dan Z = 7)
+      let bridgeFloor = onSegment ? onSegment.y : -9;
+      if (
+        onSegment &&
+        ((Math.abs(pos.z - 16) < 0.75 && Math.abs(pos.x) < 3.1) ||
+          (Math.abs(pos.z - 7) < 0.75 && Math.abs(pos.x) < 3.1))
+      ) {
+        bridgeFloor = 1.25;
+      }
+
+      if (!isGrounded.current || pos.y > bridgeFloor) {
+        pos.y += velocityY.current * delta;
+        velocityY.current -= 24 * delta;
+        if (pos.y <= bridgeFloor) {
+          pos.y = bridgeFloor;
+          velocityY.current = 0;
+          isGrounded.current = true;
+        }
+      } else {
+        pos.y = bridgeFloor;
+      }
+
+      // Rintangan Tingkat 2: Pintu Geser di Z = -15
+      if (Math.abs(pos.z - -15) < 0.85 && pos.y < 2.2) {
+        const gateX = Math.sin(t * 2.4) * 1.45;
+        if (Math.abs(pos.x - gateX) < 1.15) {
+          pos.z += 2.2;
         }
       }
-    }
-    onStandingTileChange(currentTileId);
 
-    const standingOnFallenTile = currentTileId !== null && isTileFallen(currentTileId);
-    const groundHeight = standingOnFallenTile ? -6 : currentTileId !== null ? 0.3 : 0;
+      // Rintangan Tingkat 3: Palang Pemutar di Z = -33.5
+      if (Math.abs(pos.z - -33.5) < 2.6 && pos.y < 1.55) {
+        const angle = t * 2.6;
+        const barDirX = Math.cos(angle);
+        const barDirZ = Math.sin(angle);
+        const relX = pos.x - 0.7;
+        const relZ = pos.z - -33.5;
+        const perpDist = Math.abs(relX * barDirZ - relZ * barDirX);
+        const alongDist = Math.abs(relX * barDirX + relZ * barDirZ);
+        if (perpDist < 0.55 && alongDist < 2.5) {
+          pos.x += (relX >= 0 ? 1 : -1) * 14 * delta;
+        }
+      }
 
-    if (!isGrounded.current || pos.y > groundHeight) {
-      pos.y += velocityY.current * delta;
-      velocityY.current -= 24 * delta;
+      // Simpan Checkpoint & Tingkat Kesulitan
+      if (onSegment) {
+        onBridgeStageChange(onSegment.stage);
+        if (onSegment.id === "cp-1") {
+          bridgeCheckpointRef.current = [0, 0.5, 1.5];
+        } else if (onSegment.id === "cp-2") {
+          bridgeCheckpointRef.current = [0, 0.5, -22.5];
+        } else if (onSegment.id === "finish" && !bridgeFinishedRef.current) {
+          bridgeFinishedRef.current = true;
+          onBridgeFinish();
+        }
+      }
 
-      if (pos.y <= groundHeight) {
-        pos.y = groundHeight;
+      // Jika jatuh ke air di bawah jembatan -> kembali ke Checkpoint
+      if (pos.y < -3.5) {
+        const [cx, cy, cz] = bridgeCheckpointRef.current;
+        pos.set(cx, cy, cz);
         velocityY.current = 0;
         isGrounded.current = true;
+        onBridgeFall();
       }
-    } else if (pos.y < groundHeight) {
-      pos.y = groundHeight;
-    }
 
-    pos.x = THREE.MathUtils.clamp(pos.x, -42, 42);
-    pos.z = THREE.MathUtils.clamp(pos.z, -42, 42);
+      // Deteksi dekat portal kembali di area Start jembatan
+      const distReturnBridge = new THREE.Vector2(pos.x, pos.z).distanceTo(new THREE.Vector2(0, 28.5));
+      onNearReturnPortal(distReturnBridge < 3.2);
+    } else {
+      let currentTileId: number | null = null;
+      if (worldMap === "stadium") {
+        for (const tile of ARENA_TILES) {
+          if (Math.abs(pos.x - tile.pos[0]) < 3.9 && Math.abs(pos.z - tile.pos[2]) < 3.9) {
+            currentTileId = tile.id;
+            break;
+          }
+        }
+      }
+      onStandingTileChange(currentTileId);
+
+      const standingOnFallenTile = currentTileId !== null && isTileFallen(currentTileId);
+      const groundHeight = standingOnFallenTile ? -6 : currentTileId !== null ? 0.3 : 0;
+
+      if (!isGrounded.current || pos.y > groundHeight) {
+        pos.y += velocityY.current * delta;
+        velocityY.current -= 24 * delta;
+
+        if (pos.y <= groundHeight) {
+          pos.y = groundHeight;
+          velocityY.current = 0;
+          isGrounded.current = true;
+        }
+      } else if (pos.y < groundHeight) {
+        pos.y = groundHeight;
+      }
+
+      pos.x = THREE.MathUtils.clamp(pos.x, -42, 42);
+      pos.z = THREE.MathUtils.clamp(pos.z, -42, 42);
+
+      if (worldMap === "stadium") {
+        onNearReturnPortal(false);
+        onNearExploreObject(null);
+
+        const distCoach = new THREE.Vector2(pos.x, pos.z).distanceTo(new THREE.Vector2(0, -4));
+        onNearCoach(distCoach < 3.8);
+
+        const distPortal = new THREE.Vector2(pos.x, pos.z).distanceTo(new THREE.Vector2(14, -4));
+        onNearPortal(distPortal < 3.8);
+
+        const distAdventure = new THREE.Vector2(pos.x, pos.z).distanceTo(new THREE.Vector2(-14, -4));
+        onNearAdventurePortal(distAdventure < 3.8);
+
+        const distExplore = new THREE.Vector2(pos.x, pos.z).distanceTo(new THREE.Vector2(0, -15));
+        onNearExplorePortal(distExplore < 3.8);
+
+        const distBridge = new THREE.Vector2(pos.x, pos.z).distanceTo(new THREE.Vector2(0, 31));
+        onNearBridgePortal(distBridge < 3.8);
+
+        let foundBuilding = null;
+        for (const gedung of gedungList) {
+          const distB = new THREE.Vector2(pos.x, pos.z).distanceTo(
+            new THREE.Vector2(gedung.posisi_3d[0], gedung.posisi_3d[2])
+          );
+          if (distB < 4.5) {
+            foundBuilding = gedung;
+            break;
+          }
+        }
+        onInteractBuilding(foundBuilding);
+      } else {
+        onNearCoach(false);
+        onNearPortal(false);
+        onNearAdventurePortal(false);
+        onNearExplorePortal(false);
+        onNearBridgePortal(false);
+        onInteractBuilding(null);
+
+        const distReturn = new THREE.Vector2(pos.x, pos.z).distanceTo(new THREE.Vector2(0, -18));
+        onNearReturnPortal(distReturn < 3.8);
+
+        let foundExploreObj = null;
+        for (const obj of EXPLORE_OBJECTS) {
+          const distObj = new THREE.Vector2(pos.x, pos.z).distanceTo(
+            new THREE.Vector2(obj.pos[0], obj.pos[2])
+          );
+          if (distObj < 3.8) {
+            foundExploreObj = obj;
+            break;
+          }
+        }
+        onNearExploreObject(foundExploreObj);
+      }
+    }
 
     const now = state.clock.getElapsedTime();
     if (socketRef.current && socketRef.current.connected && now - lastEmitTime.current > 0.05) {
@@ -603,64 +782,13 @@ function Player({
       });
     }
 
-    // Kamera lebih tinggi dan lebih jauh agar pemandangan peta sangat luas
-    const camHeight = isMiniGame ? 22 : 18;
-    const camDist = isMiniGame ? 30 : 26;
+    const camHeight = isMiniGame ? 22 : worldMap === "bridge" ? 15 : 18;
+    const camDist = isMiniGame ? 30 : worldMap === "bridge" ? 21 : 26;
     state.camera.position.lerp(
       new THREE.Vector3(pos.x, Math.max(pos.y, 0) + camHeight, pos.z + camDist),
       0.1
     );
-    state.camera.lookAt(pos.x, Math.max(pos.y, 0) + 1.2, pos.z - 2);
-
-    if (worldMap === "stadium") {
-      onNearReturnPortal(false);
-      onNearExploreObject(null);
-
-      const distCoach = new THREE.Vector2(pos.x, pos.z).distanceTo(new THREE.Vector2(0, -4));
-      onNearCoach(distCoach < 3.8);
-
-      const distPortal = new THREE.Vector2(pos.x, pos.z).distanceTo(new THREE.Vector2(14, -4));
-      onNearPortal(distPortal < 3.8);
-
-      const distAdventure = new THREE.Vector2(pos.x, pos.z).distanceTo(new THREE.Vector2(-14, -4));
-      onNearAdventurePortal(distAdventure < 3.8);
-
-      const distExplore = new THREE.Vector2(pos.x, pos.z).distanceTo(new THREE.Vector2(0, -15));
-      onNearExplorePortal(distExplore < 3.8);
-
-      let foundBuilding = null;
-      for (const gedung of gedungList) {
-        const distB = new THREE.Vector2(pos.x, pos.z).distanceTo(
-          new THREE.Vector2(gedung.posisi_3d[0], gedung.posisi_3d[2])
-        );
-        if (distB < 4.5) {
-          foundBuilding = gedung;
-          break;
-        }
-      }
-      onInteractBuilding(foundBuilding);
-    } else {
-      onNearCoach(false);
-      onNearPortal(false);
-      onNearAdventurePortal(false);
-      onNearExplorePortal(false);
-      onInteractBuilding(null);
-
-      const distReturn = new THREE.Vector2(pos.x, pos.z).distanceTo(new THREE.Vector2(0, -18));
-      onNearReturnPortal(distReturn < 3.8);
-
-      let foundExploreObj = null;
-      for (const obj of EXPLORE_OBJECTS) {
-        const distObj = new THREE.Vector2(pos.x, pos.z).distanceTo(
-          new THREE.Vector2(obj.pos[0], obj.pos[2])
-        );
-        if (distObj < 3.8) {
-          foundExploreObj = obj;
-          break;
-        }
-      }
-      onNearExploreObject(foundExploreObj);
-    }
+    state.camera.lookAt(pos.x, Math.max(pos.y, 0) + 1.2, pos.z - 3);
   });
 
   return (
@@ -682,6 +810,125 @@ function Player({
       >
         {`${isEliminated ? "👻 (Gugur) " : ""}${playerName}`}
       </Text>
+    </group>
+  );
+}
+
+// Arena Jembatan Juara dengan 3 Tingkat Kesulitan sampai Finish
+function ChampionBridgeEnvironment() {
+  const slidingGateRef = useRef<THREE.Mesh>(null);
+  const spinnerRef = useRef<THREE.Mesh>(null);
+
+  useFrame((state) => {
+    const t = state.clock.getElapsedTime();
+    if (slidingGateRef.current) {
+      slidingGateRef.current.position.x = Math.sin(t * 2.4) * 1.45;
+    }
+    if (spinnerRef.current) {
+      spinnerRef.current.rotation.y = t * 2.6;
+    }
+  });
+
+  return (
+    <group>
+      {/* Hamparan Danau Biru di Bawah Jembatan */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -4, -12]} receiveShadow>
+        <planeGeometry args={[140, 140]} />
+        <meshStandardMaterial color="#0284c7" />
+      </mesh>
+
+      {/* Seluruh Segmen Jembatan */}
+      {BRIDGE_SEGMENTS.map((seg) => {
+        const width = seg.maxX - seg.minX;
+        const depth = seg.maxZ - seg.minZ;
+        const centerX = (seg.minX + seg.maxX) / 2;
+        const centerZ = (seg.minZ + seg.maxZ) / 2;
+        return (
+          <mesh key={seg.id} position={[centerX, seg.y - 0.35, centerZ]} receiveShadow castShadow>
+            <boxGeometry args={[width, 0.7, depth]} />
+            <meshStandardMaterial color={seg.color} />
+          </mesh>
+        );
+      })}
+
+      {/* Portal Kembali di Awal Jembatan */}
+      <group position={[0, 0.4, 29]}>
+        <mesh position={[-1.5, 1.8, 0]}>
+          <boxGeometry args={[0.35, 3.6, 0.35]} />
+          <meshStandardMaterial color="#f97316" />
+        </mesh>
+        <mesh position={[1.5, 1.8, 0]}>
+          <boxGeometry args={[0.35, 3.6, 0.35]} />
+          <meshStandardMaterial color="#f97316" />
+        </mesh>
+        <mesh position={[0, 3.6, 0]}>
+          <boxGeometry args={[3.4, 0.45, 0.45]} />
+          <meshStandardMaterial color="#f97316" />
+        </mesh>
+        <Text position={[0, 4.4, 0]} fontSize={0.5} color="#ffedd5" outlineWidth={0.06} outlineColor="black">
+          🏟️ Kembali ke Stadion
+        </Text>
+      </group>
+
+      {/* TINGKAT 1 (MUDAH): 2 Balok Lompat */}
+      <Text position={[0, 3.2, 20]} fontSize={0.65} color="#bbf7d0" outlineWidth={0.07} outlineColor="black">
+        🟢 TINGKAT 1: MUDAH (Lompati Balok!)
+      </Text>
+      <mesh position={[0, 0.85, 16]} castShadow>
+        <boxGeometry args={[6.2, 0.85, 1.1]} />
+        <meshStandardMaterial color="#f97316" />
+      </mesh>
+      <mesh position={[0, 0.85, 7]} castShadow>
+        <boxGeometry args={[6.2, 0.85, 1.1]} />
+        <meshStandardMaterial color="#f97316" />
+      </mesh>
+
+      {/* CHECKPOINT 1 & TINGKAT 2 (SEDANG): Celah Lompat + Pintu Geser */}
+      <Text position={[0, 3.2, 1.5]} fontSize={0.65} color="#fef08a" outlineWidth={0.07} outlineColor="black">
+        🟡 POS 1 • TINGKAT 2: SEDANG (Lompati Celah & Hindari Pintu Geser!)
+      </Text>
+      <mesh ref={slidingGateRef} position={[0, 1.5, -15]} castShadow>
+        <boxGeometry args={[1.9, 2.2, 0.9]} />
+        <meshStandardMaterial color="#dc2626" />
+      </mesh>
+
+      {/* CHECKPOINT 2 & TINGKAT 3 (SULIT): Jalur Zig-Zag + Palang Pemutar + Celah */}
+      <Text position={[0, 3.2, -22.5]} fontSize={0.65} color="#fecdd3" outlineWidth={0.07} outlineColor="black">
+        🔴 POS 2 • TINGKAT 3: SULIT (Zig-Zag & Palang Pemutar!)
+      </Text>
+      <group position={[0.7, 1.15, -33.5]}>
+        <mesh>
+          <cylinderGeometry args={[0.35, 0.35, 1.5, 16]} />
+          <meshStandardMaterial color="#1e293b" />
+        </mesh>
+        <mesh ref={spinnerRef} position={[0, 0.25, 0]} castShadow>
+          <boxGeometry args={[5.0, 0.45, 0.45]} />
+          <meshStandardMaterial color="#facc15" />
+        </mesh>
+      </group>
+
+      {/* GARIS FINISH & PIALA JUARA */}
+      <group position={[0, 0.4, -48]}>
+        <mesh position={[-4.5, 2.5, 0]} castShadow>
+          <boxGeometry args={[0.45, 5, 0.45]} />
+          <meshStandardMaterial color="#facc15" />
+        </mesh>
+        <mesh position={[4.5, 2.5, 0]} castShadow>
+          <boxGeometry args={[0.45, 5, 0.45]} />
+          <meshStandardMaterial color="#facc15" />
+        </mesh>
+        <mesh position={[0, 4.8, 0]} castShadow>
+          <boxGeometry args={[9.5, 0.9, 0.5]} />
+          <meshStandardMaterial color="#dc2626" />
+        </mesh>
+        <Text position={[0, 4.8, 0.3]} fontSize={0.62} color="#fef08a" outlineWidth={0.07} outlineColor="black">
+          🏁 FINISH JEMBATAN JUARA 🏆
+        </Text>
+        <mesh position={[0, 1.4, -1]} castShadow>
+          <cylinderGeometry args={[0.9, 0.45, 1.6, 16]} />
+          <meshStandardMaterial color="#facc15" metalness={0.75} roughness={0.2} />
+        </mesh>
+      </group>
     </group>
   );
 }
@@ -713,7 +960,6 @@ function ExploreWorldEnvironment({ readIds }: { readIds: string[] }) {
         <meshStandardMaterial color="#fef3c7" />
       </mesh>
 
-      {/* Portal Kembali ke Stadion Utama */}
       <group position={[0, 0, -18]}>
         <mesh position={[-1.6, 2, 0]} castShadow>
           <boxGeometry args={[0.4, 4, 0.4]} />
@@ -736,7 +982,6 @@ function ExploreWorldEnvironment({ readIds }: { readIds: string[] }) {
         </Text>
       </group>
 
-      {/* 1. Benda: Bola & Gawang Sepak */}
       <group position={EXPLORE_OBJECTS[0].pos}>
         <mesh position={[-1.6, 1.1, -0.8]} castShadow>
           <boxGeometry args={[0.2, 2.2, 0.2]} />
@@ -759,7 +1004,6 @@ function ExploreWorldEnvironment({ readIds }: { readIds: string[] }) {
         </Text>
       </group>
 
-      {/* 2. Benda: Ring & Bola Basket */}
       <group position={EXPLORE_OBJECTS[1].pos}>
         <mesh position={[0, 2, -0.8]} castShadow>
           <boxGeometry args={[0.25, 4, 0.25]} />
@@ -782,7 +1026,6 @@ function ExploreWorldEnvironment({ readIds }: { readIds: string[] }) {
         </Text>
       </group>
 
-      {/* 3. Benda: Net & Bola Voli */}
       <group position={EXPLORE_OBJECTS[2].pos}>
         <mesh position={[-1.8, 1.4, 0]} castShadow>
           <cylinderGeometry args={[0.1, 0.1, 2.8, 12]} />
@@ -805,7 +1048,6 @@ function ExploreWorldEnvironment({ readIds }: { readIds: string[] }) {
         </Text>
       </group>
 
-      {/* 4. Benda: Lintasan & Cone Lari */}
       <group position={EXPLORE_OBJECTS[3].pos}>
         <mesh position={[0, 0.05, 0]} receiveShadow>
           <boxGeometry args={[3.6, 0.1, 3.6]} />
@@ -822,7 +1064,6 @@ function ExploreWorldEnvironment({ readIds }: { readIds: string[] }) {
         </Text>
       </group>
 
-      {/* 5. Benda: Matras & Simpai Senam */}
       <group position={EXPLORE_OBJECTS[4].pos}>
         <mesh position={[0, 0.15, 0]} receiveShadow castShadow>
           <boxGeometry args={[3.4, 0.3, 2.2]} />
@@ -837,7 +1078,6 @@ function ExploreWorldEnvironment({ readIds }: { readIds: string[] }) {
         </Text>
       </group>
 
-      {/* 6. Benda: Pos P3K & Air Mineral */}
       <group position={EXPLORE_OBJECTS[5].pos}>
         <mesh position={[0, 0.65, 0]} castShadow>
           <boxGeometry args={[2.2, 1.3, 1.4]} />
@@ -1041,7 +1281,7 @@ function SportsEnvironment({ faseId }: { faseId: string }) {
         </Text>
       </group>
 
-      {/* Portal 2 (Kiri): Mode Petualangan Eliminasi (1 Siswa Tersisa) */}
+      {/* Portal 2 (Kiri): Mode Petualangan Eliminasi */}
       <group position={[-14, 0, -4]}>
         <mesh position={[-1.6, 2, 0]} castShadow>
           <boxGeometry args={[0.4, 4, 0.4]} />
@@ -1084,6 +1324,29 @@ function SportsEnvironment({ faseId }: { faseId: string }) {
         </mesh>
         <Text position={[0, 4.9, 0]} fontSize={0.55} color="#bae6fd" outlineWidth={0.07} outlineColor="black">
           🌍 Dunia Explore PJOK
+        </Text>
+      </group>
+
+      {/* Portal 4 (Depan Arena): Jembatan Juara */}
+      <group position={[0, 0, 31]}>
+        <mesh position={[-1.6, 2, 0]} castShadow>
+          <boxGeometry args={[0.4, 4, 0.4]} />
+          <meshStandardMaterial color="#10b981" metalness={0.6} />
+        </mesh>
+        <mesh position={[1.6, 2, 0]} castShadow>
+          <boxGeometry args={[0.4, 4, 0.4]} />
+          <meshStandardMaterial color="#10b981" metalness={0.6} />
+        </mesh>
+        <mesh position={[0, 4, 0]} castShadow>
+          <boxGeometry args={[3.6, 0.5, 0.5]} />
+          <meshStandardMaterial color="#10b981" metalness={0.6} />
+        </mesh>
+        <mesh position={[0, 2, 0]}>
+          <planeGeometry args={[2.8, 3.6]} />
+          <meshStandardMaterial color="#6ee7b7" transparent opacity={0.75} side={THREE.DoubleSide} />
+        </mesh>
+        <Text position={[0, 4.9, 0]} fontSize={0.55} color="#a7f3d0" outlineWidth={0.07} outlineColor="black">
+          🌉 Jembatan Juara (Lomba Lari)
         </Text>
       </group>
 
@@ -1181,12 +1444,19 @@ export default function GameWorld({
   const [otherPlayers, setOtherPlayers] = useState<{ [id: string]: any }>({});
   const [onlineCount, setOnlineCount] = useState(isSpectator ? 0 : 1);
 
-  const [worldMap, setWorldMap] = useState<"stadium" | "explore">("stadium");
+  const [worldMap, setWorldMap] = useState<"stadium" | "explore" | "bridge">("stadium");
   const [nearExplorePortal, setNearExplorePortal] = useState(false);
+  const [nearBridgePortal, setNearBridgePortal] = useState(false);
   const [nearReturnPortal, setNearReturnPortal] = useState(false);
   const [nearbyExploreObj, setNearbyExploreObj] = useState<(typeof EXPLORE_OBJECTS)[0] | null>(null);
   const [selectedExploreModal, setSelectedExploreModal] = useState<(typeof EXPLORE_OBJECTS)[0] | null>(null);
   const [readExploreIds, setReadExploreIds] = useState<string[]>([]);
+
+  // State Jembatan Juara
+  const [bridgeStage, setBridgeStage] = useState<number>(1);
+  const [bridgeSeconds, setBridgeSeconds] = useState<number>(0);
+  const [bridgeNotice, setBridgeNotice] = useState<string | null>(null);
+  const [bridgeWinModal, setBridgeWinModal] = useState<boolean>(false);
 
   const [cameraPreset, setCameraPreset] = useState<"overview" | "arena">("overview");
   const [followedPlayerId, setFollowedPlayerId] = useState<string | null>(null);
@@ -1241,6 +1511,15 @@ export default function GameWorld({
     }
   };
 
+  // Timer Lomba Jembatan Juara
+  useEffect(() => {
+    if (worldMap !== "bridge" || bridgeWinModal || isSpectator) return;
+    const t = setInterval(() => {
+      setBridgeSeconds((s) => s + 1);
+    }, 1000);
+    return () => clearInterval(t);
+  }, [worldMap, bridgeWinModal, isSpectator]);
+
   const enterExploreWorld = () => {
     setWorldMap("explore");
     setNearExplorePortal(false);
@@ -1249,12 +1528,36 @@ export default function GameWorld({
     speakText("Selamat datang di Dunia Explore PJOK! Dekati benda olahraga untuk membaca materinya.");
   };
 
+  const enterBridgeWorld = () => {
+    setWorldMap("bridge");
+    setNearBridgePortal(false);
+    setBridgeStage(1);
+    setBridgeSeconds(0);
+    setBridgeWinModal(false);
+    setBridgeNotice("🟢 Tingkat 1: Mudah — Lompati balok menuju Pos 1!");
+    setTeleportTrigger({ pos: [0, 0.5, 26], id: Date.now() });
+    speakText("Lomba Jembatan Juara dimulai! Lewati tiga tingkat kesulitan sampai garis finish!");
+  };
+
   const returnToStadiumWorld = () => {
     setWorldMap("stadium");
     setNearReturnPortal(false);
     setNearbyExploreObj(null);
     setSelectedExploreModal(null);
+    setBridgeWinModal(false);
+    setBridgeNotice(null);
     setTeleportTrigger({ pos: [0, 0, 5], id: Date.now() });
+  };
+
+  const handleBridgeFall = () => {
+    setBridgeNotice("💦 Terjatuh! Kembali ke Pos Pemeriksaan!");
+    setTimeout(() => setBridgeNotice(null), 2000);
+  };
+
+  const handleBridgeFinish = () => {
+    setScore((s) => s + 300);
+    setBridgeWinModal(true);
+    speakText(`Selamat ${playerName}! Kamu berhasil menaklukkan Jembatan Juara!`);
   };
 
   const openExploreObjectMaterial = (obj: (typeof EXPLORE_OBJECTS)[0]) => {
@@ -1527,9 +1830,13 @@ export default function GameWorld({
             ← Fase
           </button>
           <span className="text-xs font-bold text-yellow-400 truncate max-w-[125px] sm:max-w-none">
-            {worldMap === "explore" ? "🌍 Explore PJOK" : faseData.nama_fase}
+            {worldMap === "explore"
+              ? "🌍 Explore PJOK"
+              : worldMap === "bridge"
+              ? "🌉 Jembatan Juara"
+              : faseData.nama_fase}
           </span>
-          {!isSpectator && worldMap === "explore" && (
+          {!isSpectator && worldMap !== "stadium" && (
             <button
               onClick={returnToStadiumWorld}
               className="bg-orange-500 hover:bg-orange-400 text-slate-950 px-2 py-1 rounded-lg text-[11px] font-extrabold"
@@ -1544,6 +1851,11 @@ export default function GameWorld({
             {worldMap === "explore" && (
               <span className="text-sky-300 font-bold">
                 🔍 {readExploreIds.length}/{EXPLORE_OBJECTS.length}
+              </span>
+            )}
+            {worldMap === "bridge" && (
+              <span className="text-emerald-300 font-bold">
+                Tahap {bridgeStage}/3 • ⏱️ {bridgeSeconds}d
               </span>
             )}
             <span className="text-emerald-400 font-extrabold">{score} XP</span>
@@ -1586,6 +1898,51 @@ export default function GameWorld({
           </div>
         )}
       </div>
+
+      {/* Indikator Tingkat Kesulitan Jembatan Juara */}
+      {!isSpectator && worldMap === "bridge" && !bridgeWinModal && (
+        <div
+          style={{ top: "max(3.1rem, calc(env(safe-area-inset-top) + 2.7rem))" }}
+          className="fixed left-1/2 -translate-x-1/2 z-20 bg-slate-950/85 text-white px-4 py-1.5 rounded-full border border-emerald-400 text-xs font-extrabold shadow-lg pointer-events-none"
+        >
+          {bridgeNotice
+            ? bridgeNotice
+            : bridgeStage === 1
+            ? "🟢 Tingkat 1: Mudah (Lompati Balok)"
+            : bridgeStage === 2
+            ? "🟡 Tingkat 2: Sedang (Celah & Pintu Geser)"
+            : "🔴 Tingkat 3: Sulit (Zig-Zag & Palang Pemutar)"}
+        </div>
+      )}
+
+      {/* Modal Menang Jembatan Juara */}
+      {!isSpectator && bridgeWinModal && (
+        <div className="fixed inset-0 z-30 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-gradient-to-b from-emerald-900 to-slate-900 border-4 border-yellow-400 rounded-3xl p-6 max-w-md w-full text-center text-white shadow-2xl">
+            <div className="text-5xl mb-3 animate-bounce">🌉🏆</div>
+            <h2 className="text-lg md:text-xl font-extrabold text-yellow-300 mb-1">
+              JUARA JEMBATAN PJOK!
+            </h2>
+            <p className="text-xs md:text-sm text-emerald-200 mb-4">
+              {playerName} menyelesaikan 3 tingkat rintangan dalam waktu <b>{bridgeSeconds} detik</b> (+300 XP)!
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={enterBridgeWorld}
+                className="flex-1 bg-yellow-400 hover:bg-yellow-300 text-slate-950 font-extrabold py-2.5 rounded-xl text-xs"
+              >
+                🔄 Lomba Lagi
+              </button>
+              <button
+                onClick={returnToStadiumWorld}
+                className="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-bold py-2.5 rounded-xl text-xs"
+              >
+                🏟️ Kembali ke Stadion
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Daftar Siswa Layar Pemantau Guru */}
       {isSpectator && (
@@ -1632,7 +1989,11 @@ export default function GameWorld({
                         {student.name || "Siswa"}
                       </span>
                     </div>
-                    {student.worldMap === "explore" ? (
+                    {student.worldMap === "bridge" ? (
+                      <span className="px-2 py-0.5 rounded text-[10px] font-extrabold bg-emerald-600 text-white shrink-0">
+                        🌉 Jembatan
+                      </span>
+                    ) : student.worldMap === "explore" ? (
                       <span className="px-2 py-0.5 rounded text-[10px] font-extrabold bg-sky-600 text-white shrink-0">
                         🌍 Explore
                       </span>
@@ -1753,7 +2114,7 @@ export default function GameWorld({
       )}
 
       {/* Kontrol Layar Sentuh Mode Portrait */}
-      {!isSpectator && !showModal && !selectedExploreModal && (
+      {!isSpectator && !showModal && !selectedExploreModal && !bridgeWinModal && (
         <>
           <div
             style={{
@@ -1818,8 +2179,20 @@ export default function GameWorld({
         </div>
       )}
 
-      {/* Tombol di Dunia Explore PJOK: Kembali ke Stadion Utama */}
-      {!isSpectator && worldMap === "explore" && nearReturnPortal && !selectedExploreModal && (
+      {/* Tombol Portal 4 (Depan Arena): Masuk ke Jembatan Juara */}
+      {!isSpectator && worldMap === "stadium" && nearBridgePortal && !miniGameActive && !showModal && (
+        <div className="absolute bottom-36 left-1/2 -translate-x-1/2 z-10 w-[88%] max-w-xs text-center">
+          <button
+            onClick={enterBridgeWorld}
+            className="w-full bg-emerald-400 hover:bg-emerald-300 text-slate-950 font-extrabold px-4 py-3 rounded-full shadow-2xl border-2 border-white animate-bounce text-xs md:text-sm"
+          >
+            🌉 Mulai Lomba Jembatan Juara!
+          </button>
+        </div>
+      )}
+
+      {/* Tombol Kembali ke Stadion Utama */}
+      {!isSpectator && worldMap !== "stadium" && nearReturnPortal && !selectedExploreModal && (
         <div className="absolute bottom-36 left-1/2 -translate-x-1/2 z-10 w-[88%] max-w-xs text-center">
           <button
             onClick={returnToStadiumWorld}
@@ -1908,7 +2281,7 @@ export default function GameWorld({
           </div>
           <p className="text-xs md:text-sm leading-relaxed">{pjokData.npc_utama.dialog_awal}</p>
           <p className="text-xs text-emerald-400 mt-1 font-medium">
-            👉 Portal Biru (Belakang): Dunia Explore PJOK • Portal Kanan: Latihan • Portal Kiri: Eliminasi 1 Pemenang!
+            👉 Portal Hijau (Depan): Jembatan Juara • Portal Biru (Belakang): Explore PJOK • Kanan/Kiri: Kuis Arena!
           </p>
         </div>
       )}
@@ -2029,8 +2402,10 @@ export default function GameWorld({
               </group>
             ))}
           </>
-        ) : (
+        ) : worldMap === "explore" ? (
           <ExploreWorldEnvironment readIds={readExploreIds} />
+        ) : (
+          <ChampionBridgeEnvironment />
         )}
 
         {isSpectator ? (
@@ -2053,8 +2428,12 @@ export default function GameWorld({
             onNearPortal={setNearPortal}
             onNearAdventurePortal={setNearAdventurePortal}
             onNearExplorePortal={setNearExplorePortal}
+            onNearBridgePortal={setNearBridgePortal}
             onNearReturnPortal={setNearReturnPortal}
             onNearExploreObject={setNearbyExploreObj}
+            onBridgeStageChange={setBridgeStage}
+            onBridgeFall={handleBridgeFall}
+            onBridgeFinish={handleBridgeFinish}
             onStandingTileChange={setStandingTile}
             gedungList={faseData.gedung_materi}
             isTileFallen={isTileFallen}
