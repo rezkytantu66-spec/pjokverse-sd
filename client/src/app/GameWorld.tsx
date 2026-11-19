@@ -1744,8 +1744,12 @@ export default function GameWorld({
     setBridgeLevel(1);
     setBridgeSeconds(0);
     setBridgeWinModal(false);
-    // Sebar posisi start X untuk 35 pemain agar tidak bertumpuk
-    const spawnOffsetX = ((avatarPreset.id % 9) - 4) * 1.6;
+    // Konversi aman avatarPreset.id ke angka untuk menyebar posisi start 35 pemain
+    const numericAvatarId =
+      typeof avatarPreset.id === "number"
+        ? avatarPreset.id
+        : parseInt(String(avatarPreset.id).replace(/\D/g, ""), 10) || 1;
+    const spawnOffsetX = ((numericAvatarId % 9) - 4) * 1.6;
     setBridgeNotice(`🏁 Start Level 1/${TOTAL_BRIDGE_LEVELS} — Berlari & Lompat menuju Finish!`);
     setTeleportTrigger({ pos: [spawnOffsetX, 0.5, 27], id: Date.now() });
     speakText("Lomba Jembatan Juara 18 Level dimulai! Berlomba bersama temanmu sampai garis finish!");
