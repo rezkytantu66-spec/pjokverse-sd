@@ -107,6 +107,7 @@ const EXPLORE_OBJECTS = [
 // ARENA JEMBATAN JUARA: 20 LEVEL KESULITAN BERTINGKAT & LINTASAN SUPER PANJANG
 // =========================================================================
 const TOTAL_BRIDGE_LEVELS = 20;
+const BRIDGE_START_LINE_Z = 22.8;
 
 const BRIDGE_SEGMENTS = [
   { id: "start", minX: -9, maxX: 9, minZ: 22, maxZ: 32, y: 0.4, color: "#10b981", level: 1, title: "START 35 PEMAIN" },
@@ -610,6 +611,7 @@ function Player({
   correctCount,
   readExploreCount,
   isEliminated,
+  bridgeRaceStarted,
   worldMap,
   socketRef,
   joyVector,
@@ -726,6 +728,11 @@ function Player({
       onNearExploreObject(null);
       onInteractBuilding(null);
 
+      // Tahan semua peserta di belakang garis Start sebelum aba-aba Start Bersama-sama!
+      if (!bridgeRaceStarted && pos.z < BRIDGE_START_LINE_Z) {
+        pos.z = BRIDGE_START_LINE_Z;
+      }
+
       const onSegment = BRIDGE_SEGMENTS.find(
         (seg) =>
           pos.x >= seg.minX - 0.35 &&
@@ -798,7 +805,7 @@ function Player({
           const safeZ = onSegment.maxZ - 1.5;
           bridgeCheckpointRef.current = [safeX, 0.5, safeZ];
         }
-        if (onSegment.id === "finish" && !bridgeFinishedRef.current) {
+        if (onSegment.id === "finish" && !bridgeFinishedRef.current && bridgeRaceStarted) {
           bridgeFinishedRef.current = true;
           onBridgeFinish();
         }
@@ -949,13 +956,14 @@ function Player({
 }
 
 // =========================================================================
-// KOMPONEN 3D JEMBATAN JUARA (20 LEVEL & LINTASAN SUPER PANJANG)
+// KOMPONEN 3D JEMBATAN JUARA (20 LEVEL & GARIS PEMBATAS START BERSAMA)
 // =========================================================================
-function ChampionBridgeEnvironment() {
+function ChampionBridgeEnvironment({ raceStarted }: { raceStarted: boolean }) {
   const gateRefs = useRef<(THREE.Mesh | null)[]>([]);
   const spinnerRefs = useRef<(THREE.Mesh | null)[]>([]);
+  const barrierRef = useRef<THREE.Group>(null);
 
-  useFrame((state) => {
+  useFrame((state, delta) => {
     const t = state.clock.getElapsedTime();
     BRIDGE_GATES.forEach((gate, i) => {
       const mesh = gateRefs.current[i];
@@ -969,6 +977,14 @@ function ChampionBridgeEnvironment() {
         mesh.rotation.y = t * sp.speed;
       }
     });
+    if (barrierRef.current) {
+      const targetY = raceStarted ? 7.5 : 0;
+      barrierRef.current.position.y = THREE.MathUtils.lerp(
+        barrierRef.current.position.y,
+        targetY,
+        delta * 6
+      );
+    }
   });
 
   return (
@@ -1003,6 +1019,41 @@ function ChampionBridgeEnvironment() {
           </group>
         );
       })}
+
+      {/* Garis Start Putih di Lantai */}
+      <mesh position={[0, 0.42, 22.2]} receiveShadow>
+        <boxGeometry args={[17.5, 0.05, 0.55]} />
+        <meshStandardMaterial color="#ffffff" />
+      </mesh>
+
+      {/* Palang Pembatas Start Bersama-sama */}
+      <group ref={barrierRef} position={[0, 0, 22.1]}>
+        <mesh position={[-8.4, 1.8, 0]} castShadow>
+          <boxGeometry args={[0.45, 3.6, 0.45]} />
+          <meshStandardMaterial color="#facc15" />
+        </mesh>
+        <mesh position={[8.4, 1.8, 0]} castShadow>
+          <boxGeometry args={[0.45, 3.6, 0.45]} />
+          <meshStandardMaterial color="#facc15" />
+        </mesh>
+        <mesh position={[0, 1.4, 0]} castShadow>
+          <boxGeometry args={[17.2, 0.55, 0.35]} />
+          <meshStandardMaterial color="#ef4444" />
+        </mesh>
+        <mesh position={[0, 2.35, 0]} castShadow>
+          <boxGeometry args={[17.2, 0.45, 0.35]} />
+          <meshStandardMaterial color="#facc15" />
+        </mesh>
+        <Text
+          position={[0, 3.25, 0]}
+          fontSize={0.65}
+          color="#fef08a"
+          outlineWidth={0.08}
+          outlineColor="black"
+        >
+          {raceStarted ? "🚀 LOMBA DIMULAI!" : "🚦 TUNGGU START BERSAMA-SAMA"}
+        </Text>
+      </group>
 
       <group position={[0, 0.4, 31]}>
         <mesh position={[-1.6, 1.8, 0]}>
@@ -1503,7 +1554,7 @@ function SportsEnvironment({ faseId }: { faseId: string }) {
           <meshStandardMaterial color="#6ee7b7" transparent opacity={0.75} side={THREE.DoubleSide} />
         </mesh>
         <Text position={[0, 4.9, 0]} fontSize={0.52} color="#a7f3d0" outlineWidth={0.07} outlineColor="black">
-          🌉 Jembatan Juara (20 Level • 35 Pemain)
+          🌉 Jembatan Juara (20 Level • Start Bersama)
         </Text>
       </group>
 
@@ -1711,10 +1762,12 @@ export default function GameWorld({
     prevCharLevelRef.current = characterLevel;
   }, [characterLevel, isSpectator, progressLoaded, playerName]);
 
-  // State Jembatan Juara (20 Level)
+  // State Jembatan Juara (20 Level + Start Bersama-sama)
   const [bridgeLevel, setBridgeLevel] = useState<number>(1);
   const [bridgeSeconds, setBridgeSeconds] = useState<number>(0);
   const [bridgeNotice, setBridgeNotice] = useState<string | null>(null);
+  const [bridgeRaceStarted, setBridgeRaceStarted] = useState<boolean>(false);
+  const [bridgeCountdown, setBridgeCountdown] = useState<number | null>(null);
 
   // State Mode Guru: Tab Leaderboard, Rangkuman & Konfirmasi Hapus Siswa
   const [teacherTab, setTeacherTab] = useState<"leaderboard" | "live">("leaderboard");
@@ -1782,13 +1835,45 @@ export default function GameWorld({
     });
   };
 
+  // Timer Jembatan Juara hanya berjalan setelah Start Bersama-sama dibuka
   useEffect(() => {
-    if (worldMap !== "bridge" || Boolean(podiumModal) || isSpectator) return;
+    if (worldMap !== "bridge" || !bridgeRaceStarted || Boolean(podiumModal) || isSpectator) return;
     const t = setInterval(() => {
       setBridgeSeconds((s) => s + 1);
     }, 1000);
     return () => clearInterval(t);
-  }, [worldMap, podiumModal, isSpectator]);
+  }, [worldMap, bridgeRaceStarted, podiumModal, isSpectator]);
+
+  // Hitung mundur serentak 3..2..1..MULAI! untuk Start Bersama-sama Jembatan Juara
+  useEffect(() => {
+    if (bridgeCountdown === null) return;
+    if (bridgeCountdown > 0) {
+      speakText(String(bridgeCountdown));
+      const timer = setTimeout(() => {
+        setBridgeCountdown((prev) => (prev !== null ? prev - 1 : null));
+      }, 1000);
+      return () => clearTimeout(timer);
+    } else {
+      setBridgeRaceStarted(true);
+      setBridgeSeconds(0);
+      setBridgeNotice("🚀 GO! Semua peserta lari bersama menuju Finish 20 Level!");
+      speakText("Mulai! Ayo berlari bersama menuju garis finish!");
+      const clearTimer = setTimeout(() => {
+        setBridgeCountdown(null);
+        setBridgeNotice(null);
+      }, 1800);
+      return () => clearTimeout(clearTimer);
+    }
+  }, [bridgeCountdown]);
+
+  const getBridgeStartPos = (): [number, number, number] => {
+    const numericAvatarId =
+      typeof avatarPreset.id === "number"
+        ? avatarPreset.id
+        : parseInt(String(avatarPreset.id).replace(/\D/g, ""), 10) || 1;
+    const spawnOffsetX = ((numericAvatarId % 9) - 4) * 1.6;
+    return [spawnOffsetX, 0.5, 27];
+  };
 
   const enterExploreWorld = () => {
     setWorldMap("explore");
@@ -1799,20 +1884,34 @@ export default function GameWorld({
     speakText("Selamat datang di Dunia Explore PJOK! Dekati semua 6 benda olahraga untuk membaca materinya.");
   };
 
-  const enterBridgeWorld = () => {
+  const enterBridgeWorld = (autoCountdown = false) => {
     setWorldMap("bridge");
     setNearBridgePortal(false);
     setBridgeLevel(1);
     setBridgeSeconds(0);
     setPodiumModal(null);
-    const numericAvatarId =
-      typeof avatarPreset.id === "number"
-        ? avatarPreset.id
-        : parseInt(String(avatarPreset.id).replace(/\D/g, ""), 10) || 1;
-    const spawnOffsetX = ((numericAvatarId % 9) - 4) * 1.6;
-    setBridgeNotice(`🏁 Start Level 1/${TOTAL_BRIDGE_LEVELS} — Berlari & Lompat menuju Finish!`);
-    setTeleportTrigger({ pos: [spawnOffsetX, 0.5, 27], id: Date.now() });
-    speakText("Lomba Jembatan Juara 20 Level dimulai! Berlomba menjadi Juara 1, 2, dan 3!");
+    setBridgeRaceStarted(false);
+    setBridgeCountdown(autoCountdown ? 3 : null);
+    setBridgeNotice(
+      autoCountdown
+        ? "🚦 Bersiap di belakang garis Start!"
+        : "🚦 Siap di Garis Start! Tunggu Guru atau tekan Mulai Lomba Bersama!"
+    );
+    setTeleportTrigger({ pos: getBridgeStartPos(), id: Date.now() });
+    if (!autoCountdown) {
+      speakText("Berbaris di belakang garis start! Tunggu aba-aba start bersama-sama.");
+    }
+  };
+
+  // Memicu Start Bersama-sama untuk seluruh peserta di fase ini
+  const triggerBridgeMassStart = () => {
+    socketRef.current?.emit("startBridgeRaceAll", { faseId: faseData.id });
+    if (!isSpectator) {
+      enterBridgeWorld(true);
+    } else {
+      setTeacherToast("🚦 Hitung mundur Start Bersama Jembatan Juara telah dikirim ke semua siswa!");
+      setTimeout(() => setTeacherToast(null), 4000);
+    }
   };
 
   const returnToStadiumWorld = () => {
@@ -1823,6 +1922,8 @@ export default function GameWorld({
     setExploreCompletedModal(false);
     setPodiumModal(null);
     setBridgeNotice(null);
+    setBridgeRaceStarted(false);
+    setBridgeCountdown(null);
     setTeleportTrigger({ pos: [0, 0, 5], id: Date.now() });
   };
 
@@ -1959,6 +2060,13 @@ export default function GameWorld({
       }
     });
 
+    // Terima sinyal Start Bersama-sama Jembatan Juara dari Guru atau teman
+    socket.on("bridgeRaceStarted", ({ faseId }: { faseId: string }) => {
+      if (faseId === faseData.id && !isSpectator) {
+        enterBridgeWorld(true);
+      }
+    });
+
     // Jika guru menghapus karakter siswa ini
     socket.on("kickedByTeacher", ({ targetId, targetName }: { targetId?: string; targetName?: string }) => {
       if (isSpectator) return;
@@ -2000,6 +2108,11 @@ export default function GameWorld({
   };
 
   const studentList = useMemo(() => Object.values(otherPlayers), [otherPlayers]);
+
+  const bridgeWaitingCount = useMemo(() => {
+    const remoteInBridge = studentList.filter((p: any) => p.worldMap === "bridge").length;
+    return remoteInBridge + (!isSpectator && worldMap === "bridge" ? 1 : 0);
+  }, [studentList, isSpectator, worldMap]);
 
   // Leaderboard Mode Guru (urut berdasarkan Level Karakter tertinggi lalu Total XP)
   const leaderboardStudents = useMemo(() => {
@@ -2378,6 +2491,12 @@ export default function GameWorld({
         ) : (
           <div className="flex flex-wrap items-center gap-1.5 bg-slate-900/90 text-white p-1.5 rounded-xl border border-slate-700 shadow-lg pointer-events-auto">
             <button
+              onClick={triggerBridgeMassStart}
+              className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-extrabold px-2.5 py-1 rounded-lg shadow"
+            >
+              🌉 Start Jembatan Bersama
+            </button>
+            <button
               onClick={triggerGlobalAdventure}
               className="bg-purple-600 hover:bg-purple-500 text-white text-xs font-extrabold px-2.5 py-1 rounded-lg shadow"
             >
@@ -2413,11 +2532,11 @@ export default function GameWorld({
         )}
       </div>
 
-      {/* Notifikasi Guru Hapus Siswa */}
+      {/* Notifikasi Guru */}
       {isSpectator && teacherToast && (
         <div
           style={{ top: "max(3.2rem, calc(env(safe-area-inset-top) + 2.8rem))" }}
-          className="fixed left-1/2 -translate-x-1/2 z-30 bg-red-600 text-white px-4 py-2 rounded-2xl border-2 border-white font-extrabold text-xs shadow-2xl"
+          className="fixed left-1/2 -translate-x-1/2 z-30 bg-emerald-600 text-white px-4 py-2 rounded-2xl border-2 border-white font-extrabold text-xs shadow-2xl text-center"
         >
           {teacherToast}
         </div>
@@ -2433,8 +2552,43 @@ export default function GameWorld({
         </div>
       )}
 
-      {/* Indikator Level 1..20 Jembatan Juara */}
-      {!isSpectator && worldMap === "bridge" && !podiumModal && (
+      {/* Overlay Hitung Mundur Start Bersama-sama Jembatan Juara */}
+      {!isSpectator && worldMap === "bridge" && bridgeCountdown !== null && (
+        <div className="fixed inset-0 z-30 bg-black/55 flex items-center justify-center pointer-events-none">
+          <div className="bg-slate-950/90 border-4 border-yellow-400 rounded-3xl px-8 py-6 text-center shadow-2xl animate-bounce">
+            <p className="text-xs font-extrabold uppercase tracking-wider text-emerald-300 mb-1">
+              🚦 START BERSAMA-SAMA JEMBATAN JUARA
+            </p>
+            <div className="text-6xl md:text-7xl font-black text-yellow-400">
+              {bridgeCountdown > 0 ? bridgeCountdown : "MULAI!"}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Panel Status & Tombol Start Bersama-sama saat berada di Area Start Jembatan Juara */}
+      {!isSpectator && worldMap === "bridge" && !bridgeRaceStarted && bridgeCountdown === null && !podiumModal && (
+        <div
+          style={{ top: "max(3.2rem, calc(env(safe-area-inset-top) + 2.8rem))" }}
+          className="fixed left-1/2 -translate-x-1/2 z-20 w-[92%] max-w-md bg-slate-950/90 backdrop-blur-md text-white p-3.5 rounded-2xl border-2 border-yellow-400 shadow-2xl text-center"
+        >
+          <p className="text-xs font-extrabold text-yellow-300 mb-1">
+            🚦 RUANG TUNGGU START BERSAMA ({bridgeWaitingCount} Peserta Siap)
+          </p>
+          <p className="text-[11px] text-slate-200 mb-2.5 leading-snug">
+            Semua peserta ditahan di belakang garis pembatas agar berlari serentak. Tunggu aba-aba guru atau tekan tombol di bawah jika semua teman sudah siap!
+          </p>
+          <button
+            onClick={triggerBridgeMassStart}
+            className="w-full bg-emerald-400 hover:bg-emerald-300 text-slate-950 font-extrabold py-2.5 px-4 rounded-xl text-xs md:text-sm shadow-lg"
+          >
+            🚦 Mulai Lomba Bersama-sama Sekarang!
+          </button>
+        </div>
+      )}
+
+      {/* Indikator Level 1..20 Jembatan Juara setelah Start Dibuka */}
+      {!isSpectator && worldMap === "bridge" && bridgeRaceStarted && !podiumModal && (
         <div
           style={{ top: "max(3.1rem, calc(env(safe-area-inset-top) + 2.7rem))" }}
           className="fixed left-1/2 -translate-x-1/2 z-20 bg-slate-950/85 text-white px-4 py-1.5 rounded-full border border-emerald-400 text-xs font-extrabold shadow-lg pointer-events-none"
@@ -2526,10 +2680,10 @@ export default function GameWorld({
             <div className="flex gap-2">
               {worldMap === "bridge" ? (
                 <button
-                  onClick={enterBridgeWorld}
+                  onClick={() => enterBridgeWorld(false)}
                   className="flex-1 bg-yellow-400 hover:bg-yellow-300 text-slate-950 font-extrabold py-2.5 rounded-xl text-xs"
                 >
-                  🔄 Lomba Lagi
+                  🔄 Kembali ke Garis Start
                 </button>
               ) : (
                 <button
@@ -2967,10 +3121,10 @@ export default function GameWorld({
       {!isSpectator && worldMap === "stadium" && nearBridgePortal && !miniGameActive && !showModal && (
         <div className="absolute bottom-36 left-1/2 -translate-x-1/2 z-10 w-[88%] max-w-xs text-center">
           <button
-            onClick={enterBridgeWorld}
+            onClick={() => enterBridgeWorld(false)}
             className="w-full bg-emerald-400 hover:bg-emerald-300 text-slate-950 font-extrabold px-4 py-3 rounded-full shadow-2xl border-2 border-white animate-bounce text-xs md:text-sm"
           >
-            🌉 Mulai Jembatan Juara (20 Level)!
+            🌉 Masuk Ruang Start Jembatan Juara!
           </button>
         </div>
       )}
@@ -3195,7 +3349,7 @@ export default function GameWorld({
         ) : worldMap === "explore" ? (
           <ExploreWorldEnvironment readIds={readExploreIds} />
         ) : (
-          <ChampionBridgeEnvironment />
+          <ChampionBridgeEnvironment raceStarted={bridgeRaceStarted} />
         )}
 
         {isSpectator ? (
@@ -3213,6 +3367,7 @@ export default function GameWorld({
             correctCount={correctCount}
             readExploreCount={readExploreIds.length}
             isEliminated={isEliminated}
+            bridgeRaceStarted={bridgeRaceStarted}
             worldMap={worldMap}
             socketRef={socketRef}
             joyVector={joyVector}

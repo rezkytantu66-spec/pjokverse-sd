@@ -62,6 +62,11 @@ io.on("connection", (socket) => {
     io.emit("adventureStarted", { faseId });
   });
 
+  // Fitur Start Bersama-sama Lomba Jembatan Juara
+  socket.on("startBridgeRaceAll", ({ faseId }) => {
+    io.emit("bridgeRaceStarted", { faseId });
+  });
+
   // Fitur Guru Menghapus Karakter Siswa
   socket.on("removeStudent", ({ studentId, studentName, faseId }) => {
     if (studentId && players[studentId]) {
