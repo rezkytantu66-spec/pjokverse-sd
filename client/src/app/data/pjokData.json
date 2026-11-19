@@ -2,20 +2,82 @@
   "kurikulum": "Kurikulum Merdeka PJOK SD",
   "npc_utama": {
     "nama": "Coach Resky",
-    "dialog_awal": "Halo atlet hebat! Selamat datang di dunia PJOKVerse SD. Jelajahi 4 gedung materi untuk mempelajari permainan invasi, permainan net, aktivitas air, dan permainan tradisional Gorontalo, lalu uji kemampuanmu di Lomba Jatuh Bangun 4 Warna!"
+    "dialog_awal": "Halo atlet hebat! Selamat datang di dunia PJOKVerse SD. Jelajahi ke-6 gedung materi untuk membaca bahan pelajaran dan kumpulkan XP, atau ikuti Lomba Jatuh Bangun 4 Warna di Portal Emas!"
   },
   "fase": [
     {
       "id": "fase-a",
       "nama_fase": "Fase A (Kelas 1–2 SD)",
       "nama_dunia": "Taman Bermain Ceria",
-      "deskripsi": "Pengenalan dasar permainan invasi, permainan net, aktivitas olahraga air, dan permainan tradisional asal Gorontalo.",
+      "deskripsi": "Mengenal gerak dasar, senam irama, hidup sehat, permainan invasi, permainan net, aktivitas air, serta permainan tradisional Gorontalo.",
       "gedung_materi": [
+        {
+          "id": "fa-gerak-dasar",
+          "nama_gedung": "Gedung Gerak Dasar",
+          "topik": "Gerak Lokomotor, Non-Lokomotor, dan Manipulatif Dasar",
+          "posisi_3d": [-15, 0, -14],
+          "ringkasan_materi": "Gerak lokomotor adalah gerak berpindah tempat seperti berjalan, berlari, dan melompat. Gerak non-lokomotor adalah gerak di tempat seperti menekuk lutut dan mengayun lengan. Gerak manipulatif adalah gerak menggunakan alat seperti melempar dan menangkap bola.",
+          "kuis": [
+            {
+              "pertanyaan": "Gerakan berpindah tempat dari satu titik ke titik lain disebut gerak...",
+              "pilihan": [
+                "Lokomotor",
+                "Non-lokomotor",
+                "Manipulatif",
+                "Keseimbangan"
+              ],
+              "jawaban_benar": 0,
+              "pembahasan": "Berjalan, berlari, dan melompat termasuk gerak lokomotor karena tubuh berpindah tempat."
+            },
+            {
+              "pertanyaan": "Contoh gerakan manipulatif dalam permainan bola kecil adalah...",
+              "pilihan": [
+                "Duduk bersila",
+                "Melempar dan menangkap bola",
+                "Membungkukkan badan",
+                "Berdiri tegak"
+              ],
+              "jawaban_benar": 1,
+              "pembahasan": "Gerak manipulatif selalu melibatkan penguasaan benda atau alat seperti bola."
+            }
+          ]
+        },
+        {
+          "id": "fa-senam-sehat",
+          "nama_gedung": "Gedung Senam & Hidup Sehat",
+          "topik": "Keseimbangan, Gerak Berirama, dan Kebersihan Diri",
+          "posisi_3d": [15, 0, -16],
+          "ringkasan_materi": "Keseimbangan tubuh dilatih dengan berdiri satu kaki (sikap kapal terbang) dan berjalan di garis lurus. Gerak berirama dilakukan mengikuti ketukan musik. Untuk menjaga kesehatan, biasakan cuci tangan dengan sabun serta menggosok gigi pagi setelah sarapan dan malam sebelum tidur.",
+          "kuis": [
+            {
+              "pertanyaan": "Sikap kapal terbang dengan berdiri menggunakan satu kaki bertujuan melatih...",
+              "pilihan": [
+                "Kecepatan lari",
+                "Kekuatan pukulan",
+                "Keseimbangan tubuh",
+                "Daya tahan jantung"
+              ],
+              "jawaban_benar": 2,
+              "pembahasan": "Bertumpu pada satu kaki melatih pusat keseimbangan dan fokus tubuh."
+            },
+            {
+              "pertanyaan": "Mencuci tangan yang bersih setelah bermain sebaiknya menggunakan...",
+              "pilihan": [
+                "Air saja tanpa sabun",
+                "Tisu kering saja",
+                "Sabun dan air mengalir",
+                "Minyak kayu putih"
+              ],
+              "jawaban_benar": 2,
+              "pembahasan": "Sabun dan air mengalir efektif membersihkan kuman di telapak dan sela jari."
+            }
+          ]
+        },
         {
           "id": "fa-permainan-invasi",
           "nama_gedung": "Gedung Permainan Invasi",
           "topik": "Pengenalan Gerak Dasar Permainan Invasi (Mengoper & Menendang ke Sasaran)",
-          "posisi_3d": [-15, 0, -14],
+          "posisi_3d": [-18, 0, 2],
           "ringkasan_materi": "Permainan invasi adalah permainan beregu yang bertujuan memasukkan bola ke gawang atau sasaran lawan sambil menjaga area sendiri. Untuk kelas 1–2 SD, kita belajar gerak dasarnya seperti menggiring bola pelan, menendang bola ke gawang kecil, dan mengoper bola kepada teman satu kelompok dengan sportif.",
           "kuis": [
             {
@@ -46,7 +108,7 @@
           "id": "fa-permainan-net",
           "nama_gedung": "Gedung Permainan Net",
           "topik": "Pengenalan Permainan Net (Memantulkan & Melempar Bola Melewati Net)",
-          "posisi_3d": [15, 0, -16],
+          "posisi_3d": [18, 0, 4],
           "ringkasan_materi": "Permainan net adalah permainan yang dibatasi oleh jaring (net) di tengah lapangan, seperti bola voli mini dan bulu tangkis. Pada tahap awal, kita berlatih melempar dan memantulkan bola ringan atau balon melewati tali atau net rendah agar jatuh di lapangan lawan.",
           "kuis": [
             {
@@ -77,7 +139,7 @@
           "id": "fa-aktivitas-air",
           "nama_gedung": "Gedung Aktivitas Olahraga Air",
           "topik": "Pengenalan Air dan Keselamatan di Kolam Dangkal",
-          "posisi_3d": [-18, 0, 6],
+          "posisi_3d": [-18, 0, 18],
           "ringkasan_materi": "Aktivitas air untuk kelas 1–2 dimulai dari pengenalan air seperti duduk di tepi kolam sambil menggerakkan kaki, berjalan di kolam dangkal, membasuh wajah, dan meniup gelembung napas di air. Selalu ikuti arahan guru dan jangan berlari di tepi kolam yang licin.",
           "kuis": [
             {
@@ -108,7 +170,7 @@
           "id": "fa-tradisional-gorontalo",
           "nama_gedung": "Gedung Permainan Tradisional Gorontalo",
           "topik": "Permainan Tenggedi (Engklek) dan Awuta (Lompat Tali)",
-          "posisi_3d": [18, 0, 8],
+          "posisi_3d": [18, 0, 18],
           "ringkasan_materi": "Gorontalo memiliki permainan tradisional yang menyehatkan tubuh. Tenggedi adalah permainan melompat dengan satu kaki melewati kotak-kotak gambar di tanah sambil melempar batu pipih (gaco), melatih keseimbangan kaki. Awuta adalah permainan lompat tali karet bersama teman yang melatih kelincahan dan kekompakan.",
           "kuis": [
             {
@@ -141,14 +203,14 @@
       "id": "fase-b",
       "nama_fase": "Fase B (Kelas 3–4 SD)",
       "nama_dunia": "Stadion Nusantara",
-      "deskripsi": "Variasi gerak permainan invasi, permainan net, dasar meluncur di air, serta permainan tradisional Gorontalo.",
+      "deskripsi": "Mempraktikkan variasi permainan bola, bela diri, kebugaran, permainan invasi, permainan net, aktivitas air, dan permainan tradisional Gorontalo.",
       "gedung_materi": [
         {
-          "id": "fb-permainan-invasi",
-          "nama_gedung": "Gedung Permainan Invasi",
-          "topik": "Variasi Gerak Dasar Sepak Bola, Bola Tangan, dan Bola Basket Mini",
+          "id": "fb-permainan-bola",
+          "nama_gedung": "Gedung Permainan Bola",
+          "topik": "Variasi Gerak Dasar Bola Besar dan Bola Kecil",
           "posisi_3d": [-15, 0, -14],
-          "ringkasan_materi": "Dalam permainan invasi kelas 3–4 SD (sepak bola, bola tangan, bola basket mini), kita mempraktikkan variasi gerak menendang dengan kaki bagian dalam, menghentikan bola, melempar-tangkap bola sambil bergerak, serta menggiring bola melewati rintangan menuju sasaran.",
+          "ringkasan_materi": "Dalam permainan bola besar (sepak bola, voli mini, basket mini), kita mengombinasikan gerak menendang, mengoper, dan menangkap bola. Dalam permainan bola kecil (kasti, rounders), kita melatih melempar bola melambung/mendatar, menangkap bola, dan memukul bola dengan tongkat.",
           "kuis": [
             {
               "pertanyaan": "Bagian kaki yang paling akurat digunakan untuk mengoper bola jarak dekat dalam sepak bola adalah...",
@@ -159,8 +221,59 @@
                 "Lutut"
               ],
               "jawaban_benar": 1,
-              "pembahasan": "Kaki bagian dalam memiliki bidang sentuh yang luas sehingga arah operan bola lebih tepat."
+              "pembahasan": "Kaki bagian dalam memiliki bidang sentuh luas sehingga arah operan lebih terkontrol."
             },
+            {
+              "pertanyaan": "Gerakan melempar bola kasti untuk jarak jauh ke arah teman biasanya menggunakan lemparan...",
+              "pilihan": [
+                "Menggelinding di tanah",
+                "Melambung ke atas",
+                "Memantul ke dinding",
+                "Menyamping pelan"
+              ],
+              "jawaban_benar": 1,
+              "pembahasan": "Lemparan melambung membentuk lintasan parabola sehingga jangkauannya lebih jauh."
+            }
+          ]
+        },
+        {
+          "id": "fb-beladiri-kebugaran",
+          "nama_gedung": "Gedung Bela Diri & Kebugaran",
+          "topik": "Pencak Silat, Lari Jarak Pendek, dan Kebugaran Jasmani",
+          "posisi_3d": [15, 0, -16],
+          "ringkasan_materi": "Pencak silat diawali dengan sikap pasang dan kuda-kuda yang kokoh. Pada lari jarak pendek (sprint), pelari memakai start jongkok. Kebugaran jasmani dilatih lewat push-up untuk kekuatan otot lengan, peregangan untuk kelenturan, dan tidur cukup 8–10 jam per malam.",
+          "kuis": [
+            {
+              "pertanyaan": "Posisi kaki yang ditekuk untuk memperkokoh tumpuan tubuh dalam pencak silat disebut...",
+              "pilihan": [
+                "Start jongkok",
+                "Sikap kuda-kuda",
+                "Langkah tegap",
+                "Sikap lilin"
+              ],
+              "jawaban_benar": 1,
+              "pembahasan": "Kuda-kuda adalah posisi dasar kaki yang kokoh agar tubuh tidak mudah goyah."
+            },
+            {
+              "pertanyaan": "Jenis start yang digunakan dalam perlombaan lari jarak pendek (sprint) adalah...",
+              "pilihan": [
+                "Start berdiri",
+                "Start melayang",
+                "Start jongkok",
+                "Start duduk"
+              ],
+              "jawaban_benar": 2,
+              "pembahasan": "Start jongkok memberikan dorongan tolakan maksimal saat mulai lari jarak pendek."
+            }
+          ]
+        },
+        {
+          "id": "fb-permainan-invasi",
+          "nama_gedung": "Gedung Permainan Invasi",
+          "topik": "Variasi Gerak Dasar Sepak Bola, Bola Tangan, dan Bola Basket Mini",
+          "posisi_3d": [-18, 0, 2],
+          "ringkasan_materi": "Dalam permainan invasi kelas 3–4 SD (sepak bola, bola tangan, bola basket mini), kita mempraktikkan variasi gerak menghentikan bola, melempar-tangkap bola sambil bergerak, serta menggiring bola melewati rintangan menuju sasaran lawan sambil bekerja sama menjaga pertahanan.",
+          "kuis": [
             {
               "pertanyaan": "Manakah cabang olahraga berikut yang termasuk dalam permainan invasi?",
               "pilihan": [
@@ -171,6 +284,17 @@
               ],
               "jawaban_benar": 0,
               "pembahasan": "Sepak bola dan bola basket dimainkan dengan memasuki area lawan untuk mencetak angka."
+            },
+            {
+              "pertanyaan": "Tujuan utama menggiring bola dalam permainan invasi seperti bola basket mini adalah...",
+              "pilihan": [
+                "Membawa bola mendekati sasaran atau mencari ruang operan",
+                "Membuang bola ke luar lapangan",
+                "Menunggu waktu habis di tempat",
+                "Menghindari kerja sama dengan teman"
+              ],
+              "jawaban_benar": 0,
+              "pembahasan": "Menggiring bola membantu pemain bergerak maju dan membuka ruang operan."
             }
           ]
         },
@@ -178,7 +302,7 @@
           "id": "fb-permainan-net",
           "nama_gedung": "Gedung Permainan Net",
           "topik": "Variasi Gerak Dasar Bola Voli Mini dan Bulu Tangkis",
-          "posisi_3d": [15, 0, -16],
+          "posisi_3d": [18, 0, 4],
           "ringkasan_materi": "Pada permainan net kelas 3–4 SD, kita berlatih servis bawah dan passing bawah dalam bola voli mini dengan merapatkan kedua lengan lurus. Pada bulu tangkis, kita berlatih cara memegang raket (forehand grip) serta memukul kok (shuttlecock) melewati net.",
           "kuis": [
             {
@@ -209,7 +333,7 @@
           "id": "fb-aktivitas-air",
           "nama_gedung": "Gedung Aktivitas Olahraga Air",
           "topik": "Gerak Meluncur, Tungkai, dan Teknik Pernapasan di Air",
-          "posisi_3d": [-18, 0, 6],
+          "posisi_3d": [-18, 0, 18],
           "ringkasan_materi": "Keterampilan berenang kelas 3–4 dimulai dari tolakan dinding kolam untuk meluncur dengan tubuh lurus sejajar permukaan air (streamline). Dilanjutkan gerakan tungkai naik-turun bergantian serta mengambil napas melalui mulut di permukaan air dan mengembuskannya melalui hidung di dalam air.",
           "kuis": [
             {
@@ -240,7 +364,7 @@
           "id": "fb-tradisional-gorontalo",
           "nama_gedung": "Gedung Permainan Tradisional Gorontalo",
           "topik": "Permainan Bintengo (Bentengan) dan Awuta Beregu",
-          "posisi_3d": [18, 0, 8],
+          "posisi_3d": [18, 0, 18],
           "ringkasan_materi": "Bintengo adalah permainan tradisional khas Gorontalo yang dimainkan dua regu untuk saling mempertahankan tiang atau batu benteng masing-masing dan menyentuh benteng lawan. Permainan ini melatih kecepatan berlari, kelincahan menghindar, serta strategi kerja sama tim.",
           "kuis": [
             {
@@ -273,13 +397,75 @@
       "id": "fase-c",
       "nama_fase": "Fase C (Kelas 5–6 SD)",
       "nama_dunia": "Arena Olimpiade",
-      "deskripsi": "Kombinasi gerak & strategi permainan invasi, permainan net, renang gaya dada/bebas & keselamatan air, serta permainan tradisional Gorontalo.",
+      "deskripsi": "Menguasai kombinasi gerak olahraga, senam lantai, gaya hidup aktif, permainan invasi, permainan net, renang, dan permainan tradisional Gorontalo.",
       "gedung_materi": [
+        {
+          "id": "fc-senam-atletik",
+          "nama_gedung": "Gedung Senam & Atletik",
+          "topik": "Kombinasi Gerak Dominan Senam Lantai dan Atletik",
+          "posisi_3d": [-15, 0, -14],
+          "ringkasan_materi": "Senam lantai meliputi guling depan (forward roll) dengan tumpuan tengkuk/punggung atas dan sikap lilin yang bertumpu pada punggung atas serta siku. Pada atletik lompat jauh, rangkaian geraknya terdiri dari awalan lari cepat, tolakan satu kaki terkuat, melayang di udara, dan mendarat dengan kedua kaki mengeper.",
+          "kuis": [
+            {
+              "pertanyaan": "Bagian tubuh yang pertama kali menyentuh matras saat melakukan gerakan guling depan (forward roll) adalah...",
+              "pilihan": [
+                "Dahi dan ubun-ubun",
+                "Tengkuk dan punggung bagian atas",
+                "Kedua lutut",
+                "Pinggang"
+              ],
+              "jawaban_benar": 1,
+              "pembahasan": "Dagu ditempelkan ke dada sehingga tengkuk menyentuh matras terlebih dahulu demi keamanan leher."
+            },
+            {
+              "pertanyaan": "Urutan tahapan gerak lompat jauh yang benar adalah...",
+              "pilihan": [
+                "Tolakan – awalan – mendarat – melayang",
+                "Awalan – tolakan – melayang – mendarat",
+                "Melayang – awalan – tolakan – mendarat",
+                "Awalan – melayang – mendarat – tolakan"
+              ],
+              "jawaban_benar": 1,
+              "pembahasan": "Lompat jauh dimulai dari awalan lari, tolakan satu kaki di papan tumpu, melayang, lalu mendarat."
+            }
+          ]
+        },
+        {
+          "id": "fc-gaya-hidup-aktif",
+          "nama_gedung": "Gedung Gaya Hidup Aktif",
+          "topik": "Pengukuran Kebugaran Jasmani dan Bahaya Rokok/Napza",
+          "posisi_3d": [15, 0, -16],
+          "ringkasan_materi": "Kebugaran jasmani diukur melalui tes lari cepat, lari jarak menengah (600–800 meter), gantung siku tekuk, dan baring duduk. Agar tubuh tetap bugar, aktiflah bergerak setiap hari dan jauhi rokok (yang mengandung nikotin dan tar) serta napza yang merusak saraf, jantung, dan masa depan.",
+          "kuis": [
+            {
+              "pertanyaan": "Zat berbahaya di dalam asap rokok yang menyebabkan kecanduan adalah...",
+              "pilihan": [
+                "Oksigen",
+                "Nikotin",
+                "Vitamin C",
+                "Kalsium"
+              ],
+              "jawaban_benar": 1,
+              "pembahasan": "Nikotin adalah zat adiktif dalam rokok yang memicu ketergantungan dan merusak jantung serta paru-paru."
+            },
+            {
+              "pertanyaan": "Salah satu bentuk tes untuk mengukur daya tahan jantung dan paru-paru dalam kebugaran jasmani adalah...",
+              "pilihan": [
+                "Lari jarak menengah (600–800 meter)",
+                "Mencium lutut sambil duduk",
+                "Berdiri dengan mata tertutup",
+                "Melempar bola ke dinding"
+              ],
+              "jawaban_benar": 0,
+              "pembahasan": "Lari jarak menengah melatih dan mengukur kemampuan kerja jantung serta paru-paru."
+            }
+          ]
+        },
         {
           "id": "fc-permainan-invasi",
           "nama_gedung": "Gedung Permainan Invasi",
           "topik": "Kombinasi Gerak dan Strategi Permainan Invasi (Sepak Bola & Bola Basket)",
-          "posisi_3d": [-15, 0, -14],
+          "posisi_3d": [-18, 0, 2],
           "ringkasan_materi": "Dalam permainan invasi kelas 5–6 SD (sepak bola, bola basket, bola tangan), pemain memadukan gerak menggiring, mengoper ke ruang kosong, dan menembak ke sasaran. Strategi menyerang membutuhkan umpan cepat dan pergerakan tanpa bola, sedangkan bertahan membutuhkan penjagaan area yang disiplin.",
           "kuis": [
             {
@@ -310,7 +496,7 @@
           "id": "fc-permainan-net",
           "nama_gedung": "Gedung Permainan Net",
           "topik": "Kombinasi Gerak dan Strategi Permainan Net (Bola Voli & Bulu Tangkis)",
-          "posisi_3d": [15, 0, -16],
+          "posisi_3d": [18, 0, 4],
           "ringkasan_materi": "Pada permainan net kelas 5–6 SD, pemain memadukan servis, passing bawah, passing atas, dan pukulan serangan dalam bola voli mini, serta pukulan lob, dropshot, dan footwork dalam bulu tangkis. Strategi utamanya adalah mengarahkan bola atau kok ke area kosong di lapangan lawan.",
           "kuis": [
             {
@@ -341,7 +527,7 @@
           "id": "fc-aktivitas-air",
           "nama_gedung": "Gedung Aktivitas Olahraga Air",
           "topik": "Renang Gaya Dada, Gaya Bebas, dan Penyelamatan Diri di Air",
-          "posisi_3d": [-18, 0, 6],
+          "posisi_3d": [-18, 0, 18],
           "ringkasan_materi": "Renang gaya dada (gaya katak) memadukan gerakan kaki membuka-menutup seperti katak dan kayuhan kedua lengan ke samping. Renang gaya bebas menggunakan gerakan kaki naik-turun bergantian dan kayuhan lengan bergantian ke depan. Untuk keselamatan air, gunakan pelampung jika belum mahir dan tolong teman dari tepi kolam memakai galah atau ban pelampung.",
           "kuis": [
             {
@@ -372,7 +558,7 @@
           "id": "fc-tradisional-gorontalo",
           "nama_gedung": "Gedung Permainan Tradisional Gorontalo",
           "topik": "Pelestarian Permainan Tradisional Gorontalo (Bintengo, Tenggedi, Awuta & Paki)",
-          "posisi_3d": [18, 0, 8],
+          "posisi_3d": [18, 0, 18],
           "ringkasan_materi": "Permainan tradisional asal Gorontalo seperti Bintengo, Tenggedi, Awuta, dan Paki (gasing kayu) mengandung nilai sportivitas, kejujuran, dan kebugaran jasmani. Memainkan permainan tradisional melatih koordinasi mata dan tangan, kekuatan otot, kelincahan, sekaligus melestarikan warisan budaya daerah Gorontalo.",
           "kuis": [
             {

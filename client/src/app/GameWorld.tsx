@@ -1173,7 +1173,7 @@ export default function GameWorld({
           <group key={gedung.id} position={gedung.posisi_3d}>
             <mesh position={[0, 2.5, 0]} castShadow>
               <boxGeometry args={[5.5, 5, 5.5]} />
-             <meshStandardMaterial color={index === 0 ? "#f97316" : index === 1 ? "#8b5cf6" : index === 2 ? "#0ea5e9" : "#10b981"} />
+             <meshStandardMaterial color={["#f97316", "#8b5cf6", "#0ea5e9", "#10b981", "#ec4899", "#eab308"][index % 6]} />
             </mesh>
             <mesh position={[0, 5.3, 0]} castShadow>
               <boxGeometry args={[6.1, 0.6, 6.1]} />
