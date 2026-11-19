@@ -1617,7 +1617,7 @@ export default function GameWorld({
   const [podiumModal, setPodiumModal] = useState<PodiumModalState | null>(null);
   const [progressLoaded, setProgressLoaded] = useState(false);
 
-  // Fitur 1: Level Karakter Otomatis Berdasarkan Total XP
+  // Level Karakter Otomatis Berdasarkan Total XP
   const characterLevel = useMemo(() => getCharacterLevelFromXp(score), [score]);
   const characterTitle = useMemo(() => getCharacterTitle(characterLevel), [characterLevel]);
   const xpInCurrentLevel = score % XP_PER_CHARACTER_LEVEL;
@@ -1716,9 +1716,11 @@ export default function GameWorld({
   const [bridgeSeconds, setBridgeSeconds] = useState<number>(0);
   const [bridgeNotice, setBridgeNotice] = useState<string | null>(null);
 
-  // State Mode Guru: Tab Leaderboard & Rangkuman Siswa
+  // State Mode Guru: Tab Leaderboard, Rangkuman & Konfirmasi Hapus Siswa
   const [teacherTab, setTeacherTab] = useState<"leaderboard" | "live">("leaderboard");
   const [summaryStudentId, setSummaryStudentId] = useState<string | null>(null);
+  const [confirmDeleteStudent, setConfirmDeleteStudent] = useState<{ id: string; name: string } | null>(null);
+  const [teacherToast, setTeacherToast] = useState<string | null>(null);
   const [cameraPreset, setCameraPreset] = useState<"overview" | "arena">("overview");
   const [followedPlayerId, setFollowedPlayerId] = useState<string | null>(null);
 
@@ -1829,7 +1831,7 @@ export default function GameWorld({
     setTimeout(() => setBridgeNotice(null), 2000);
   };
 
-  // Fitur 2: Apresiasi Juara 1, 2, 3 pada Jembatan Juara
+  // Apresiasi Juara 1, 2, 3 pada Jembatan Juara
   const handleBridgeFinish = () => {
     const bridgePeers = Object.values(otherPlayers).filter((p: any) => p.worldMap === "bridge");
     const aheadPeers = bridgePeers.filter((p: any) => (p.pos?.[2] ?? 0) <= -395);
@@ -1870,7 +1872,7 @@ export default function GameWorld({
     );
   };
 
-  // Fitur 3: Apresiasi setelah membaca semua materi di Portal Explore PJOK
+  // Apresiasi setelah membaca semua materi di Portal Explore PJOK
   const openExploreObjectMaterial = (obj: (typeof EXPLORE_OBJECTS)[0]) => {
     setSelectedExploreModal(obj);
     if (!readExploreIds.includes(obj.id)) {
@@ -1957,14 +1959,49 @@ export default function GameWorld({
       }
     });
 
+    // Jika guru menghapus karakter siswa ini
+    socket.on("kickedByTeacher", ({ targetId, targetName }: { targetId?: string; targetName?: string }) => {
+      if (isSpectator) return;
+      const isMeById = targetId && socket.id === targetId;
+      const isMeByName =
+        targetName &&
+        playerName.trim().toLowerCase() === String(targetName).trim().toLowerCase();
+      if (isMeById || isMeByName) {
+        alert("Karakter kamu telah dihapus dari kelas oleh Guru.");
+        onBack();
+      }
+    });
+
     return () => {
       socket.disconnect();
     };
   }, [faseData.id, playerName, avatarPreset, isSpectator]);
 
+  // Fungsi Guru Menghapus Karakter Siswa
+  const handleDeleteStudent = (studentId: string, studentName: string) => {
+    socketRef.current?.emit("removeStudent", {
+      studentId,
+      studentName,
+      faseId: faseData.id,
+    });
+
+    setOtherPlayers((prev) => {
+      const copy = { ...prev };
+      delete copy[studentId];
+      return copy;
+    });
+
+    if (followedPlayerId === studentId) setFollowedPlayerId(null);
+    if (summaryStudentId === studentId) setSummaryStudentId(null);
+    setConfirmDeleteStudent(null);
+
+    setTeacherToast(`🗑️ Karakter "${studentName}" telah dihapus dari kelas.`);
+    setTimeout(() => setTeacherToast(null), 3500);
+  };
+
   const studentList = useMemo(() => Object.values(otherPlayers), [otherPlayers]);
 
-  // Fitur 4: Leaderboard Mode Guru (urut berdasarkan Level Karakter tertinggi lalu Total XP)
+  // Leaderboard Mode Guru (urut berdasarkan Level Karakter tertinggi lalu Total XP)
   const leaderboardStudents = useMemo(() => {
     return [...studentList].sort((a: any, b: any) => {
       const scoreA = a.score || 0;
@@ -2027,7 +2064,7 @@ export default function GameWorld({
     }
   };
 
-  // Fitur 2: Podium Juara 1, 2, 3 untuk Arena Jatuh Bangun
+  // Podium Juara 1, 2, 3 untuk Arena Jatuh Bangun
   const finishPracticeArenaWithPodium = (finalHits: number) => {
     setMiniGameActive(false);
     setMgPhase("running");
@@ -2376,6 +2413,16 @@ export default function GameWorld({
         )}
       </div>
 
+      {/* Notifikasi Guru Hapus Siswa */}
+      {isSpectator && teacherToast && (
+        <div
+          style={{ top: "max(3.2rem, calc(env(safe-area-inset-top) + 2.8rem))" }}
+          className="fixed left-1/2 -translate-x-1/2 z-30 bg-red-600 text-white px-4 py-2 rounded-2xl border-2 border-white font-extrabold text-xs shadow-2xl"
+        >
+          {teacherToast}
+        </div>
+      )}
+
       {/* Notifikasi Naik Level Karakter / Soal */}
       {!isSpectator && levelUpBanner && (
         <div
@@ -2408,7 +2455,38 @@ export default function GameWorld({
         </div>
       )}
 
-      {/* Fitur 2: Modal Podium Juara 1, 2, dan 3 */}
+      {/* Modal Konfirmasi Hapus Karakter Siswa di Mode Guru */}
+      {isSpectator && confirmDeleteStudent && (
+        <div className="fixed inset-0 z-40 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-900 border-2 border-red-500 rounded-2xl p-5 max-w-sm w-full text-white text-center shadow-2xl">
+            <div className="text-4xl mb-2">⚠️</div>
+            <h3 className="text-base font-extrabold text-red-400 mb-1.5">
+              Hapus Karakter Siswa?
+            </h3>
+            <p className="text-xs text-slate-300 mb-4 leading-relaxed">
+              Karakter <b>{confirmDeleteStudent.name}</b> akan dikeluarkan dari ruang kelas dan dihapus dari daftar peringkat serta rangkuman guru.
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setConfirmDeleteStudent(null)}
+                className="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-bold py-2 rounded-xl text-xs"
+              >
+                Batal
+              </button>
+              <button
+                onClick={() =>
+                  handleDeleteStudent(confirmDeleteStudent.id, confirmDeleteStudent.name)
+                }
+                className="flex-1 bg-red-600 hover:bg-red-500 text-white font-extrabold py-2 rounded-xl text-xs"
+              >
+                🗑️ Ya, Hapus
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Podium Juara 1, 2, dan 3 */}
       {!isSpectator && podiumModal && (
         <div className="fixed inset-0 z-30 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-gradient-to-b from-slate-900 via-indigo-950 to-slate-900 border-4 border-yellow-400 rounded-3xl p-6 max-w-md w-full text-center text-white shadow-2xl">
@@ -2472,7 +2550,7 @@ export default function GameWorld({
         </div>
       )}
 
-      {/* Fitur 3: Modal Apresiasi Membaca Semua Materi di Portal Explore PJOK */}
+      {/* Modal Apresiasi Membaca Semua Materi di Portal Explore PJOK */}
       {!isSpectator && exploreCompletedModal && (
         <div className="fixed inset-0 z-30 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-gradient-to-b from-sky-900 to-slate-900 border-4 border-emerald-400 rounded-3xl p-6 max-w-md w-full text-center text-white shadow-2xl">
@@ -2504,9 +2582,9 @@ export default function GameWorld({
         </div>
       )}
 
-      {/* Fitur 4 & 5: Panel Mode Guru (Leaderboard XP & Level + Rangkuman Kemajuan Tiap Karakter) */}
+      {/* Panel Mode Guru: Leaderboard XP & Level + Rangkuman + Hapus Siswa */}
       {isSpectator && (
-        <div className="absolute top-16 right-3 z-10 w-72 max-h-[82vh] overflow-y-auto bg-slate-900/95 backdrop-blur-md text-white p-3.5 rounded-2xl border border-slate-700 shadow-2xl">
+        <div className="absolute top-16 right-3 z-10 w-80 max-h-[82vh] overflow-y-auto bg-slate-900/95 backdrop-blur-md text-white p-3.5 rounded-2xl border border-slate-700 shadow-2xl">
           <div className="flex items-center justify-between border-b border-slate-700 pb-2 mb-2.5">
             <span className="text-xs font-extrabold text-yellow-400 uppercase tracking-wide">
               📊 Panel Guru ({studentList.length} Siswa)
@@ -2521,7 +2599,6 @@ export default function GameWorld({
             )}
           </div>
 
-          {/* Tab Leaderboard vs Pantauan Langsung */}
           <div className="grid grid-cols-2 gap-1.5 bg-slate-800 p-1 rounded-xl mb-3 text-xs font-extrabold">
             <button
               onClick={() => setTeacherTab("leaderboard")}
@@ -2556,34 +2633,52 @@ export default function GameWorld({
                 const stCharLvl = student.characterLevel || getCharacterLevelFromXp(stScore);
                 const isSelected = summaryStudentId === student.id;
                 return (
-                  <button
+                  <div
                     key={student.id}
-                    onClick={() => {
-                      setSummaryStudentId(isSelected ? null : student.id);
-                      setFollowedPlayerId(student.id);
-                    }}
-                    className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-left text-xs transition border ${
+                    className={`flex items-center justify-between gap-1.5 px-2.5 py-2 rounded-xl text-xs transition border ${
                       isSelected
                         ? "bg-yellow-400/20 border-yellow-400 text-white"
                         : "bg-slate-800/90 hover:bg-slate-800 border-slate-700 text-slate-200"
                     }`}
                   >
-                    <div className="flex items-center gap-2 min-w-0">
-                      <span className="text-sm font-extrabold shrink-0">
-                        {idx === 0 ? "🥇" : idx === 1 ? "🥈" : idx === 2 ? "🥉" : `#${idx + 1}`}
-                      </span>
-                      <div className="min-w-0">
-                        <p className="font-extrabold truncate">{student.name || "Siswa"}</p>
-                        <p className="text-[10px] text-amber-300 font-bold">
-                          Lv.{stCharLvl} • {getCharacterTitle(stCharLvl)}
-                        </p>
+                    <button
+                      onClick={() => {
+                        setSummaryStudentId(isSelected ? null : student.id);
+                        setFollowedPlayerId(student.id);
+                      }}
+                      className="flex items-center justify-between flex-1 min-w-0 text-left gap-2"
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="text-sm font-extrabold shrink-0">
+                          {idx === 0 ? "🥇" : idx === 1 ? "🥈" : idx === 2 ? "🥉" : `#${idx + 1}`}
+                        </span>
+                        <div className="min-w-0">
+                          <p className="font-extrabold truncate">{student.name || "Siswa"}</p>
+                          <p className="text-[10px] text-amber-300 font-bold">
+                            Lv.{stCharLvl} • {getCharacterTitle(stCharLvl)}
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                    <div className="text-right shrink-0">
-                      <span className="block text-emerald-400 font-extrabold">{stScore} XP</span>
-                      <span className="text-[10px] text-sky-300 underline">Rangkuman</span>
-                    </div>
-                  </button>
+                      <div className="text-right shrink-0">
+                        <span className="block text-emerald-400 font-extrabold">{stScore} XP</span>
+                        <span className="text-[10px] text-sky-300 underline">Rangkuman</span>
+                      </div>
+                    </button>
+
+                    <button
+                      title={`Hapus karakter ${student.name || "Siswa"}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setConfirmDeleteStudent({
+                          id: student.id,
+                          name: student.name || "Siswa",
+                        });
+                      }}
+                      className="bg-red-600/85 hover:bg-red-500 text-white px-2 py-1.5 rounded-lg text-[11px] font-bold shrink-0"
+                    >
+                      🗑️
+                    </button>
+                  </div>
                 );
               })}
             </div>
@@ -2593,58 +2688,76 @@ export default function GameWorld({
                 const tileOn = getStandingTileLabel(student.pos);
                 const isFocused = followedPlayerId === student.id;
                 return (
-                  <button
+                  <div
                     key={student.id}
-                    onClick={() => {
-                      setFollowedPlayerId(isFocused ? null : student.id);
-                      setSummaryStudentId(student.id);
-                    }}
-                    className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-left text-xs transition border ${
+                    className={`flex items-center justify-between gap-1.5 px-2.5 py-2 rounded-xl text-xs transition border ${
                       isFocused
                         ? "bg-yellow-400/20 border-yellow-400 text-white"
                         : "bg-slate-800/90 hover:bg-slate-800 border-slate-700 text-slate-200"
                     }`}
                   >
-                    <div className="flex items-center gap-2 min-w-0">
-                      <span
-                        style={{ backgroundColor: student.color || "#3b82f6" }}
-                        className="w-3 h-3 rounded-full shrink-0 border border-white"
-                      />
-                      <span className={`font-bold truncate ${student.isEliminated ? "line-through text-slate-400" : ""}`}>
-                        {student.name || "Siswa"}
-                      </span>
-                    </div>
-                    {student.worldMap === "bridge" ? (
-                      <span className="px-2 py-0.5 rounded text-[10px] font-extrabold bg-emerald-600 text-white shrink-0">
-                        🌉 Jembatan
-                      </span>
-                    ) : student.worldMap === "explore" ? (
-                      <span className="px-2 py-0.5 rounded text-[10px] font-extrabold bg-sky-600 text-white shrink-0">
-                        🌍 Explore
-                      </span>
-                    ) : student.isEliminated ? (
-                      <span className="px-2 py-0.5 rounded text-[10px] font-extrabold bg-slate-700 text-slate-300 shrink-0">
-                        👻 Gugur
-                      </span>
-                    ) : tileOn ? (
-                      <span
-                        style={{ backgroundColor: tileOn.color }}
-                        className="px-2 py-0.5 rounded text-[10px] font-extrabold text-white shrink-0"
-                      >
-                        Ubin {tileOn.label}
-                      </span>
-                    ) : (
-                      <span className="text-[10px] text-emerald-400 font-bold shrink-0">
-                        ✅ Aktif
-                      </span>
-                    )}
-                  </button>
+                    <button
+                      onClick={() => {
+                        setFollowedPlayerId(isFocused ? null : student.id);
+                        setSummaryStudentId(student.id);
+                      }}
+                      className="flex items-center justify-between flex-1 min-w-0 text-left gap-2"
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span
+                          style={{ backgroundColor: student.color || "#3b82f6" }}
+                          className="w-3 h-3 rounded-full shrink-0 border border-white"
+                        />
+                        <span className={`font-bold truncate ${student.isEliminated ? "line-through text-slate-400" : ""}`}>
+                          {student.name || "Siswa"}
+                        </span>
+                      </div>
+                      {student.worldMap === "bridge" ? (
+                        <span className="px-2 py-0.5 rounded text-[10px] font-extrabold bg-emerald-600 text-white shrink-0">
+                          🌉 Jembatan
+                        </span>
+                      ) : student.worldMap === "explore" ? (
+                        <span className="px-2 py-0.5 rounded text-[10px] font-extrabold bg-sky-600 text-white shrink-0">
+                          🌍 Explore
+                        </span>
+                      ) : student.isEliminated ? (
+                        <span className="px-2 py-0.5 rounded text-[10px] font-extrabold bg-slate-700 text-slate-300 shrink-0">
+                          👻 Gugur
+                        </span>
+                      ) : tileOn ? (
+                        <span
+                          style={{ backgroundColor: tileOn.color }}
+                          className="px-2 py-0.5 rounded text-[10px] font-extrabold text-white shrink-0"
+                        >
+                          Ubin {tileOn.label}
+                        </span>
+                      ) : (
+                        <span className="text-[10px] text-emerald-400 font-bold shrink-0">
+                          ✅ Aktif
+                        </span>
+                      )}
+                    </button>
+
+                    <button
+                      title={`Hapus karakter ${student.name || "Siswa"}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setConfirmDeleteStudent({
+                          id: student.id,
+                          name: student.name || "Siswa",
+                        });
+                      }}
+                      className="bg-red-600/85 hover:bg-red-500 text-white px-2 py-1.5 rounded-lg text-[11px] font-bold shrink-0"
+                    >
+                      🗑️
+                    </button>
+                  </div>
                 );
               })}
             </div>
           )}
 
-          {/* Fitur 5: Kartu Rangkuman Kemajuan Tiap Karakter pada Mode Guru */}
+          {/* Kartu Rangkuman Kemajuan Tiap Karakter pada Mode Guru */}
           {summaryStudent && (
             <div className="mt-3 pt-3 border-t border-slate-700 bg-slate-950/90 p-3 rounded-xl border border-sky-500/40">
               <div className="flex items-center justify-between mb-2">
@@ -2698,6 +2811,18 @@ export default function GameWorld({
                         {summaryStudent.worldMap || "stadium"}
                       </span>
                     </div>
+
+                    <button
+                      onClick={() =>
+                        setConfirmDeleteStudent({
+                          id: summaryStudent.id,
+                          name: summaryStudent.name || "Siswa",
+                        })
+                      }
+                      className="w-full mt-2 bg-red-600 hover:bg-red-500 text-white font-extrabold py-1.5 rounded-lg text-[11px]"
+                    >
+                      🗑️ Hapus Karakter Siswa Ini
+                    </button>
                   </div>
                 );
               })()}
