@@ -14,6 +14,16 @@ const ARENA_TILES = [
   { id: 3, label: "D", color: "#22c55e", pos: [4.2, 0, 22.2] as [number, number, number] },
 ];
 
+function getStandingTileLabel(pos?: [number, number, number]) {
+  if (!pos) return null;
+  for (const tile of ARENA_TILES) {
+    if (Math.abs(pos[0] - tile.pos[0]) < 3.9 && Math.abs(pos[2] - tile.pos[2]) < 3.9) {
+      return tile;
+    }
+  }
+  return null;
+}
+
 function VoxelCharacter({
   shirtColor,
   pantsColor,
@@ -98,8 +108,7 @@ function VoxelCharacter({
   );
 }
 
-// Komponen Avatar Teman Sekelas (Multiplayer)
-function RemotePlayer({ data }: { data: any }) {
+function RemotePlayer({ data, isHighlighted = false }: { data: any; isHighlighted?: boolean }) {
   const groupRef = useRef<THREE.Group>(null);
 
   useFrame((_, delta) => {
@@ -122,10 +131,16 @@ function RemotePlayer({ data }: { data: any }) {
         pantsColor="#1e293b"
         isMoving={data.isMoving || false}
       />
+      {isHighlighted && (
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.06, 0]}>
+          <ringGeometry args={[0.9, 1.35, 32]} />
+          <meshStandardMaterial color="#facc15" emissive="#facc15" emissiveIntensity={0.6} />
+        </mesh>
+      )}
       <Text
         position={[0, 3.25, 0]}
-        fontSize={0.4}
-        color="#38bdf8"
+        fontSize={isHighlighted ? 0.55 : 0.4}
+        color={isHighlighted ? "#facc15" : "#38bdf8"}
         outlineWidth={0.05}
         outlineColor="black"
       >
@@ -172,6 +187,70 @@ function ArenaFloorTile({
       </Text>
     </group>
   );
+}
+
+// Kamera Pengawas Khusus Laptop Guru
+function SpectatorCameraController({
+  preset,
+  followedPlayer,
+}: {
+  preset: "overview" | "arena";
+  followedPlayer: any | null;
+}) {
+  const targetFocus = useRef(new THREE.Vector3(0, 1, 2));
+  const manualOffset = useRef(new THREE.Vector3(0, 0, 0));
+  const zoomOffset = useRef(0);
+  const keys = useRef<{ [key: string]: boolean }>({});
+
+  useEffect(() => {
+    const down = (e: KeyboardEvent) => (keys.current[e.key.toLowerCase()] = true);
+    const up = (e: KeyboardEvent) => (keys.current[e.key.toLowerCase()] = false);
+    window.addEventListener("keydown", down);
+    window.addEventListener("keyup", up);
+    return () => {
+      window.removeEventListener("keydown", down);
+      window.removeEventListener("keyup", up);
+    };
+  }, []);
+
+  // Reset geseran manual saat guru mengganti preset atau mengklik siswa baru
+  useEffect(() => {
+    manualOffset.current.set(0, 0, 0);
+  }, [preset, followedPlayer?.id]);
+
+  useFrame((state, delta) => {
+    const moveSpeed = 16 * delta;
+    if (keys.current["w"] || keys.current["arrowup"]) manualOffset.current.z -= moveSpeed;
+    if (keys.current["s"] || keys.current["arrowdown"]) manualOffset.current.z += moveSpeed;
+    if (keys.current["a"] || keys.current["arrowleft"]) manualOffset.current.x -= moveSpeed;
+    if (keys.current["d"] || keys.current["arrowright"]) manualOffset.current.x += moveSpeed;
+    if (keys.current["q"]) zoomOffset.current = Math.max(zoomOffset.current - moveSpeed, -10);
+    if (keys.current["e"]) zoomOffset.current = Math.min(zoomOffset.current + moveSpeed, 18);
+
+    let desiredFocus = new THREE.Vector3(0, 1, 2);
+    let desiredCamPos = new THREE.Vector3(0, 22, 28);
+
+    if (followedPlayer && followedPlayer.pos) {
+      const [px, py, pz] = followedPlayer.pos;
+      desiredFocus.set(px, Math.max(py, 0) + 1.5, pz);
+      desiredCamPos.set(px, Math.max(py, 0) + 10 + zoomOffset.current * 0.5, pz + 16 + zoomOffset.current * 0.6);
+    } else if (preset === "arena") {
+      desiredFocus.set(0, 1, 18);
+      desiredCamPos.set(0, 17 + zoomOffset.current * 0.6, 33 + zoomOffset.current * 0.7);
+    } else {
+      desiredFocus.set(0, 1, 3);
+      desiredCamPos.set(0, 24 + zoomOffset.current * 0.6, 30 + zoomOffset.current * 0.7);
+    }
+
+    desiredFocus.add(manualOffset.current);
+    desiredCamPos.add(manualOffset.current);
+
+    state.camera.position.lerp(desiredCamPos, 0.08);
+    targetFocus.current.lerp(desiredFocus, 0.1);
+    state.camera.lookAt(targetFocus.current);
+  });
+
+  return null;
 }
 
 function Player({
@@ -292,7 +371,6 @@ function Player({
     pos.x = THREE.MathUtils.clamp(pos.x, -42, 42);
     pos.z = THREE.MathUtils.clamp(pos.z, -42, 42);
 
-    // Kirim posisi terbaru ke server multiplayer maksimal 20x per detik
     const now = state.clock.getElapsedTime();
     if (socketRef.current && socketRef.current.connected && now - lastEmitTime.current > 0.05) {
       lastEmitTime.current = now;
@@ -467,10 +545,21 @@ function VirtualJoystick({ onMove }: { onMove: (vec: { x: number; y: number }) =
   );
 }
 
-export default function GameWorld({ faseData, playerName, shirtColor, onBack }: any) {
+export default function GameWorld({
+  faseData,
+  playerName,
+  shirtColor,
+  isSpectator = false,
+  onBack,
+}: any) {
   const socketRef = useRef<Socket | null>(null);
   const [otherPlayers, setOtherPlayers] = useState<{ [id: string]: any }>({});
-  const [onlineCount, setOnlineCount] = useState(1);
+  const [onlineCount, setOnlineCount] = useState(isSpectator ? 0 : 1);
+  const [isPortraitMobile, setIsPortraitMobile] = useState(false);
+
+  // State Khusus Pemantau Guru
+  const [cameraPreset, setCameraPreset] = useState<"overview" | "arena">("overview");
+  const [followedPlayerId, setFollowedPlayerId] = useState<string | null>(null);
 
   const [joyVector, setJoyVector] = useState({ x: 0, y: 0 });
   const [jumpTrigger, setJumpTrigger] = useState(0);
@@ -490,19 +579,51 @@ export default function GameWorld({ faseData, playerName, shirtColor, onBack }: 
   const [mgPhase, setMgPhase] = useState<"running" | "dropped">("running");
   const [mgStatusText, setMgStatusText] = useState("");
 
-  // Koneksi ke Server Multiplayer Socket.io (port 4000)
+  useEffect(() => {
+    const checkOrientation = () => {
+      const isMobile = window.innerWidth < 900;
+      const isPortrait = window.innerHeight > window.innerWidth;
+      setIsPortraitMobile(!isSpectator && isMobile && isPortrait);
+    };
+
+    checkOrientation();
+    window.addEventListener("resize", checkOrientation);
+    window.addEventListener("orientationchange", checkOrientation);
+
+    return () => {
+      window.removeEventListener("resize", checkOrientation);
+      window.removeEventListener("orientationchange", checkOrientation);
+    };
+  }, [isSpectator]);
+
+  const enterLandscapeFullscreen = async () => {
+    try {
+      if (document.documentElement.requestFullscreen) {
+        await document.documentElement.requestFullscreen();
+      }
+      const orientation = (window.screen as any)?.orientation;
+      if (orientation && orientation.lock) {
+        await orientation.lock("landscape");
+      }
+    } catch {}
+  };
+
+  // Koneksi ke Server Multiplayer Socket.io
   useEffect(() => {
     const serverHost = typeof window !== "undefined" ? window.location.hostname : "localhost";
-const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || `http://${serverHost}:4000`;
-const socket = io(socketUrl);
+    const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || `http://${serverHost}:4000`;
+    const socket = io(socketUrl);
     socketRef.current = socket;
 
     socket.on("connect", () => {
-      socket.emit("joinGame", {
-        name: playerName,
-        faseId: faseData.id,
-        color: shirtColor,
-      });
+      // Jika Mode Pemantau Guru, jangan daftarkan sebagai pemain agar avatar tidak muncul di lapangan
+      if (!isSpectator) {
+        socket.emit("joinGame", {
+          name: playerName,
+          faseId: faseData.id,
+          color: shirtColor,
+        });
+      }
     });
 
     socket.on("updatePlayers", (allPlayers: { [id: string]: any }) => {
@@ -515,7 +636,7 @@ const socket = io(socketUrl);
         }
       });
       setOtherPlayers(filtered);
-      setOnlineCount(Math.max(count, 1));
+      setOnlineCount(isSpectator ? count : Math.max(count, 1));
     });
 
     socket.on("playerMoved", (movedPlayer: any) => {
@@ -530,7 +651,10 @@ const socket = io(socketUrl);
     return () => {
       socket.disconnect();
     };
-  }, [faseData.id, playerName, shirtColor]);
+  }, [faseData.id, playerName, shirtColor, isSpectator]);
+
+  const studentList = useMemo(() => Object.values(otherPlayers), [otherPlayers]);
+  const followedPlayer = followedPlayerId ? otherPlayers[followedPlayerId] || null : null;
 
   const allMiniGameQuestions = useMemo(() => {
     const list: any[] = [];
@@ -569,7 +693,7 @@ const socket = io(socketUrl);
   };
 
   useEffect(() => {
-    if (!miniGameActive) return;
+    if (!miniGameActive || isSpectator) return;
 
     const timer = setInterval(() => {
       setMgTimeLeft((prev) => {
@@ -600,7 +724,7 @@ const socket = io(socketUrl);
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [miniGameActive, mgPhase, mgIndex, standingTile, currentMgQuestion, allMiniGameQuestions]);
+  }, [miniGameActive, mgPhase, mgIndex, standingTile, currentMgQuestion, allMiniGameQuestions, isSpectator]);
 
   const isTileFallen = (tileId: number) => {
     if (!miniGameActive || mgPhase !== "dropped") return false;
@@ -628,47 +752,187 @@ const socket = io(socketUrl);
   };
 
   return (
-    <div className="relative w-full h-screen overflow-hidden select-none">
-      {/* HUD Atas */}
-      <div className="absolute top-4 left-4 z-10 flex items-center gap-3 bg-slate-900/85 text-white px-4 py-2 rounded-2xl border border-slate-700 shadow-lg">
-        <button onClick={onBack} className="bg-red-600 hover:bg-red-500 px-3 py-1.5 rounded-xl text-xs font-bold">
-          ← Ganti Fase
-        </button>
-        <div>
-          <p className="font-bold text-yellow-400 text-sm md:text-base">{faseData.nama_dunia}</p>
-          <p className="text-xs text-slate-300">
-            {faseData.nama_fase} • <span className="text-emerald-400 font-bold">{score} XP</span> •{" "}
-            <span className="text-sky-400 font-bold">👥 {onlineCount} Siswa Online</span>
+    <div className="relative w-full h-[100dvh] overflow-hidden select-none">
+      {/* Peringatan Otomatis Saat HP Siswa Masih Berdiri (Portrait) */}
+      {isPortraitMobile && (
+        <div className="fixed inset-0 z-50 bg-slate-950/95 text-white flex flex-col items-center justify-center p-6 text-center backdrop-blur-md">
+          <div className="text-5xl mb-4 animate-bounce">📱🔄</div>
+          <h2 className="text-xl font-extrabold text-yellow-400 mb-2">
+            Putar HP ke Mode Landscape
+          </h2>
+          <p className="text-sm text-slate-300 max-w-xs mb-5 leading-relaxed">
+            Miringkan layar HP kamu ke posisi mendatar agar arena permainan dan tombol kontrol terlihat luas.
           </p>
+          <button
+            onClick={enterLandscapeFullscreen}
+            className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold px-5 py-2.5 rounded-full text-sm shadow-lg"
+          >
+            Aktifkan Layar Penuh Landscape
+          </button>
         </div>
+      )}
+
+      {/* HUD Atas */}
+      <div className="absolute top-3 left-4 right-4 z-10 flex items-start justify-between pointer-events-none gap-3">
+        <div className="flex items-center gap-3 bg-slate-900/90 text-white px-4 py-2 rounded-2xl border border-slate-700 shadow-lg pointer-events-auto">
+          <button onClick={onBack} className="bg-red-600 hover:bg-red-500 px-3 py-1.5 rounded-xl text-xs font-bold">
+            ← Ganti Fase
+          </button>
+          <div>
+            <div className="flex items-center gap-2">
+              <p className="font-bold text-yellow-400 text-xs md:text-base">{faseData.nama_dunia}</p>
+              {isSpectator && (
+                <span className="bg-emerald-500 text-slate-950 text-[10px] font-extrabold px-2 py-0.5 rounded-full uppercase">
+                  🖥️ Layar Pemantau Guru
+                </span>
+              )}
+            </div>
+            <p className="text-[11px] md:text-xs text-slate-300">
+              {faseData.nama_fase} •{" "}
+              {!isSpectator && (
+                <>
+                  <span className="text-emerald-400 font-bold">{score} XP</span> •{" "}
+                </>
+              )}
+              <span className="text-sky-400 font-bold">👥 {onlineCount} Siswa Aktif di Kelas</span>
+            </p>
+          </div>
+        </div>
+
+        {/* Kontrol Kamera Cepat untuk Guru di Layar Proyektor */}
+        {isSpectator && (
+          <div className="flex flex-wrap items-center gap-2 bg-slate-900/90 text-white p-2 rounded-2xl border border-slate-700 shadow-lg pointer-events-auto">
+            <button
+              onClick={() => {
+                setFollowedPlayerId(null);
+                setCameraPreset("overview");
+              }}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition ${
+                !followedPlayerId && cameraPreset === "overview"
+                  ? "bg-yellow-400 text-slate-950"
+                  : "bg-slate-800 hover:bg-slate-700 text-slate-200"
+              }`}
+            >
+              🗺️ Seluruh Lapangan
+            </button>
+            <button
+              onClick={() => {
+                setFollowedPlayerId(null);
+                setCameraPreset("arena");
+              }}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition ${
+                !followedPlayerId && cameraPreset === "arena"
+                  ? "bg-yellow-400 text-slate-950"
+                  : "bg-slate-800 hover:bg-slate-700 text-slate-200"
+              }`}
+            >
+              🏆 Arena 4 Warna
+            </button>
+            <button
+              onClick={enterLandscapeFullscreen}
+              className="bg-blue-600 hover:bg-blue-500 px-3 py-1.5 rounded-xl text-xs font-bold"
+            >
+              ⛶ Layar Penuh
+            </button>
+          </div>
+        )}
       </div>
 
-      {/* Panel Soal Atas Saat Mini-Game Aktif */}
-      {miniGameActive && currentMgQuestion && (
-        <div className="absolute top-20 left-1/2 -translate-x-1/2 z-20 w-[94%] max-w-2xl bg-slate-950/95 text-white p-4 rounded-2xl border-2 border-yellow-400 shadow-2xl">
-          <div className="flex justify-between items-center mb-2">
-            <span className="bg-yellow-400 text-slate-950 text-xs font-extrabold px-3 py-1 rounded-full">
-              ⏱️ Waktu: {mgTimeLeft} Detik
+      {/* Panel Daftar Siswa Real-Time di Sisi Kanan (Khusus Layar Pemantau Guru) */}
+      {isSpectator && (
+        <div className="absolute top-20 right-4 z-10 w-64 max-h-[75vh] overflow-y-auto bg-slate-900/90 backdrop-blur-md text-white p-3.5 rounded-2xl border border-slate-700 shadow-2xl">
+          <div className="flex items-center justify-between border-b border-slate-700 pb-2 mb-2.5">
+            <span className="text-xs font-extrabold text-yellow-400 uppercase tracking-wide">
+              📋 Daftar Siswa ({studentList.length})
+            </span>
+            {followedPlayer && (
+              <button
+                onClick={() => setFollowedPlayerId(null)}
+                className="text-[11px] bg-slate-700 hover:bg-slate-600 px-2 py-0.5 rounded font-bold"
+              >
+                Lepas Fokus
+              </button>
+            )}
+          </div>
+
+          {studentList.length === 0 ? (
+            <p className="text-xs text-slate-400 text-center py-4">
+              Menunggu siswa masuk ke {faseData.nama_fase}...
+            </p>
+          ) : (
+            <div className="space-y-1.5">
+              {studentList.map((student: any) => {
+                const tileOn = getStandingTileLabel(student.pos);
+                const isFocused = followedPlayerId === student.id;
+                return (
+                  <button
+                    key={student.id}
+                    onClick={() =>
+                      setFollowedPlayerId(isFocused ? null : student.id)
+                    }
+                    className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-left text-xs transition border ${
+                      isFocused
+                        ? "bg-yellow-400/20 border-yellow-400 text-white"
+                        : "bg-slate-800/90 hover:bg-slate-800 border-slate-700 text-slate-200"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span
+                        style={{ backgroundColor: student.color || "#3b82f6" }}
+                        className="w-3 h-3 rounded-full shrink-0 border border-white"
+                      />
+                      <span className="font-bold truncate">{student.name || "Siswa"}</span>
+                    </div>
+                    {tileOn ? (
+                      <span
+                        style={{ backgroundColor: tileOn.color }}
+                        className="px-2 py-0.5 rounded text-[10px] font-extrabold text-white shrink-0"
+                      >
+                        Ubin {tileOn.label}
+                      </span>
+                    ) : (
+                      <span className="text-[10px] text-slate-400 shrink-0">
+                        {student.isMoving ? "🏃 Berlari" : "🧍 Diam"}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          <p className="text-[10px] text-slate-400 mt-3 pt-2 border-t border-slate-800 leading-relaxed">
+            💡 Klik nama siswa untuk menyorot di layar, atau gunakan <b>WASD / Panah</b> & <b>Q/E</b> untuk menggeser kamera.
+          </p>
+        </div>
+      )}
+
+      {/* Panel Soal Atas Saat Mini-Game Aktif (Mode Siswa) */}
+      {!isSpectator && miniGameActive && currentMgQuestion && (
+        <div className="absolute top-16 left-1/2 -translate-x-1/2 z-20 w-[92%] max-w-2xl bg-slate-950/95 text-white p-3 md:p-4 rounded-2xl border-2 border-yellow-400 shadow-2xl">
+          <div className="flex justify-between items-center mb-1.5">
+            <span className="bg-yellow-400 text-slate-950 text-xs font-extrabold px-3 py-0.5 rounded-full">
+              ⏱️ {mgTimeLeft} Detik
             </span>
             <span className="text-xs font-bold text-emerald-400">{mgStatusText}</span>
             <button
               onClick={stopMiniGame}
-              className="bg-red-600 hover:bg-red-500 text-xs px-3 py-1 rounded-lg font-bold"
+              className="bg-red-600 hover:bg-red-500 text-xs px-2.5 py-1 rounded-lg font-bold"
             >
-              Keluar Arena
+              Keluar
             </button>
           </div>
-          <p className="font-bold text-sm md:text-base mb-3 text-center">
+          <p className="font-bold text-xs md:text-base mb-2 text-center">
             {currentMgQuestion.pertanyaan}
           </p>
-          <div className="grid grid-cols-2 gap-2 text-xs font-bold">
+          <div className="grid grid-cols-2 gap-1.5 text-xs font-bold">
             {currentMgQuestion.pilihan.map((opsi: string, i: number) => (
               <div
                 key={i}
                 style={{ backgroundColor: ARENA_TILES[i]?.color || "#334155" }}
-                className="px-3 py-2 rounded-xl text-white shadow flex items-center gap-2"
+                className="px-2.5 py-1.5 rounded-xl text-white shadow flex items-center gap-2"
               >
-                <span className="bg-black/40 px-2 py-0.5 rounded font-extrabold">
+                <span className="bg-black/40 px-1.5 py-0.5 rounded font-extrabold">
                   {ARENA_TILES[i]?.label}
                 </span>
                 <span className="truncate">{opsi}</span>
@@ -678,13 +942,13 @@ const socket = io(socketUrl);
         </div>
       )}
 
-      {/* Kontrol Layar Sentuh */}
-      {!showModal && (
+      {/* Kontrol Layar Sentuh (Hanya Mode Siswa) */}
+      {!isSpectator && !showModal && (
         <>
-          <div className="absolute bottom-6 left-6 z-10">
+          <div className="absolute bottom-5 left-8 z-10">
             <VirtualJoystick onMove={setJoyVector} />
           </div>
-          <div className="absolute bottom-8 right-6 z-10">
+          <div className="absolute bottom-7 right-8 z-10">
             <button
               onPointerDown={() => setJumpTrigger((n) => n + 1)}
               className="w-20 h-20 rounded-full bg-emerald-500/90 active:bg-emerald-400 border-4 border-white text-slate-950 font-extrabold text-sm shadow-xl touch-none"
@@ -695,23 +959,23 @@ const socket = io(socketUrl);
         </>
       )}
 
-      {/* Tombol Masuk Mini-Game */}
-      {nearPortal && !miniGameActive && !showModal && (
-        <div className="absolute bottom-28 left-1/2 -translate-x-1/2 z-10">
+      {/* Tombol Masuk Mini-Game (Hanya Mode Siswa) */}
+      {!isSpectator && nearPortal && !miniGameActive && !showModal && (
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10">
           <button
             onClick={startMiniGame}
-            className="bg-amber-400 hover:bg-amber-300 text-slate-950 font-extrabold px-6 py-3 rounded-full shadow-2xl border-2 border-white animate-bounce text-sm"
+            className="bg-amber-400 hover:bg-amber-300 text-slate-950 font-extrabold px-5 py-2.5 rounded-full shadow-2xl border-2 border-white animate-bounce text-xs md:text-sm"
           >
             🏆 Mulai Lomba Jatuh Bangun 4 Warna!
           </button>
         </div>
       )}
 
-      {/* Kotak Dialog Coach Resky */}
-      {nearCoach && !miniGameActive && !showModal && (
-        <div className="absolute top-20 left-1/2 -translate-x-1/2 z-10 w-[92%] max-w-lg bg-slate-900/95 text-white p-4 rounded-2xl border-2 border-yellow-400 shadow-2xl">
-          <div className="flex justify-between items-center mb-1.5">
-            <span className="font-bold text-yellow-400 text-base">🧢 {pjokData.npc_utama.nama}</span>
+      {/* Kotak Dialog Coach Resky (Hanya Mode Siswa) */}
+      {!isSpectator && nearCoach && !miniGameActive && !showModal && (
+        <div className="absolute top-16 left-1/2 -translate-x-1/2 z-10 w-[90%] max-w-lg bg-slate-900/95 text-white p-3.5 rounded-2xl border-2 border-yellow-400 shadow-2xl">
+          <div className="flex justify-between items-center mb-1">
+            <span className="font-bold text-yellow-400 text-sm md:text-base">🧢 {pjokData.npc_utama.nama}</span>
             <button
               onClick={() => speakText(pjokData.npc_utama.dialog_awal)}
               className="bg-blue-600 hover:bg-blue-500 text-xs px-3 py-1 rounded-full font-semibold"
@@ -720,22 +984,22 @@ const socket = io(socketUrl);
             </button>
           </div>
           <p className="text-xs md:text-sm leading-relaxed">{pjokData.npc_utama.dialog_awal}</p>
-          <p className="text-xs text-emerald-400 mt-1.5 font-medium">
+          <p className="text-xs text-emerald-400 mt-1 font-medium">
             👉 Dekati gedung materi atau masuk ke Portal Emas di kanan untuk lomba Jatuh Bangun!
           </p>
         </div>
       )}
 
-      {/* Tombol Masuk Gedung */}
-      {activeBuilding && !miniGameActive && !showModal && (
-        <div className="absolute bottom-28 left-1/2 -translate-x-1/2 z-10">
+      {/* Tombol Masuk Gedung (Hanya Mode Siswa) */}
+      {!isSpectator && activeBuilding && !miniGameActive && !showModal && (
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10">
           <button
             onClick={() => {
               setShowModal(true);
               setQuizIndex(0);
               setFeedback(null);
             }}
-            className="bg-yellow-400 hover:bg-yellow-300 text-slate-950 font-extrabold px-6 py-3 rounded-full shadow-2xl border-2 border-white animate-bounce text-sm"
+            className="bg-yellow-400 hover:bg-yellow-300 text-slate-950 font-extrabold px-5 py-2.5 rounded-full shadow-2xl border-2 border-white animate-bounce text-xs md:text-sm"
           >
             🚪 Masuk: {activeBuilding.nama_gedung}
           </button>
@@ -743,21 +1007,21 @@ const socket = io(socketUrl);
       )}
 
       {/* Layar Materi & Kuis Interaktif Gedung */}
-      {showModal && activeBuilding && (
+      {!isSpectator && showModal && activeBuilding && (
         <div className="absolute inset-0 z-20 bg-black/75 flex items-center justify-center p-4">
-          <div className="bg-white text-slate-900 max-w-2xl w-full rounded-2xl p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-start border-b pb-3 mb-4">
+          <div className="bg-white text-slate-900 max-w-2xl w-full rounded-2xl p-5 shadow-2xl max-h-[90dvh] overflow-y-auto">
+            <div className="flex justify-between items-start border-b pb-3 mb-3">
               <div>
-                <h2 className="text-xl font-extrabold text-blue-700">{activeBuilding.nama_gedung}</h2>
-                <p className="text-sm font-semibold text-slate-500">{activeBuilding.topik}</p>
+                <h2 className="text-lg md:text-xl font-extrabold text-blue-700">{activeBuilding.nama_gedung}</h2>
+                <p className="text-xs md:text-sm font-semibold text-slate-500">{activeBuilding.topik}</p>
               </div>
               <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-red-600 font-bold text-xl">
                 ✕
               </button>
             </div>
 
-            <div className="bg-blue-50 p-4 rounded-xl mb-5 border border-blue-200">
-              <div className="flex justify-between items-center mb-2">
+            <div className="bg-blue-50 p-3.5 rounded-xl mb-4 border border-blue-200">
+              <div className="flex justify-between items-center mb-1.5">
                 <span className="font-bold text-blue-900 text-sm">📖 Ringkasan Materi</span>
                 <button
                   onClick={() => speakText(activeBuilding.ringkasan_materi)}
@@ -766,21 +1030,21 @@ const socket = io(socketUrl);
                   🔊 Bacakan Materi
                 </button>
               </div>
-              <p className="text-sm text-slate-700 leading-relaxed">{activeBuilding.ringkasan_materi}</p>
+              <p className="text-xs md:text-sm text-slate-700 leading-relaxed">{activeBuilding.ringkasan_materi}</p>
             </div>
 
             <div>
               <p className="text-xs font-bold uppercase text-emerald-600 mb-1">
                 Kuis PJOK ({quizIndex + 1} dari {activeBuilding.kuis.length})
               </p>
-              <h3 className="font-bold text-base mb-3">{activeBuilding.kuis[quizIndex].pertanyaan}</h3>
+              <h3 className="font-bold text-sm md:text-base mb-2.5">{activeBuilding.kuis[quizIndex].pertanyaan}</h3>
               <div className="grid grid-cols-1 gap-2">
                 {activeBuilding.kuis[quizIndex].pilihan.map((opsi: string, i: number) => (
                   <button
                     key={i}
                     onClick={() => handleAnswer(i)}
                     disabled={feedback !== null}
-                    className="text-left px-4 py-3 rounded-xl border border-slate-300 hover:bg-amber-50 hover:border-amber-400 font-medium text-sm transition"
+                    className="text-left px-4 py-2.5 rounded-xl border border-slate-300 hover:bg-amber-50 hover:border-amber-400 font-medium text-xs md:text-sm transition"
                   >
                     {String.fromCharCode(65 + i)}. {opsi}
                   </button>
@@ -788,8 +1052,8 @@ const socket = io(socketUrl);
               </div>
 
               {feedback && (
-                <div className="mt-4 p-3 rounded-xl bg-slate-100 border border-slate-300 flex justify-between items-center gap-3">
-                  <p className="text-sm font-semibold">{feedback}</p>
+                <div className="mt-3 p-3 rounded-xl bg-slate-100 border border-slate-300 flex justify-between items-center gap-3">
+                  <p className="text-xs md:text-sm font-semibold">{feedback}</p>
                   <button
                     onClick={nextQuestion}
                     className="bg-blue-600 text-white px-4 py-2 rounded-lg text-xs font-bold shrink-0"
@@ -816,27 +1080,36 @@ const socket = io(socketUrl);
           <ArenaFloorTile key={tile.id} tile={tile} isFallen={isTileFallen(tile.id)} />
         ))}
 
-        <Player
-          playerName={playerName}
-          shirtColor={shirtColor}
-          socketRef={socketRef}
-          joyVector={joyVector}
-          jumpTrigger={jumpTrigger}
-          teleportTrigger={teleportTrigger}
-          onInteractBuilding={setActiveBuilding}
-          onNearCoach={setNearCoach}
-          onNearPortal={setNearPortal}
-          onStandingTileChange={setStandingTile}
-          gedungList={faseData.gedung_materi}
-          isTileFallen={isTileFallen}
-        />
+        {isSpectator ? (
+          <SpectatorCameraController
+            preset={cameraPreset}
+            followedPlayer={followedPlayer}
+          />
+        ) : (
+          <Player
+            playerName={playerName}
+            shirtColor={shirtColor}
+            socketRef={socketRef}
+            joyVector={joyVector}
+            jumpTrigger={jumpTrigger}
+            teleportTrigger={teleportTrigger}
+            onInteractBuilding={setActiveBuilding}
+            onNearCoach={setNearCoach}
+            onNearPortal={setNearPortal}
+            onStandingTileChange={setStandingTile}
+            gedungList={faseData.gedung_materi}
+            isTileFallen={isTileFallen}
+          />
+        )}
 
-        {/* Render Semua Teman Sekelas yang Online */}
         {Object.values(otherPlayers).map((p: any) => (
-          <RemotePlayer key={p.id} data={p} />
+          <RemotePlayer
+            key={p.id}
+            data={p}
+            isHighlighted={isSpectator && followedPlayerId === p.id}
+          />
         ))}
 
-        {/* NPC Coach Resky */}
         <group position={[0, 0, -4]}>
           <VoxelCharacter shirtColor="#2563eb" pantsColor="#0f172a" isMoving={false} isCoach={true} />
           <Text position={[0, 3.45, 0]} fontSize={0.45} color="#facc15" outlineWidth={0.06} outlineColor="black">
@@ -844,7 +1117,6 @@ const socket = io(socketUrl);
           </Text>
         </group>
 
-        {/* Gedung-Gedung Materi Sesuai Fase */}
         {faseData.gedung_materi.map((gedung: any, index: number) => (
           <group key={gedung.id} position={gedung.posisi_3d}>
             <mesh position={[0, 2.5, 0]} castShadow>

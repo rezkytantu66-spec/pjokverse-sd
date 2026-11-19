@@ -16,13 +16,15 @@ export default function Home() {
   const [selectedFase, setSelectedFase] = useState<any>(null);
   const [playerName, setPlayerName] = useState("");
   const [shirtColor, setShirtColor] = useState("#ef4444");
+  const [isTeacherMode, setIsTeacherMode] = useState(false);
 
   if (selectedFase) {
     return (
       <GameWorld
         faseData={selectedFase}
-        playerName={playerName.trim() || "Siswa PJOK"}
+        playerName={isTeacherMode ? "Guru Pemantau" : playerName.trim() || "Siswa PJOK"}
         shirtColor={shirtColor}
+        isSpectator={isTeacherMode}
         onBack={() => setSelectedFase(null)}
       />
     );
@@ -41,38 +43,75 @@ export default function Home() {
           Isi namamu, pilih warna kaos olahraga, lalu masuk ke dunia 3D bersama <b>Coach Resky</b>!
         </p>
 
-        {/* Input Nama Siswa & Warna Kaos */}
-        <div className="max-w-md mx-auto bg-slate-800/80 p-4 rounded-2xl border border-slate-600 mb-7 text-left">
-          <label className="block text-xs font-bold text-yellow-400 uppercase mb-1.5">
-            Nama Panggilan Siswa
-          </label>
-          <input
-            type="text"
-            maxLength={16}
-            placeholder="Contoh: Budi, Siti, Andi..."
-            value={playerName}
-            onChange={(e) => setPlayerName(e.target.value)}
-            className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-600 text-white text-sm focus:outline-none focus:border-yellow-400 mb-4"
-          />
-
-          <label className="block text-xs font-bold text-yellow-400 uppercase mb-1.5">
-            Warna Kaos Olahraga
-          </label>
-          <div className="flex items-center gap-3">
-            {SHIRT_COLORS.map((c) => (
-              <button
-                key={c.hex}
-                type="button"
-                onClick={() => setShirtColor(c.hex)}
-                style={{ backgroundColor: c.hex }}
-                title={c.name}
-                className={`w-9 h-9 rounded-full transition-transform ${
-                  shirtColor === c.hex ? "scale-125 ring-4 ring-white" : "opacity-75 hover:opacity-100"
-                }`}
-              />
-            ))}
-          </div>
+        {/* Pilihan Peran: Siswa atau Layar Pemantau Guru */}
+        <div className="max-w-md mx-auto flex bg-slate-800 p-1.5 rounded-2xl border border-slate-600 mb-5">
+          <button
+            type="button"
+            onClick={() => setIsTeacherMode(false)}
+            className={`flex-1 py-2.5 rounded-xl text-xs md:text-sm font-extrabold transition ${
+              !isTeacherMode
+                ? "bg-yellow-400 text-slate-950 shadow"
+                : "text-slate-300 hover:text-white"
+            }`}
+          >
+            🏃 Mode Siswa (HP)
+          </button>
+          <button
+            type="button"
+            onClick={() => setIsTeacherMode(true)}
+            className={`flex-1 py-2.5 rounded-xl text-xs md:text-sm font-extrabold transition ${
+              isTeacherMode
+                ? "bg-emerald-400 text-slate-950 shadow"
+                : "text-slate-300 hover:text-white"
+            }`}
+          >
+            🖥️ Layar Pemantau Guru
+          </button>
         </div>
+
+        {/* Input Nama Siswa & Warna Kaos (Hanya muncul di Mode Siswa) */}
+        {!isTeacherMode ? (
+          <div className="max-w-md mx-auto bg-slate-800/80 p-4 rounded-2xl border border-slate-600 mb-7 text-left">
+            <label className="block text-xs font-bold text-yellow-400 uppercase mb-1.5">
+              Nama Panggilan Siswa
+            </label>
+            <input
+              type="text"
+              maxLength={16}
+              placeholder="Contoh: Budi, Siti, Andi..."
+              value={playerName}
+              onChange={(e) => setPlayerName(e.target.value)}
+              className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-600 text-white text-sm focus:outline-none focus:border-yellow-400 mb-4"
+            />
+
+            <label className="block text-xs font-bold text-yellow-400 uppercase mb-1.5">
+              Warna Kaos Olahraga
+            </label>
+            <div className="flex items-center gap-3">
+              {SHIRT_COLORS.map((c) => (
+                <button
+                  key={c.hex}
+                  type="button"
+                  onClick={() => setShirtColor(c.hex)}
+                  style={{ backgroundColor: c.hex }}
+                  title={c.name}
+                  className={`w-9 h-9 rounded-full transition-transform ${
+                    shirtColor === c.hex ? "scale-125 ring-4 ring-white" : "opacity-75 hover:opacity-100"
+                  }`}
+                />
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className="max-w-md mx-auto bg-emerald-950/70 p-4 rounded-2xl border border-emerald-500/60 mb-7 text-left">
+            <p className="text-sm font-extrabold text-emerald-300 mb-1">
+              🖥️ Mode Proyektor / Layar Kelas Aktif
+            </p>
+            <p className="text-xs text-slate-200 leading-relaxed">
+              Pilih Fase pembelajaran di bawah untuk memantau seluruh pergerakan siswa dari sudut pandang udara tanpa memunculkan karakter guru di lapangan.
+            </p>
+          </div>
+        )}
 
         {/* Pilihan Fase */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5 text-left">
@@ -90,7 +129,7 @@ export default function Home() {
                 </p>
               </div>
               <div className="mt-6 text-sm font-bold text-emerald-400 group-hover:text-yellow-300">
-                Mulai Belajar →
+                {isTeacherMode ? "Buka Layar Pemantau →" : "Mulai Belajar →"}
               </div>
             </button>
           ))}
