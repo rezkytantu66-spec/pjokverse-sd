@@ -90,100 +90,112 @@ const EXPLORE_OBJECTS = [
 ];
 
 // =========================================================================
-// ARENA JEMBATAN JUARA: 18 LEVEL KESULITAN & LEBAR MUAT UNTUK 35 PEMAIN
+// ARENA JEMBATAN JUARA: 20 LEVEL KESULITAN BERTINGKAT & LINTASAN SUPER PANJANG
 // =========================================================================
-const TOTAL_BRIDGE_LEVELS = 18;
+const TOTAL_BRIDGE_LEVELS = 20;
 
 const BRIDGE_SEGMENTS = [
-  // Zona Start Luas (Lebar 18m untuk 35 siswa berjejer)
+  // Zona Start Luas (Lebar 18m untuk 35 siswa)
   { id: "start", minX: -9, maxX: 9, minZ: 22, maxZ: 32, y: 0.4, color: "#10b981", level: 1, title: "START 35 PEMAIN" },
 
-  // LEVEL 1: Jembatan Lebar + Balok Lompat Rendah
-  { id: "lv1", minX: -7, maxX: 7, minZ: 10, maxZ: 22, y: 0.4, color: "#34d399", level: 1, title: "Lv.1 Lompat Dasar" },
-  // LEVEL 2: Balok Lompat Ganda
-  { id: "lv2", minX: -7, maxX: 7, minZ: -2, maxZ: 10, y: 0.4, color: "#2dd4bf", level: 2, title: "Lv.2 Lompat Ganda" },
-  // LEVEL 3: Jembatan Dua Jalur Lebar (Kiri & Kanan)
-  { id: "lv3-l", minX: -7.5, maxX: -1.5, minZ: -14, maxZ: -2, y: 0.4, color: "#38bdf8", level: 3, title: "Lv.3 Jalur Kembar" },
-  { id: "lv3-r", minX: 1.5, maxX: 7.5, minZ: -14, maxZ: -2, y: 0.4, color: "#38bdf8", level: 3 },
-  // LEVEL 4: Checkpoint 1 + Lompatan Celah Pertama
-  { id: "lv4-a", minX: -7.5, maxX: 7.5, minZ: -20, maxZ: -14, y: 0.4, color: "#facc15", level: 4, title: "Lv.4 Pos 1 & Celah" },
-  { id: "lv4-b", minX: -6.5, maxX: 6.5, minZ: -28, maxZ: -22.2, y: 0.4, color: "#60a5fa", level: 4 },
+  // --- TAHAP 1: PEMULA (LEVEL 1 - 4) ---
+  { id: "lv1", minX: -7, maxX: 7, minZ: 8, maxZ: 22, y: 0.4, color: "#34d399", level: 1, title: "Lv.1 Lompat Dasar" },
+  { id: "lv2", minX: -7, maxX: 7, minZ: -6, maxZ: 8, y: 0.4, color: "#2dd4bf", level: 2, title: "Lv.2 Lompat Ganda" },
+  { id: "lv3-l", minX: -7.5, maxX: -1.5, minZ: -20, maxZ: -6, y: 0.4, color: "#38bdf8", level: 3, title: "Lv.3 Jalur Kembar" },
+  { id: "lv3-r", minX: 1.5, maxX: 7.5, minZ: -20, maxZ: -6, y: 0.4, color: "#38bdf8", level: 3 },
+  { id: "lv4-a", minX: -7.5, maxX: 7.5, minZ: -26, maxZ: -20, y: 0.4, color: "#facc15", level: 4, title: "Lv.4 Pos 1 & Celah" },
+  { id: "lv4-b", minX: -6.5, maxX: 6.5, minZ: -38, maxZ: -28.2, y: 0.4, color: "#60a5fa", level: 4 },
 
-  // LEVEL 5: Pintu Geser 2 Arah
-  { id: "lv5", minX: -6.5, maxX: 6.5, minZ: -40, maxZ: -28, y: 0.4, color: "#818cf8", level: 5, title: "Lv.5 Pintu Geser" },
-  // LEVEL 6: 3 Jalur Lomba
-  { id: "lv6-l", minX: -7.5, maxX: -3.5, minZ: -52, maxZ: -40, y: 0.4, color: "#a78bfa", level: 6, title: "Lv.6 Tiga Lintasan" },
-  { id: "lv6-m", minX: -2.0, maxX: 2.0, minZ: -52, maxZ: -40, y: 0.4, color: "#a78bfa", level: 6 },
-  { id: "lv6-r", minX: 3.5, maxX: 7.5, minZ: -52, maxZ: -40, y: 0.4, color: "#a78bfa", level: 6 },
-  // LEVEL 7: Palang Pemutar Pertama (3 Kipas)
-  { id: "lv7", minX: -7, maxX: 7, minZ: -64, maxZ: -52, y: 0.4, color: "#c084fc", level: 7, title: "Lv.7 Kipas Pemutar" },
-  // LEVEL 8: Pos 2 + Celah Lompatan Ganda
-  { id: "lv8-a", minX: -7.5, maxX: 7.5, minZ: -70, maxZ: -64, y: 0.4, color: "#facc15", level: 8, title: "Lv.8 Pos 2 & Lompat Celah" },
-  { id: "lv8-b", minX: -6, maxX: 6, minZ: -76, maxZ: -72.2, y: 0.4, color: "#e879f9", level: 8 },
-  { id: "lv8-c", minX: -6, maxX: 6, minZ: -82, maxZ: -78.2, y: 0.4, color: "#e879f9", level: 8 },
+  // --- TAHAP 2: DASAR (LEVEL 5 - 8) ---
+  { id: "lv5", minX: -6.5, maxX: 6.5, minZ: -54, maxZ: -38, y: 0.4, color: "#818cf8", level: 5, title: "Lv.5 Pintu Geser" },
+  { id: "lv6-l", minX: -7.5, maxX: -3.5, minZ: -68, maxZ: -54, y: 0.4, color: "#a78bfa", level: 6, title: "Lv.6 Tiga Lintasan" },
+  { id: "lv6-m", minX: -2.0, maxX: 2.0, minZ: -68, maxZ: -54, y: 0.4, color: "#a78bfa", level: 6 },
+  { id: "lv6-r", minX: 3.5, maxX: 7.5, minZ: -68, maxZ: -54, y: 0.4, color: "#a78bfa", level: 6 },
+  { id: "lv7", minX: -7, maxX: 7, minZ: -84, maxZ: -68, y: 0.4, color: "#c084fc", level: 7, title: "Lv.7 Kipas Pemutar" },
+  { id: "lv8-a", minX: -7.5, maxX: 7.5, minZ: -90, maxZ: -84, y: 0.4, color: "#facc15", level: 8, title: "Lv.8 Pos 2 & Lompat Celah" },
+  { id: "lv8-b", minX: -6, maxX: 6, minZ: -98, maxZ: -92.3, y: 0.4, color: "#e879f9", level: 8 },
+  { id: "lv8-c", minX: -6, maxX: 6, minZ: -106, maxZ: -100.3, y: 0.4, color: "#e879f9", level: 8 },
 
-  // LEVEL 9: Jembatan Zig-Zag Lebar Kiri
-  { id: "lv9-a", minX: -7.5, maxX: -0.5, minZ: -90, maxZ: -82, y: 0.4, color: "#f472b6", level: 9, title: "Lv.9 Zig-Zag Lebar" },
-  { id: "lv9-b", minX: 0.5, maxX: 7.5, minZ: -98, maxZ: -89.5, y: 0.4, color: "#f472b6", level: 9 },
-  // LEVEL 10: Gerbang Geser Beruntun
-  { id: "lv10", minX: -6.5, maxX: 6.5, minZ: -110, maxZ: -98, y: 0.4, color: "#fb7185", level: 10, title: "Lv.10 Gerbang Beruntun" },
-  // LEVEL 11: 4 Jalur Lari Cepat
-  { id: "lv11-1", minX: -8, maxX: -4.8, minZ: -122, maxZ: -110, y: 0.4, color: "#f43f5e", level: 11, title: "Lv.11 Empat Jalur" },
-  { id: "lv11-2", minX: -3.4, maxX: -0.4, minZ: -122, maxZ: -110, y: 0.4, color: "#f43f5e", level: 11 },
-  { id: "lv11-3", minX: 0.4, maxX: 3.4, minZ: -122, maxZ: -110, y: 0.4, color: "#f43f5e", level: 11 },
-  { id: "lv11-4", minX: 4.8, maxX: 8, minZ: -122, maxZ: -110, y: 0.4, color: "#f43f5e", level: 11 },
-  // LEVEL 12: Pos 3 + Balok Tinggi + Celah
-  { id: "lv12-a", minX: -7.5, maxX: 7.5, minZ: -128, maxZ: -122, y: 0.4, color: "#facc15", level: 12, title: "Lv.12 Pos 3 & Rintangan Tinggi" },
-  { id: "lv12-b", minX: -6, maxX: 6, minZ: -138, maxZ: -130.3, y: 0.4, color: "#fb923c", level: 12 },
+  // --- TAHAP 3: MENENGAH (LEVEL 9 - 12) ---
+  { id: "lv9-a", minX: -7.5, maxX: -0.5, minZ: -116, maxZ: -106, y: 0.4, color: "#f472b6", level: 9, title: "Lv.9 Zig-Zag Lebar" },
+  { id: "lv9-b", minX: 0.5, maxX: 7.5, minZ: -126, maxZ: -115.5, y: 0.4, color: "#f472b6", level: 9 },
+  { id: "lv10", minX: -6.5, maxX: 6.5, minZ: -144, maxZ: -126, y: 0.4, color: "#fb7185", level: 10, title: "Lv.10 Gerbang Beruntun" },
+  { id: "lv11-1", minX: -8, maxX: -4.8, minZ: -160, maxZ: -144, y: 0.4, color: "#f43f5e", level: 11, title: "Lv.11 Empat Jalur" },
+  { id: "lv11-2", minX: -3.4, maxX: -0.4, minZ: -160, maxZ: -144, y: 0.4, color: "#f43f5e", level: 11 },
+  { id: "lv11-3", minX: 0.4, maxX: 3.4, minZ: -160, maxZ: -144, y: 0.4, color: "#f43f5e", level: 11 },
+  { id: "lv11-4", minX: 4.8, maxX: 8, minZ: -160, maxZ: -144, y: 0.4, color: "#f43f5e", level: 11 },
+  { id: "lv12-a", minX: -7.5, maxX: 7.5, minZ: -166, maxZ: -160, y: 0.4, color: "#facc15", level: 12, title: "Lv.12 Pos 3 & Rintangan Tinggi" },
+  { id: "lv12-b", minX: -6, maxX: 6, minZ: -182, maxZ: -168.4, y: 0.4, color: "#fb923c", level: 12 },
 
-  // LEVEL 13: Badai Kipas Pemutar (3 Spinner)
-  { id: "lv13", minX: -7, maxX: 7, minZ: -150, maxZ: -138, y: 0.4, color: "#f97316", level: 13, title: "Lv.13 Badai Kipas" },
-  // LEVEL 14: Zig-Zag 3 Langkah
-  { id: "lv14-a", minX: -7.5, maxX: -2.0, minZ: -156, maxZ: -150, y: 0.4, color: "#ea580c", level: 14, title: "Lv.14 Zig-Zag Cepat" },
-  { id: "lv14-b", minX: -2.5, maxX: 2.5, minZ: -162, maxZ: -155.5, y: 0.4, color: "#ea580c", level: 14 },
-  { id: "lv14-c", minX: 2.0, maxX: 7.5, minZ: -168, maxZ: -161.5, y: 0.4, color: "#ea580c", level: 14 },
-  // LEVEL 15: Pos 4 + Gerbang Geser Cepat
-  { id: "lv15-a", minX: -7.5, maxX: 7.5, minZ: -174, maxZ: -168, y: 0.4, color: "#facc15", level: 15, title: "Lv.15 Pos 4 & Gerbang Cepat" },
-  { id: "lv15-b", minX: -6, maxX: 6, minZ: -186, maxZ: -174, y: 0.4, color: "#ef4444", level: 15 },
+  // --- TAHAP 4: MAHIR (LEVEL 13 - 16) ---
+  { id: "lv13", minX: -7, maxX: 7, minZ: -202, maxZ: -182, y: 0.4, color: "#f97316", level: 13, title: "Lv.13 Badai Kipas" },
+  { id: "lv14-a", minX: -7.5, maxX: -2.5, minZ: -210, maxZ: -202, y: 0.4, color: "#ea580c", level: 14, title: "Lv.14 Zig-Zag Cepat" },
+  { id: "lv14-b", minX: -2.2, maxX: 2.2, minZ: -218, maxZ: -209.5, y: 0.4, color: "#ea580c", level: 14 },
+  { id: "lv14-c", minX: 2.5, maxX: 7.5, minZ: -226, maxZ: -217.5, y: 0.4, color: "#ea580c", level: 14 },
+  { id: "lv15-a", minX: -7.5, maxX: 7.5, minZ: -232, maxZ: -226, y: 0.4, color: "#facc15", level: 15, title: "Lv.15 Pos 4 & Gerbang Cepat" },
+  { id: "lv15-b", minX: -6, maxX: 6, minZ: -252, maxZ: -232, y: 0.4, color: "#ef4444", level: 15 },
+  { id: "lv16-a", minX: -5.5, maxX: 5.5, minZ: -260, maxZ: -254.5, y: 0.4, color: "#dc2626", level: 16, title: "Lv.16 Lompat 4 Pulau" },
+  { id: "lv16-b", minX: -5.0, maxX: 5.0, minZ: -268, maxZ: -262.5, y: 0.4, color: "#dc2626", level: 16 },
+  { id: "lv16-c", minX: -4.5, maxX: 4.5, minZ: -276, maxZ: -270.5, y: 0.4, color: "#dc2626", level: 16 },
 
-  // LEVEL 16: Lompatan Pulau Beruntun (3 Celah)
-  { id: "lv16-a", minX: -6.5, maxX: 6.5, minZ: -192, maxZ: -188.3, y: 0.4, color: "#dc2626", level: 16, title: "Lv.16 Lompat Pulau" },
-  { id: "lv16-b", minX: -6.5, maxX: 6.5, minZ: -198, maxZ: -194.3, y: 0.4, color: "#dc2626", level: 16 },
-  // LEVEL 17: Benteng Kipas Terakhir
-  { id: "lv17", minX: -7, maxX: 7, minZ: -210, maxZ: -198, y: 0.4, color: "#b91c1c", level: 17, title: "Lv.17 Benteng Juara" },
-  // LEVEL 18: Sprint Akhir & Celah Juara menuju Finish
-  { id: "lv18-a", minX: -5.5, maxX: 5.5, minZ: -218, maxZ: -210, y: 0.4, color: "#991b1b", level: 18, title: "Lv.18 Sprint Juara!" },
-  { id: "finish", minX: -9, maxX: 9, minZ: -230, maxZ: -220.4, y: 0.4, color: "#f59e0b", level: 18, title: "FINISH" },
+  // --- TAHAP 5: EKSTREM JUARA PJOK (LEVEL 17 - 20) ---
+  { id: "lv17-a", minX: -7.5, maxX: 7.5, minZ: -282, maxZ: -276, y: 0.4, color: "#facc15", level: 17, title: "Lv.17 Pos 5 & Jembatan Tipis" },
+  { id: "lv17-b", minX: -6.8, maxX: -4.2, minZ: -306, maxZ: -282, y: 0.4, color: "#b91c1c", level: 17 },
+  { id: "lv17-c", minX: -1.3, maxX: 1.3, minZ: -306, maxZ: -282, y: 0.4, color: "#b91c1c", level: 17 },
+  { id: "lv17-d", minX: 4.2, maxX: 6.8, minZ: -306, maxZ: -282, y: 0.4, color: "#b91c1c", level: 17 },
+
+  { id: "lv18", minX: -6.5, maxX: 6.5, minZ: -334, maxZ: -306, y: 0.4, color: "#991b1b", level: 18, title: "Lv.18 Benteng Kipas Ganda" },
+
+  { id: "lv19-a", minX: -7.5, maxX: 7.5, minZ: -340, maxZ: -334, y: 0.4, color: "#facc15", level: 19, title: "Lv.19 Pos 6 & Gerbang Kilat" },
+  { id: "lv19-b", minX: -5.5, maxX: 5.5, minZ: -372, maxZ: -340, y: 0.4, color: "#7f1d1d", level: 19 },
+
+  { id: "lv20-a", minX: -4.8, maxX: 4.8, minZ: -386, maxZ: -374.7, y: 0.4, color: "#450a0a", level: 20, title: "Lv.20 Ujian Akhir Juara!" },
+  { id: "lv20-b", minX: -4.2, maxX: 4.2, minZ: -398, maxZ: -388.8, y: 0.4, color: "#450a0a", level: 20 },
+  { id: "finish", minX: -9, maxX: 9, minZ: -416, maxZ: -400.8, y: 0.4, color: "#f59e0b", level: 20, title: "FINISH 20 LEVEL" },
 ];
 
-// Balok Lompat di atas segmen jembatan (X lebar agar 35 pemain muat melompat bersama)
+// Balok Lompat (semakin jauh semakin tinggi & bertingkat)
 const BRIDGE_HURDLES = [
-  { z: 16, minX: -6.8, maxX: 6.8, height: 1.25 },
-  { z: 6, minX: -6.8, maxX: 6.8, height: 1.25 },
-  { z: 2, minX: -6.8, maxX: 6.8, height: 1.35 },
-  { z: -134, minX: -5.8, maxX: 5.8, height: 1.35 },
-  { z: -214, minX: -5.3, maxX: 5.3, height: 1.35 },
+  { z: 15, minX: -6.8, maxX: 6.8, height: 1.25 },
+  { z: 3, minX: -6.8, maxX: 6.8, height: 1.3 },
+  { z: -2, minX: -6.8, maxX: 6.8, height: 1.35 },
+  { z: -175, minX: -5.8, maxX: 5.8, height: 1.45 },
+  { z: -292, minX: -6.7, maxX: -4.3, height: 1.45 },
+  { z: -292, minX: -1.2, maxX: 1.2, height: 1.45 },
+  { z: -292, minX: 4.3, maxX: 6.7, height: 1.45 },
+  { z: -380, minX: -4.6, maxX: 4.6, height: 1.5 },
+  { z: -393, minX: -4.0, maxX: 4.0, height: 1.55 },
 ];
 
-// Pintu Geser Lebar (bergerak horizontal)
+// Pintu Geser (semakin jauh semakin cepat & rapat)
 const BRIDGE_GATES = [
-  { id: "g1", z: -32, speed: 2.2, range: 4.5, width: 3.4, phase: 0 },
-  { id: "g2", z: -37, speed: 2.2, range: 4.5, width: 3.4, phase: Math.PI },
-  { id: "g3", z: -102, speed: 2.8, range: 4.5, width: 3.6, phase: 0.5 },
-  { id: "g4", z: -107, speed: 2.8, range: 4.5, width: 3.6, phase: 3.6 },
-  { id: "g5", z: -178, speed: 3.3, range: 4.2, width: 3.5, phase: 0 },
-  { id: "g6", z: -183, speed: 3.3, range: 4.2, width: 3.5, phase: Math.PI },
+  { id: "g1", z: -43, speed: 2.2, range: 4.5, width: 3.4, phase: 0 },
+  { id: "g2", z: -49, speed: 2.3, range: 4.5, width: 3.4, phase: Math.PI },
+  { id: "g3", z: -131, speed: 2.9, range: 4.5, width: 3.7, phase: 0.5 },
+  { id: "g4", z: -138, speed: 2.9, range: 4.5, width: 3.7, phase: 3.6 },
+  { id: "g5", z: -237, speed: 3.5, range: 4.2, width: 3.6, phase: 0 },
+  { id: "g6", z: -242, speed: 3.5, range: 4.2, width: 3.6, phase: Math.PI },
+  { id: "g7", z: -247, speed: 3.7, range: 4.2, width: 3.6, phase: 1.5 },
+  // Gerbang Kilat Level 19
+  { id: "g8", z: -346, speed: 4.2, range: 3.8, width: 3.5, phase: 0 },
+  { id: "g9", z: -352, speed: 4.4, range: 3.8, width: 3.5, phase: 2.1 },
+  { id: "g10", z: -358, speed: 4.5, range: 3.8, width: 3.6, phase: 4.2 },
+  { id: "g11", z: -365, speed: 4.7, range: 3.8, width: 3.6, phase: 1.0 },
 ];
 
-// Kipas Pemutar (Spinner)
+// Kipas Pemutar (semakin jauh semakin banyak & putarannya cepat)
 const BRIDGE_SPINNERS = [
-  { id: "s1", x: -3.5, z: -58, radius: 3.2, speed: 2.3 },
-  { id: "s2", x: 3.5, z: -58, radius: 3.2, speed: -2.3 },
-  { id: "s3", x: -3.8, z: -144, radius: 3.1, speed: 2.8 },
-  { id: "s4", x: 0, z: -144, radius: 2.6, speed: -3.0 },
-  { id: "s5", x: 3.8, z: -144, radius: 3.1, speed: 2.8 },
-  { id: "s6", x: -3.5, z: -204, radius: 3.3, speed: 3.3 },
-  { id: "s7", x: 3.5, z: -204, radius: 3.3, speed: -3.3 },
+  { id: "s1", x: -3.5, z: -76, radius: 3.2, speed: 2.3 },
+  { id: "s2", x: 3.5, z: -76, radius: 3.2, speed: -2.3 },
+  { id: "s3", x: -3.8, z: -192, radius: 3.1, speed: 2.9 },
+  { id: "s4", x: 0, z: -192, radius: 2.6, speed: -3.1 },
+  { id: "s5", x: 3.8, z: -192, radius: 3.1, speed: 2.9 },
+  // Benteng Kipas Ganda Level 18
+  { id: "s6", x: -3.3, z: -313, radius: 3.1, speed: 3.6 },
+  { id: "s7", x: 3.3, z: -313, radius: 3.1, speed: -3.6 },
+  { id: "s8", x: 0, z: -320, radius: 3.8, speed: 3.9 },
+  { id: "s9", x: -3.3, z: -327, radius: 3.1, speed: -4.1 },
+  { id: "s10", x: 3.3, z: -327, radius: 3.1, speed: 4.1 },
 ];
 
 function shuffleArray<T>(items: T[]): T[] {
@@ -739,17 +751,17 @@ function Player({
 
       // Cek tabrakan pintu geser
       for (const gate of BRIDGE_GATES) {
-        if (Math.abs(pos.z - gate.z) < 0.8 && pos.y < 2.2) {
+        if (Math.abs(pos.z - gate.z) < 0.85 && pos.y < 2.2) {
           const gateX = Math.sin(t * gate.speed + gate.phase) * gate.range;
           if (Math.abs(pos.x - gateX) < gate.width / 2 + 0.35) {
-            pos.z += 2.4;
+            pos.z += 2.6;
           }
         }
       }
 
       // Cek dorongan kipas pemutar (Spinner)
       for (const sp of BRIDGE_SPINNERS) {
-        if (Math.abs(pos.z - sp.z) < sp.radius + 0.4 && pos.y < 1.55) {
+        if (Math.abs(pos.z - sp.z) < sp.radius + 0.45 && pos.y < 1.6) {
           const angle = t * sp.speed;
           const barDirX = Math.cos(angle);
           const barDirZ = Math.sin(angle);
@@ -758,8 +770,8 @@ function Player({
           const perpDist = Math.abs(relX * barDirZ - relZ * barDirX);
           const alongDist = Math.abs(relX * barDirX + relZ * barDirZ);
           if (perpDist < 0.55 && alongDist < sp.radius) {
-            pos.x += (relX >= 0 ? 1 : -1) * 14 * delta;
-            pos.z += 6 * delta;
+            pos.x += (relX >= 0 ? 1 : -1) * 16 * delta;
+            pos.z += 7 * delta;
           }
         }
       }
@@ -925,7 +937,7 @@ function Player({
 }
 
 // =========================================================================
-// KOMPONEN 3D JEMBATAN JUARA (18 LEVEL & LEBAR 35 PEMAIN)
+// KOMPONEN 3D JEMBATAN JUARA (20 LEVEL & LINTASAN SUPER PANJANG)
 // =========================================================================
 function ChampionBridgeEnvironment() {
   const gateRefs = useRef<(THREE.Mesh | null)[]>([]);
@@ -949,13 +961,13 @@ function ChampionBridgeEnvironment() {
 
   return (
     <group>
-      {/* Danau Luas di Bawah Lintasan */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -4, -100]} receiveShadow>
-        <planeGeometry args={[180, 320]} />
+      {/* Danau Luas di Bawah Lintasan Panjang */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -4, -195]} receiveShadow>
+        <planeGeometry args={[200, 520]} />
         <meshStandardMaterial color="#0284c7" />
       </mesh>
 
-      {/* Seluruh Papan Jembatan 18 Level */}
+      {/* Seluruh Papan Jembatan 20 Level */}
       {BRIDGE_SEGMENTS.map((seg) => {
         const width = seg.maxX - seg.minX;
         const depth = seg.maxZ - seg.minZ;
@@ -970,7 +982,7 @@ function ChampionBridgeEnvironment() {
             {seg.title && (
               <Text
                 position={[0, 3.6, seg.maxZ - 1]}
-                fontSize={0.75}
+                fontSize={0.78}
                 color="#fef08a"
                 outlineWidth={0.08}
                 outlineColor="black"
@@ -1001,14 +1013,14 @@ function ChampionBridgeEnvironment() {
         </Text>
       </group>
 
-      {/* Balok Lompat Lebar */}
+      {/* Balok Lompat */}
       {BRIDGE_HURDLES.map((h, idx) => (
         <mesh
           key={idx}
           position={[(h.minX + h.maxX) / 2, h.height - 0.4, h.z]}
           castShadow
         >
-          <boxGeometry args={[h.maxX - h.minX, 0.85, 1.1]} />
+          <boxGeometry args={[h.maxX - h.minX, 0.95, 1.15]} />
           <meshStandardMaterial color="#f97316" />
         </mesh>
       ))}
@@ -1023,7 +1035,7 @@ function ChampionBridgeEnvironment() {
           position={[0, 1.5, gate.z]}
           castShadow
         >
-          <boxGeometry args={[gate.width, 2.2, 0.9]} />
+          <boxGeometry args={[gate.width, 2.3, 0.95]} />
           <meshStandardMaterial color="#dc2626" />
         </mesh>
       ))}
@@ -1048,8 +1060,8 @@ function ChampionBridgeEnvironment() {
         </group>
       ))}
 
-      {/* Garis Finish & Piala Juara (Z = -226) */}
-      <group position={[0, 0.4, -226]}>
+      {/* Garis Finish & Piala Juara (Z = -410) */}
+      <group position={[0, 0.4, -410]}>
         <mesh position={[-7.5, 2.8, 0]} castShadow>
           <boxGeometry args={[0.5, 5.6, 0.5]} />
           <meshStandardMaterial color="#facc15" />
@@ -1063,10 +1075,10 @@ function ChampionBridgeEnvironment() {
           <meshStandardMaterial color="#dc2626" />
         </mesh>
         <Text position={[0, 5.4, 0.35]} fontSize={0.85} color="#fef08a" outlineWidth={0.08} outlineColor="black">
-          🏁 FINISH 18 LEVEL JEMBATAN JUARA 🏆
+          🏁 FINISH 20 LEVEL JEMBATAN JUARA 🏆
         </Text>
         <mesh position={[0, 1.6, -1.5]} castShadow>
-          <cylinderGeometry args={[1.2, 0.6, 2.2, 20]} />
+          <cylinderGeometry args={[1.3, 0.7, 2.4, 20]} />
           <meshStandardMaterial color="#facc15" metalness={0.8} roughness={0.2} />
         </mesh>
       </group>
@@ -1467,7 +1479,7 @@ function SportsEnvironment({ faseId }: { faseId: string }) {
         </Text>
       </group>
 
-      {/* Portal 4 (Depan Arena): Jembatan Juara 18 Level (35 Pemain) */}
+      {/* Portal 4 (Depan Arena): Jembatan Juara 20 Level (35 Pemain) */}
       <group position={[0, 0, 31]}>
         <mesh position={[-1.6, 2, 0]} castShadow>
           <boxGeometry args={[0.4, 4, 0.4]} />
@@ -1486,7 +1498,7 @@ function SportsEnvironment({ faseId }: { faseId: string }) {
           <meshStandardMaterial color="#6ee7b7" transparent opacity={0.75} side={THREE.DoubleSide} />
         </mesh>
         <Text position={[0, 4.9, 0]} fontSize={0.52} color="#a7f3d0" outlineWidth={0.07} outlineColor="black">
-          🌉 Jembatan Juara (18 Level • 35 Pemain)
+          🌉 Jembatan Juara (20 Level • 35 Pemain)
         </Text>
       </group>
 
@@ -1646,7 +1658,7 @@ export default function GameWorld({
     }
   }, [storageKey, playerName, faseData.id, score, questionLevel, correctCount, readExploreIds, isSpectator, progressLoaded]);
 
-  // State Jembatan Juara (18 Level)
+  // State Jembatan Juara (20 Level)
   const [bridgeLevel, setBridgeLevel] = useState<number>(1);
   const [bridgeSeconds, setBridgeSeconds] = useState<number>(0);
   const [bridgeNotice, setBridgeNotice] = useState<string | null>(null);
@@ -1744,7 +1756,6 @@ export default function GameWorld({
     setBridgeLevel(1);
     setBridgeSeconds(0);
     setBridgeWinModal(false);
-    // Konversi aman avatarPreset.id ke angka untuk menyebar posisi start 35 pemain
     const numericAvatarId =
       typeof avatarPreset.id === "number"
         ? avatarPreset.id
@@ -1752,7 +1763,7 @@ export default function GameWorld({
     const spawnOffsetX = ((numericAvatarId % 9) - 4) * 1.6;
     setBridgeNotice(`🏁 Start Level 1/${TOTAL_BRIDGE_LEVELS} — Berlari & Lompat menuju Finish!`);
     setTeleportTrigger({ pos: [spawnOffsetX, 0.5, 27], id: Date.now() });
-    speakText("Lomba Jembatan Juara 18 Level dimulai! Berlomba bersama temanmu sampai garis finish!");
+    speakText("Lomba Jembatan Juara 20 Level dimulai! Semakin jauh rintangan akan semakin sulit!");
   };
 
   const returnToStadiumWorld = () => {
@@ -1771,9 +1782,9 @@ export default function GameWorld({
   };
 
   const handleBridgeFinish = () => {
-    setScore((s) => s + 500);
+    setScore((s) => s + 750);
     setBridgeWinModal(true);
-    speakText(`Luar biasa ${playerName}! Kamu menaklukkan 18 Level Jembatan Juara!`);
+    speakText(`Luar biasa ${playerName}! Kamu menaklukkan 20 Level Jembatan Juara!`);
   };
 
   const openExploreObjectMaterial = (obj: (typeof EXPLORE_OBJECTS)[0]) => {
@@ -2150,7 +2161,7 @@ export default function GameWorld({
         </div>
       )}
 
-      {/* Indikator Level 1..18 Jembatan Juara */}
+      {/* Indikator Level 1..20 Jembatan Juara */}
       {!isSpectator && worldMap === "bridge" && !bridgeWinModal && (
         <div
           style={{ top: "max(3.1rem, calc(env(safe-area-inset-top) + 2.7rem))" }}
@@ -2165,23 +2176,23 @@ export default function GameWorld({
                   ? "🔵 Dasar"
                   : bridgeLevel <= 12
                   ? "🟡 Menengah"
-                  : bridgeLevel <= 15
+                  : bridgeLevel <= 16
                   ? "🟠 Mahir"
-                  : "🔴 Juara PJOK"
+                  : "🔴 Ekstrem Juara"
               })`}
         </div>
       )}
 
-      {/* Modal Menang Jembatan Juara 18 Level */}
+      {/* Modal Menang Jembatan Juara 20 Level */}
       {!isSpectator && bridgeWinModal && (
         <div className="fixed inset-0 z-30 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-gradient-to-b from-emerald-900 to-slate-900 border-4 border-yellow-400 rounded-3xl p-6 max-w-md w-full text-center text-white shadow-2xl">
             <div className="text-5xl mb-3 animate-bounce">🌉🏆</div>
             <h2 className="text-lg md:text-xl font-extrabold text-yellow-300 mb-1">
-              JUARA 18 LEVEL JEMBATAN PJOK!
+              JUARA 20 LEVEL JEMBATAN PJOK!
             </h2>
             <p className="text-xs md:text-sm text-emerald-200 mb-4">
-              {playerName} menaklukkan seluruh <b>18 Level rintangan</b> dalam waktu <b>{bridgeSeconds} detik</b> (+500 XP)!
+              {playerName} menaklukkan seluruh <b>20 Level rintangan</b> dalam waktu <b>{bridgeSeconds} detik</b> (+750 XP)!
             </p>
             <div className="flex gap-2">
               <button
@@ -2439,14 +2450,14 @@ export default function GameWorld({
         </div>
       )}
 
-      {/* Tombol Portal 4 (Depan Arena): Masuk ke Jembatan Juara 18 Level */}
+      {/* Tombol Portal 4 (Depan Arena): Masuk ke Jembatan Juara 20 Level */}
       {!isSpectator && worldMap === "stadium" && nearBridgePortal && !miniGameActive && !showModal && (
         <div className="absolute bottom-36 left-1/2 -translate-x-1/2 z-10 w-[88%] max-w-xs text-center">
           <button
             onClick={enterBridgeWorld}
             className="w-full bg-emerald-400 hover:bg-emerald-300 text-slate-950 font-extrabold px-4 py-3 rounded-full shadow-2xl border-2 border-white animate-bounce text-xs md:text-sm"
           >
-            🌉 Mulai Jembatan Juara (18 Level • 35 Pemain)!
+            🌉 Mulai Jembatan Juara (20 Level • 35 Pemain)!
           </button>
         </div>
       )}
