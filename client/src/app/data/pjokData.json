@@ -1,0 +1,184 @@
+{
+  "kurikulum": "Kurikulum Merdeka - PJOK SD",
+  "npc_utama": {
+    "nama": "Coach Resky",
+    "peran": "Guru PJOK & Pemandu Arena",
+    "dialog_awal": "Halo, juara! Selamat datang di dunia PJOK. Pilih misi belajarmu dan kumpulkan poin kebugaran!"
+  },
+  "fase": [
+    {
+      "id": "fase-a",
+      "nama_fase": "Fase A (Kelas 1 - 2 SD)",
+      "nama_dunia": "Taman Bermain Ceria",
+      "deskripsi": "Pengenalan pola gerak dasar dan kebiasaan hidup bersih sehari-hari.",
+      "gedung_materi": [
+        {
+          "id": "gedung-a1",
+          "nama_gedung": "Gedung Gerak Dasar",
+          "posisi_3d": [10, 0, -15],
+          "misi_coach_resky": "Ayo pergi ke Gedung Gerak Dasar! Pelajari perbedaan jalan, lari, dan lompat agar tubuhmu makin lincah.",
+          "topik": "Pola Gerak Dasar Lokomotor, Non-Lokomotor, dan Manipulatif",
+          "ringkasan_materi": "Gerak lokomotor adalah gerak berpindah tempat, seperti berjalan, berlari, dan melompat. Gerak non-lokomotor adalah gerak di tempat tanpa berpindah, seperti membungkuk, mengayun lengan, dan memutar badan. Sedangkan gerak manipulatif adalah gerak menggunakan alat, seperti melempar, menangkap, dan menendang bola.",
+          "video_url": "/videos/fase-a-gerak-dasar.mp4",
+          "kuis": [
+            {
+              "pertanyaan": "Gerakan berpindah tempat dari satu titik ke titik lain disebut gerak...",
+              "pilihan": ["Lokomotor", "Non-lokomotor", "Manipulatif", "Keseimbangan"],
+              "jawaban_benar": 0,
+              "pembahasan": "Tepat! Lokomotor artinya gerak berpindah tempat, contohnya berjalan dan berlari."
+            },
+            {
+              "pertanyaan": "Contoh gerak non-lokomotor saat pemanasan adalah...",
+              "pilihan": ["Berlari keliling lapangan", "Mengayun lengan di tempat", "Melempar bola kasti", "Melompati rintangan"],
+              "jawaban_benar": 1,
+              "pembahasan": "Benar! Mengayun lengan dilakukan di tempat tanpa berpindah posisi."
+            },
+            {
+              "pertanyaan": "Menendang dan menangkap bola termasuk contoh gerak...",
+              "pilihan": ["Statis", "Lokomotor", "Manipulatif", "Irama"],
+              "jawaban_benar": 2,
+              "pembahasan": "Hebat! Gerak manipulatif adalah gerakan yang memakai alat atau benda seperti bola."
+            }
+          ]
+        },
+        {
+          "id": "gedung-a2",
+          "nama_gedung": "Klinik Sehat & Bersih",
+          "posisi_3d": [-12, 0, -18],
+          "misi_coach_resky": "Setelah berolahraga kita berkeringat. Kunjungi Klinik Sehat untuk belajar cara menjaga kebersihan tubuh!",
+          "topik": "Kebersihan Diri dan Bagian Tubuh",
+          "ringkasan_materi": "Menjaga kebersihan tubuh membuat kita terhindar dari kuman penyakit. Cucilah tangan memakai sabun dan air mengalir sebelum makan dan setelah bermain. Sikatlah gigi minimal dua kali sehari, yaitu pagi setelah sarapan dan malam sebelum tidur.",
+          "video_url": "/videos/fase-a-kebersihan.mp4",
+          "kuis": [
+            {
+              "pertanyaan": "Kapan waktu yang tepat untuk mencuci tangan memakai sabun?",
+              "pilihan": ["Hanya saat tangan terlihat kotor", "Sebelum makan dan setelah bermain", "Seminggu sekali", "Saat mau tidur saja"],
+              "jawaban_benar": 1,
+              "pembahasan": "Benar! Mencuci tangan sebelum makan dan setelah bermain mencegah kuman masuk ke tubuh."
+            },
+            {
+              "pertanyaan": "Berapa kali sebaiknya kita menyikat gigi dalam sehari?",
+              "pilihan": ["1 kali", "2 kali", "Tidak perlu sikat gigi", "5 kali"],
+              "jawaban_benar": 1,
+              "pembahasan": "Tepat! Sikat gigi minimal 2 kali sehari: pagi sesudah sarapan dan malam sebelum tidur."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "fase-b",
+      "nama_fase": "Fase B (Kelas 3 - 4 SD)",
+      "nama_dunia": "Stadion Nusantara",
+      "deskripsi": "Variasi gerak dasar dalam permainan, atletik, bela diri, dan kebugaran jasmani.",
+      "gedung_materi": [
+        {
+          "id": "gedung-b1",
+          "nama_gedung": "Arena Permainan & Atletik",
+          "posisi_3d": [15, 0, -20],
+          "misi_coach_resky": "Selamat datang di Stadion Nusantara! Temui aku di Arena Permainan untuk menguji teknik passing dan lari cepatmu.",
+          "topik": "Variasi Gerak Dasar Permainan Bola & Atletik",
+          "ringkasan_materi": "Dalam permainan bola besar seperti sepak bola mini, kita memadukan gerak lokomotor dan manipulatif saat menggiring serta mengoper bola menggunakan kaki bagian dalam. Pada cabang atletik lari jarak pendek (sprint), pelari menggunakan start jongkok dan berlari secepat mungkin pada lintasan lurus.",
+          "video_url": "/videos/fase-b-atletik-bola.mp4",
+          "kuis": [
+            {
+              "pertanyaan": "Bagian kaki yang paling sering digunakan untuk mengoper bola jarak dekat secara akurat adalah...",
+              "pilihan": ["Ujung jari kaki", "Tumit kaki", "Kaki bagian dalam", "Telapak kaki"],
+              "jawaban_benar": 2,
+              "pembahasan": "Betul! Kaki bagian dalam memiliki permukaan luas sehingga arah operan lebih akurat."
+            },
+            {
+              "pertanyaan": "Jenis start yang digunakan dalam perlombaan lari jarak pendek (sprint) adalah...",
+              "pilihan": ["Start berdiri", "Start melayang", "Start jongkok", "Start duduk"],
+              "jawaban_benar": 2,
+              "pembahasan": "Tepat sekali! Start jongkok memberikan dorongan tolakan terkuat saat aba-aba mulai."
+            },
+            {
+              "pertanyaan": "Dalam permainan kasti, gerakan memukul bola lalu berlari menuju tiang hinggap merupakan kombinasi gerak...",
+              "pilihan": ["Manipulatif dan lokomotor", "Non-lokomotor dan statis", "Keseimbangan dan kelenturan", "Senam lantai"],
+              "jawaban_benar": 0,
+              "pembahasan": "Benar! Memukul bola adalah gerak manipulatif, dan berlari ke tiang hinggap adalah gerak lokomotor."
+            }
+          ]
+        },
+        {
+          "id": "gedung-b2",
+          "nama_gedung": "Dojo Kebugaran & Bela Diri",
+          "posisi_3d": [-16, 0, -22],
+          "misi_coach_resky": "Kuda-kuda yang kuat adalah kunci bela diri pencak silat. Masuklah ke Dojo Kebugaran untuk berlatih!",
+          "topik": "Dasar Pencak Silat & Latihan Kebugaran Jasmani",
+          "ringkasan_materi": "Pencak silat adalah seni bela diri tradisional asli Indonesia. Sikap dasar paling penting dalam pencak silat adalah sikap kuda-kuda untuk menjaga keseimbangan tubuh agar tidak mudah dijatuhkan. Selain itu, latihan kebugaran seperti push-up, sit-up, dan peregangan melatih kekuatan serta kelenturan otot.",
+          "video_url": "/videos/fase-b-silat-kebugaran.mp4",
+          "kuis": [
+            {
+              "pertanyaan": "Sikap dasar dalam pencak silat yang berfungsi memperkuat posisi berdiri dan keseimbangan adalah...",
+              "pilihan": ["Pukulan lurus", "Sikap kuda-kuda", "Tendangan sabit", "Tangkisan atas"],
+              "jawaban_benar": 1,
+              "pembahasan": "Benar! Sikap kuda-kuda menjadi tumpuan utama keseimbangan dalam pencak silat."
+            },
+            {
+              "pertanyaan": "Latihan push-up bermanfaat untuk melatih kekuatan otot bagian...",
+              "pilihan": ["Lengan dan dada", "Leher", "Telapak kaki", "Jari tangan"],
+              "jawaban_benar": 0,
+              "pembahasan": "Tepat! Push-up melatih otot lengan, bahu, dan dada."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "fase-c",
+      "nama_fase": "Fase C (Kelas 5 - 6 SD)",
+      "nama_dunia": "Arena Olimpiade",
+      "deskripsi": "Kombinasi gerak kompleks, keselamatan di air, dan pemeliharaan kesehatan diri.",
+      "gedung_materi": [
+        {
+          "id": "gedung-c1",
+          "nama_gedung": "Pusat Akuatik & Keselamatan",
+          "posisi_3d": [18, 0, -25],
+          "misi_coach_resky": "Sebelum berenang di kolam dalam, wajib paham aturan keselamatan air. Masuk ke Pusat Akuatik sekarang!",
+          "topik": "Aktivitas Air & Keselamatan Diri",
+          "ringkasan_materi": "Renang gaya dada (gaya katak) memiliki gerakan kaki mendorong ke belakang secara bersamaan dan pengambilan napas dilakukan saat kepala terangkat ke permukaan air. Sebelum berenang, wajib melakukan pemanasan untuk mencegah kram otot dan mematuhi rambu kedalaman kolam.",
+          "video_url": "/videos/fase-c-akuatik.mp4",
+          "kuis": [
+            {
+              "pertanyaan": "Mengapa kita wajib melakukan pemanasan sebelum masuk ke kolam renang?",
+              "pilihan": ["Agar baju cepat basah", "Mencegah terjadinya kram otot di air", "Supaya tidak haus", "Mengubah warna air kolam"],
+              "jawaban_benar": 1,
+              "pembahasan": "Benar! Pemanasan menyiapkan otot dan suhu tubuh sehingga risiko kram di air berkurang drastis."
+            },
+            {
+              "pertanyaan": "Pada renang gaya dada, kapan perenang mengambil napas?",
+              "pilihan": ["Saat kepala berada di dalam air", "Saat kedua tangan menarik ke samping dan kepala terangkat", "Saat kaki meluncur lurus", "Setiap 10 kali kayuhan saja"],
+              "jawaban_benar": 1,
+              "pembahasan": "Tepat! Kepala terangkat ke permukaan saat tarikan tangan sehingga perenang dapat menghirup udara lewat mulut."
+            }
+          ]
+        },
+        {
+          "id": "gedung-c2",
+          "nama_gedung": "Lab Gaya Hidup Aktif",
+          "posisi_3d": [-18, 0, -25],
+          "misi_coach_resky": "Atlet sejati harus menjaga tubuh dari zat berbahaya. Pelajari cara mengukur kebugaran dan bahaya rokok di Lab ini!",
+          "topik": "Pengukuran Kebugaran Jasmani & Pencegahan Bahaya Rokok/NAPZA",
+          "ringkasan_materi": "Tingkat kebugaran jasmani dapat diukur melalui tes daya tahan jantung dan paru-paru seperti lari jarak menengah atau menghitung denyut nadi setelah beraktivitas. Untuk menjaga kesehatan organ pernapasan, kita harus menjauhi rokok, minuman keras, dan NAPZA yang merusak tubuh serta masa depan.",
+          "video_url": "/videos/fase-c-gaya-hidup.mp4",
+          "kuis": [
+            {
+              "pertanyaan": "Zat beracun dalam rokok yang dapat menyebabkan kecanduan dan merusak sistem saraf adalah...",
+              "pilihan": ["Vitamin C", "Nikotin", "Oksigen", "Protein"],
+              "jawaban_benar": 1,
+              "pembahasan": "Benar! Nikotin adalah zat adiktif dalam rokok yang menyebabkan ketergantungan dan merusak pembuluh darah."
+            },
+            {
+              "pertanyaan": "Cara paling mudah untuk mengetahui kerja jantung setelah berolahraga adalah dengan menghitung...",
+              "pilihan": ["Jumlah keringat", "Denyut nadi per menit", "Tinggi lompatan", "Berat badan"],
+              "jawaban_benar": 1,
+              "pembahasan": "Tepat! Denyut nadi (di pergelangan tangan atau leher) menunjukkan kecepatan detak jantung saat beraktivitas."
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
