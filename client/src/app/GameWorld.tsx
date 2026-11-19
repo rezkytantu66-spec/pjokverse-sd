@@ -440,18 +440,18 @@ function SpectatorCameraController({
     if (keys.current["e"]) zoomOffset.current = Math.min(zoomOffset.current + moveSpeed, 18);
 
     let desiredFocus = new THREE.Vector3(0, 1, 2);
-    let desiredCamPos = new THREE.Vector3(0, 22, 28);
+    let desiredCamPos = new THREE.Vector3(0, 26, 34);
 
     if (followedPlayer && followedPlayer.pos) {
       const [px, py, pz] = followedPlayer.pos;
       desiredFocus.set(px, Math.max(py, 0) + 1.5, pz);
-      desiredCamPos.set(px, Math.max(py, 0) + 10 + zoomOffset.current * 0.5, pz + 16 + zoomOffset.current * 0.6);
+      desiredCamPos.set(px, Math.max(py, 0) + 14 + zoomOffset.current * 0.5, pz + 22 + zoomOffset.current * 0.6);
     } else if (preset === "arena") {
       desiredFocus.set(0, 1, 18);
-      desiredCamPos.set(0, 17 + zoomOffset.current * 0.6, 33 + zoomOffset.current * 0.7);
+      desiredCamPos.set(0, 20 + zoomOffset.current * 0.6, 36 + zoomOffset.current * 0.7);
     } else {
       desiredFocus.set(0, 1, 3);
-      desiredCamPos.set(0, 24 + zoomOffset.current * 0.6, 30 + zoomOffset.current * 0.7);
+      desiredCamPos.set(0, 28 + zoomOffset.current * 0.6, 35 + zoomOffset.current * 0.7);
     }
 
     desiredFocus.add(manualOffset.current);
@@ -603,13 +603,14 @@ function Player({
       });
     }
 
-    const camHeight = isMiniGame ? 13.5 : 10;
-    const camDist = isMiniGame ? 19.5 : 16;
+    // Kamera lebih tinggi dan lebih jauh agar pemandangan peta sangat luas
+    const camHeight = isMiniGame ? 22 : 18;
+    const camDist = isMiniGame ? 30 : 26;
     state.camera.position.lerp(
       new THREE.Vector3(pos.x, Math.max(pos.y, 0) + camHeight, pos.z + camDist),
       0.1
     );
-    state.camera.lookAt(pos.x, Math.max(pos.y, 0) + 1.5, pos.z);
+    state.camera.lookAt(pos.x, Math.max(pos.y, 0) + 1.2, pos.z - 2);
 
     if (worldMap === "stadium") {
       onNearReturnPortal(false);
@@ -639,7 +640,6 @@ function Player({
       }
       onInteractBuilding(foundBuilding);
     } else {
-      // Deteksi jarak pada Peta Dunia Explore PJOK
       onNearCoach(false);
       onNearPortal(false);
       onNearAdventurePortal(false);
@@ -699,13 +699,11 @@ function ExploreWorldEnvironment({ readIds }: { readIds: string[] }) {
 
   return (
     <group>
-      {/* Hamparan Taman Rumput Cerah */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
         <planeGeometry args={[100, 100]} />
         <meshStandardMaterial color="#4ade80" />
       </mesh>
 
-      {/* Jalur Setapak Taman */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 4]} receiveShadow>
         <ringGeometry args={[12, 15.5, 48]} />
         <meshStandardMaterial color="#fde68a" />
@@ -1183,7 +1181,6 @@ export default function GameWorld({
   const [otherPlayers, setOtherPlayers] = useState<{ [id: string]: any }>({});
   const [onlineCount, setOnlineCount] = useState(isSpectator ? 0 : 1);
 
-  // Dunia / Peta Aktif: "stadium" (Utama) atau "explore" (Dunia Explore PJOK)
   const [worldMap, setWorldMap] = useState<"stadium" | "explore">("stadium");
   const [nearExplorePortal, setNearExplorePortal] = useState(false);
   const [nearReturnPortal, setNearReturnPortal] = useState(false);
@@ -1206,7 +1203,6 @@ export default function GameWorld({
   const [feedback, setFeedback] = useState<string | null>(null);
   const [score, setScore] = useState(0);
 
-  // State Mini-Game & Mode Petualangan Eliminasi
   const [standingTile, setStandingTile] = useState<number | null>(null);
   const [miniGameActive, setMiniGameActive] = useState(false);
   const [gameMode, setGameMode] = useState<"practice" | "adventure">("practice");
@@ -1992,7 +1988,7 @@ export default function GameWorld({
         </div>
       )}
 
-      <Canvas shadows camera={{ position: [0, 10, 16], fov: 50 }}>
+      <Canvas shadows camera={{ position: [0, 18, 26], fov: 60 }}>
         <Sky sunPosition={worldMap === "explore" ? [60, 50, 80] : [100, 30, 100]} />
         <ambientLight intensity={0.65} />
         <directionalLight position={[15, 25, 15]} intensity={1.2} castShadow />
