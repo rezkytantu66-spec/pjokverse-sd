@@ -17,19 +17,17 @@ const io = new Server(server, {
 const players = {};
 
 io.on("connection", (socket) => {
-  console.log("Terhubung:", socket.id);
-
   socket.on("joinGame", (data) => {
     players[socket.id] = {
       id: socket.id,
       name: data.name || "Siswa",
       faseId: data.faseId || "fase-a",
       color: data.color || "#3b82f6",
-      avatarType: data.avatarType || "boy",
+      avatarType: data.avatarType || "av-01",
       pos: [0, 0, 5],
       rotY: 0,
       isMoving: false,
-      isTalking: false,
+      isEliminated: false,
     };
     io.emit("updatePlayers", players);
   });
@@ -43,20 +41,21 @@ io.on("connection", (socket) => {
     }
   });
 
-  // Status siswa sedang menekan tombol bicara
-  socket.on("talkingState", (isTalking) => {
+  socket.on("eliminationState", (isEliminated) => {
     if (players[socket.id]) {
-      players[socket.id].isTalking = isTalking;
-      io.emit("playerTalking", { id: socket.id, isTalking });
+      players[socket.id].isEliminated = Boolean(isEliminated);
+      io.emit("updatePlayers", players);
     }
   });
 
-  // Penerus sinyal WebRTC (Voice Chat) antar siswa
-  socket.on("voice-signal", ({ to, signal }) => {
-    io.to(to).emit("voice-signal", {
-      from: socket.id,
-      signal,
+  socket.on("startAdventureAll", ({ faseId }) => {
+    Object.values(players).forEach((p) => {
+      if (p.faseId === faseId) {
+        p.isEliminated = false;
+      }
     });
+    io.emit("updatePlayers", players);
+    io.emit("adventureStarted", { faseId });
   });
 
   socket.on("disconnect", () => {
@@ -65,11 +64,7 @@ io.on("connection", (socket) => {
   });
 });
 
-app.get("/", (req, res) => {
-  res.send("Server PJOKVerse SD + Voice Chat Aktif!");
-});
-
 const PORT = process.env.PORT || 4000;
 server.listen(PORT, () => {
-  console.log(`Server berjalan di port ${PORT}`);
+  console.log(`Server PJOKVerse berjalan di port ${PORT}`);
 });
