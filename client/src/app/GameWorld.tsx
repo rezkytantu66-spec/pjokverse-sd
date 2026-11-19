@@ -54,7 +54,7 @@ function CheerfulBGM({ muted }: { muted: boolean }) {
       osc.type = "triangle";
       osc.frequency.setValueAtTime(melody[step % melody.length], ctx.currentTime);
 
-      gain.gain.setValueAtTime(0.03, ctx.currentTime);
+      gain.gain.setValueAtTime(0.025, ctx.currentTime);
       gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.28);
 
       osc.connect(gain);
@@ -490,8 +490,8 @@ function Player({
       });
     }
 
-    const camHeight = isMiniGame ? 12.5 : 9;
-    const camDist = isMiniGame ? 18 : 15;
+    const camHeight = isMiniGame ? 13 : 9;
+    const camDist = isMiniGame ? 18.5 : 15;
     state.camera.position.lerp(
       new THREE.Vector3(pos.x, Math.max(pos.y, 0) + camHeight, pos.z + camDist),
       0.1
@@ -789,6 +789,7 @@ export default function GameWorld({
   shirtColor,
   avatarType = "boy",
   isSpectator = false,
+  isMuted = false,
   onBack,
 }: any) {
   const socketRef = useRef<Socket | null>(null);
@@ -797,7 +798,6 @@ export default function GameWorld({
   const otherPlayersRef = useRef<{ [id: string]: any }>({});
   const [onlineCount, setOnlineCount] = useState(isSpectator ? 0 : 1);
   const [isPortraitMobile, setIsPortraitMobile] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
 
   // State Layar Penuh untuk Android & iPhone
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -1153,7 +1153,7 @@ export default function GameWorld({
     setMgIndex(0);
     setMgTimeLeft(8);
     setMgPhase("running");
-    setMgStatusText("Lari ke atas ubin warna jawaban yang benar!");
+    setMgStatusText("Lari ke ubin jawaban!");
     setTeleportTrigger({ pos: [0, 0.5, 18], id: Date.now() });
     speakText(allMiniGameQuestions[0].pertanyaan);
   };
@@ -1176,18 +1176,16 @@ export default function GameWorld({
           const correctId = currentMgQuestion.jawaban_benar;
           if (standingTile === correctId) {
             setScore((s) => s + 200);
-            setMgStatusText(`🎉 BENAR! Jawaban ${ARENA_TILES[correctId].label}. (+200 XP)`);
+            setMgStatusText(`🎉 BENAR (${ARENA_TILES[correctId].label}) +200 XP`);
           } else {
-            setMgStatusText(
-              `💥 YAH! Jawaban yang benar adalah ${ARENA_TILES[correctId].label}.`
-            );
+            setMgStatusText(`💥 Salah! Jawaban: ${ARENA_TILES[correctId].label}`);
           }
           return 4;
         } else {
           const nextIdx = mgIndex + 1;
           setMgIndex(nextIdx);
           setMgPhase("running");
-          setMgStatusText("Lari ke atas ubin warna jawaban yang benar!");
+          setMgStatusText("Lari ke ubin jawaban!");
           setTeleportTrigger({ pos: [0, 0.5, 18], id: Date.now() });
           speakText(allMiniGameQuestions[nextIdx % allMiniGameQuestions.length].pertanyaan);
           return 8;
@@ -1286,76 +1284,64 @@ export default function GameWorld({
         </div>
       )}
 
-      {/* HUD Atas dengan Safe-Area iPhone & Android */}
+      {/* HUD Atas Ramping (Tanpa Tombol Musik) */}
       <div
         style={{
-          paddingTop: "max(0.4rem, env(safe-area-inset-top))",
-          paddingLeft: "max(0.75rem, env(safe-area-inset-left))",
-          paddingRight: "max(0.75rem, env(safe-area-inset-right))",
+          paddingTop: "max(0.35rem, env(safe-area-inset-top))",
+          paddingLeft: "max(0.6rem, env(safe-area-inset-left))",
+          paddingRight: "max(0.6rem, env(safe-area-inset-right))",
         }}
-        className="absolute top-0 left-0 right-0 z-10 flex items-start justify-between pointer-events-none gap-2"
+        className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between pointer-events-none gap-2"
       >
-        <div className="flex flex-wrap items-center gap-1.5 md:gap-2.5 bg-slate-900/90 text-white px-3 py-1.5 md:px-4 md:py-2 rounded-2xl border border-slate-700 shadow-lg pointer-events-auto">
+        {/* Tombol Ramping Pojok Kiri Atas */}
+        <div className="flex items-center gap-1.5 bg-slate-900/85 text-white px-2 py-1 rounded-xl border border-slate-700 shadow pointer-events-auto">
           <button
             onClick={onBack}
-            className="bg-red-600 hover:bg-red-500 px-2.5 py-1 md:px-3 md:py-1.5 rounded-xl text-[11px] md:text-xs font-bold"
+            title="Ganti Fase"
+            className="bg-red-600 hover:bg-red-500 px-2 py-1 rounded-lg text-[10px] md:text-xs font-extrabold"
           >
-            ← Ganti Fase
-          </button>
-          <button
-            onClick={() => setIsMuted((m) => !m)}
-            className="bg-slate-800 hover:bg-slate-700 px-2.5 py-1 md:px-3 md:py-1.5 rounded-xl text-[11px] md:text-xs font-bold border border-slate-600"
-          >
-            {isMuted ? "🔇 Musik" : "🎵 Musik"}
+            ← Fase
           </button>
           <button
             onClick={toggleMobileFullscreen}
-            className="bg-indigo-600 hover:bg-indigo-500 px-2.5 py-1 md:px-3 md:py-1.5 rounded-xl text-[11px] md:text-xs font-bold border border-indigo-400"
+            title="Layar Penuh"
+            className="bg-indigo-600 hover:bg-indigo-500 px-2 py-1 rounded-lg text-[10px] md:text-xs font-extrabold border border-indigo-400"
           >
-            {isFullscreen ? "🗗 Keluar Penuh" : "⛶ Layar Penuh"}
+            {isFullscreen ? "🗗" : "⛶"}
           </button>
-          <div>
-            <div className="flex items-center gap-2">
-              <p className="font-bold text-yellow-400 text-xs md:text-base">{faseData.nama_dunia}</p>
-              {isSpectator && (
-                <span className="bg-emerald-500 text-slate-950 text-[10px] font-extrabold px-2 py-0.5 rounded-full uppercase">
-                  🖥️ Pemantau Guru
-                </span>
-              )}
-            </div>
-            <p className="text-[10px] md:text-xs text-slate-300">
-              {faseData.nama_fase} •{" "}
-              {!isSpectator && (
-                <>
-                  <span className="text-emerald-400 font-bold">{score} XP</span> •{" "}
-                </>
-              )}
-              <span className="text-sky-400 font-bold">👥 {onlineCount} Aktif</span>
-            </p>
-          </div>
         </div>
 
-        {isSpectator && (
-          <div className="flex flex-wrap items-center gap-2 bg-slate-900/90 text-white p-2 rounded-2xl border border-slate-700 shadow-lg pointer-events-auto">
+        {/* Info Singkat Pojok Kanan Atas */}
+        {!isSpectator ? (
+          <div className="flex items-center gap-2 bg-slate-900/85 text-white px-2.5 py-1 rounded-xl border border-slate-700 shadow pointer-events-auto text-[10px] md:text-xs">
+            <span className="font-bold text-yellow-400 hidden sm:inline">{faseData.nama_dunia}</span>
+            <span className="text-emerald-400 font-extrabold">{score} XP</span>
+            <span className="text-sky-400 font-bold">👥 {onlineCount}</span>
+          </div>
+        ) : (
+          <div className="flex flex-wrap items-center gap-1.5 bg-slate-900/90 text-white p-1.5 rounded-xl border border-slate-700 shadow-lg pointer-events-auto">
+            <span className="bg-emerald-500 text-slate-950 text-[10px] font-extrabold px-2 py-0.5 rounded-full uppercase">
+              🖥️ Pemantau Guru
+            </span>
             <button
               onClick={() => {
                 setFollowedPlayerId(null);
                 setCameraPreset("overview");
               }}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition ${
+              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition ${
                 !followedPlayerId && cameraPreset === "overview"
                   ? "bg-yellow-400 text-slate-950"
                   : "bg-slate-800 hover:bg-slate-700 text-slate-200"
               }`}
             >
-              🗺️ Seluruh Lapangan
+              🗺️ Lapangan
             </button>
             <button
               onClick={() => {
                 setFollowedPlayerId(null);
                 setCameraPreset("arena");
               }}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition ${
+              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition ${
                 !followedPlayerId && cameraPreset === "arena"
                   ? "bg-yellow-400 text-slate-950"
                   : "bg-slate-800 hover:bg-slate-700 text-slate-200"
@@ -1369,7 +1355,7 @@ export default function GameWorld({
 
       {/* Daftar Siswa Layar Pemantau Guru */}
       {isSpectator && (
-        <div className="absolute top-20 right-4 z-10 w-64 max-h-[75vh] overflow-y-auto bg-slate-900/90 backdrop-blur-md text-white p-3.5 rounded-2xl border border-slate-700 shadow-2xl">
+        <div className="absolute top-14 right-4 z-10 w-64 max-h-[75vh] overflow-y-auto bg-slate-900/90 backdrop-blur-md text-white p-3.5 rounded-2xl border border-slate-700 shadow-2xl">
           <div className="flex items-center justify-between border-b border-slate-700 pb-2 mb-2.5">
             <span className="text-xs font-extrabold text-yellow-400 uppercase tracking-wide">
               📋 Daftar Siswa ({studentList.length})
@@ -1433,11 +1419,11 @@ export default function GameWorld({
         </div>
       )}
 
-      {/* Panel Soal Mini-Game Ramping & Semi-Transparan */}
+      {/* Panel Soal Mini-Game: Jawaban Utuh Tidak Terpotong & Tidak Menutupi Karakter */}
       {!isSpectator && miniGameActive && currentMgQuestion && (
         <div
-          style={{ top: "max(3.5rem, calc(env(safe-area-inset-top) + 3rem))" }}
-          className="fixed left-1/2 -translate-x-1/2 z-20 w-[94%] max-w-xl bg-slate-950/75 backdrop-blur-sm text-white px-3 py-2 rounded-xl border border-yellow-400/90 shadow-lg pointer-events-auto"
+          style={{ top: "max(2.6rem, calc(env(safe-area-inset-top) + 2.2rem))" }}
+          className="fixed left-1/2 -translate-x-1/2 z-20 w-[94%] max-w-2xl bg-slate-950/75 backdrop-blur-sm text-white px-3 py-2 rounded-xl border border-yellow-400/90 shadow-lg pointer-events-auto"
         >
           <div className="flex justify-between items-center gap-2 mb-1">
             <div className="flex items-center gap-1.5">
@@ -1450,7 +1436,7 @@ export default function GameWorld({
                   : "📍 Di Tengah"}
               </span>
             </div>
-            <span className="text-[11px] font-bold text-emerald-300 truncate">
+            <span className="text-[11px] font-bold text-emerald-300">
               {mgStatusText}
             </span>
             <button
@@ -1465,19 +1451,19 @@ export default function GameWorld({
             {currentMgQuestion.pertanyaan}
           </p>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-1 text-[11px] font-bold">
+          <div className="grid grid-cols-2 gap-1.5 text-[11px] md:text-xs font-bold">
             {currentMgQuestion.pilihan.map((opsi: string, i: number) => (
               <div
                 key={i}
                 style={{ backgroundColor: ARENA_TILES[i]?.color || "#334155" }}
-                className={`px-2 py-1 rounded-lg text-white shadow flex items-center gap-1.5 ${
-                  standingTile === i ? "ring-2 ring-white scale-[1.02]" : "opacity-95"
+                className={`px-2 py-1 rounded-lg text-white shadow flex items-start gap-1.5 leading-tight ${
+                  standingTile === i ? "ring-2 ring-white scale-[1.01]" : "opacity-95"
                 }`}
               >
-                <span className="bg-black/40 px-1 rounded font-extrabold">
+                <span className="bg-black/40 px-1.5 py-0.5 rounded font-extrabold shrink-0">
                   {ARENA_TILES[i]?.label}
                 </span>
-                <span className="truncate">{opsi}</span>
+                <span className="break-words">{opsi}</span>
               </div>
             ))}
           </div>
@@ -1547,7 +1533,7 @@ export default function GameWorld({
       )}
 
       {!isSpectator && nearCoach && !miniGameActive && !showModal && (
-        <div className="absolute top-16 left-1/2 -translate-x-1/2 z-10 w-[90%] max-w-lg bg-slate-900/95 text-white p-3.5 rounded-2xl border-2 border-yellow-400 shadow-2xl">
+        <div className="absolute top-14 left-1/2 -translate-x-1/2 z-10 w-[90%] max-w-lg bg-slate-900/95 text-white p-3.5 rounded-2xl border-2 border-yellow-400 shadow-2xl">
           <div className="flex justify-between items-center mb-1">
             <span className="font-bold text-yellow-400 text-sm md:text-base">🧢 {pjokData.npc_utama.nama}</span>
             <button
