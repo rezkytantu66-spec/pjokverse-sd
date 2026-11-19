@@ -24,6 +24,14 @@ const BUILDING_COLORS = [
   "#eab308",
 ];
 
+const LEVEL_NAMES: { [lvl: number]: string } = {
+  1: "Pemula",
+  2: "Dasar",
+  3: "Terampil",
+  4: "Mahir",
+  5: "Juara PJOK",
+};
+
 // 6 Objek Benda Olahraga di Dunia Explore PJOK
 const EXPLORE_OBJECTS = [
   {
@@ -82,27 +90,18 @@ const EXPLORE_OBJECTS = [
   },
 ];
 
-// Segmen Jembatan Juara dengan 3 Tingkat Kesulitan berbeda (dari Z = 26 menuju Finish di Z = -46)
+// Segmen Jembatan Juara dengan 3 Tingkat Kesulitan berbeda
 const BRIDGE_SEGMENTS = [
-  // Zona Start (Aman)
   { id: "start", minX: -5, maxX: 5, minZ: 22, maxZ: 30, y: 0.4, color: "#10b981", stage: 1 },
-  // Tingkat 1: Mudah (Jembatan Lebar + Balok Lompat)
   { id: "lvl1-a", minX: -3.2, maxX: 3.2, minZ: 12, maxZ: 22, y: 0.4, color: "#34d399", stage: 1 },
   { id: "lvl1-b", minX: -3.2, maxX: 3.2, minZ: 4, maxZ: 12, y: 0.4, color: "#34d399", stage: 1 },
-  // Checkpoint 1
   { id: "cp-1", minX: -4.5, maxX: 4.5, minZ: -1, maxZ: 4, y: 0.4, color: "#facc15", stage: 2 },
-  // Tingkat 2: Sedang (Jembatan Lebih Sempit + Pintu Geser + Celah Lompat)
   { id: "lvl2-a", minX: -2.1, maxX: 2.1, minZ: -9, maxZ: -1, y: 0.4, color: "#38bdf8", stage: 2 },
-  // Celah Z = -9 sampai -11.4 (Harus dilompati!)
   { id: "lvl2-b", minX: -2.1, maxX: 2.1, minZ: -20, maxZ: -11.4, y: 0.4, color: "#38bdf8", stage: 2 },
-  // Checkpoint 2
   { id: "cp-2", minX: -4.5, maxX: 4.5, minZ: -25, maxZ: -20, y: 0.4, color: "#facc15", stage: 3 },
-  // Tingkat 3: Sulit (Zig-Zag Sempit + Palang Pemutar + Celah Lompat)
   { id: "lvl3-a", minX: -3.2, maxX: -0.2, minZ: -31, maxZ: -25, y: 0.4, color: "#f43f5e", stage: 3 },
   { id: "lvl3-b", minX: -0.8, maxX: 2.2, minZ: -36.5, maxZ: -30.5, y: 0.4, color: "#f43f5e", stage: 3 },
-  // Celah Z = -36.5 sampai -38.8 (Harus dilompati!)
   { id: "lvl3-c", minX: -1.6, maxX: 1.6, minZ: -44, maxZ: -38.8, y: 0.4, color: "#fb7185", stage: 3 },
-  // Zona Finish Juara
   { id: "finish", minX: -5.5, maxX: 5.5, minZ: -52, maxZ: -44, y: 0.4, color: "#f59e0b", stage: 3 },
 ];
 
@@ -113,6 +112,17 @@ function shuffleArray<T>(items: T[]): T[] {
     [arr[i], arr[j]] = [arr[j], arr[i]];
   }
   return arr;
+}
+
+// Mengurutkan tingkat kesulitan soal berdasarkan level karakter saat ini
+function prioritizeQuestionsByLevel<T>(items: T[], level: number): T[] {
+  if (items.length <= 1) return [...items];
+  const chunkSize = Math.max(1, Math.ceil(items.length / 5));
+  const startIdx = ((level - 1) * chunkSize) % items.length;
+  const prioritized = [...items.slice(startIdx), ...items.slice(0, startIdx)];
+  const head = prioritized.slice(0, Math.min(chunkSize * 2, prioritized.length));
+  const tail = prioritized.slice(Math.min(chunkSize * 2, prioritized.length));
+  return [...shuffleArray(head), ...shuffleArray(tail)];
 }
 
 function getStandingTileLabel(pos?: [number, number, number]) {
@@ -382,7 +392,7 @@ function RemotePlayer({ data, isHighlighted = false }: { data: any; isHighlighte
         outlineWidth={0.05}
         outlineColor="black"
       >
-        {`${data.isEliminated ? "👻 " : ""}${data.name || "Teman"}`}
+        {`${data.isEliminated ? "👻 " : ""}${data.name || "Teman"} ${data.questionLevel ? `(Lv.${data.questionLevel})` : ""}`}
       </Text>
     </group>
   );
@@ -492,6 +502,7 @@ function SpectatorCameraController({
 function Player({
   playerName,
   avatarPreset,
+  questionLevel,
   isEliminated,
   worldMap,
   socketRef,
@@ -607,7 +618,6 @@ function Player({
       onNearExploreObject(null);
       onInteractBuilding(null);
 
-      // Cek apakah karakter berada di atas segmen jembatan
       const onSegment = BRIDGE_SEGMENTS.find(
         (seg) =>
           pos.x >= seg.minX - 0.35 &&
@@ -616,7 +626,6 @@ function Player({
           pos.z <= seg.maxZ + 0.35
       );
 
-      // Ketinggian pijakan (termasuk balok lompat Tingkat 1 di Z = 16 dan Z = 7)
       let bridgeFloor = onSegment ? onSegment.y : -9;
       if (
         onSegment &&
@@ -638,7 +647,6 @@ function Player({
         pos.y = bridgeFloor;
       }
 
-      // Rintangan Tingkat 2: Pintu Geser di Z = -15
       if (Math.abs(pos.z - -15) < 0.85 && pos.y < 2.2) {
         const gateX = Math.sin(t * 2.4) * 1.45;
         if (Math.abs(pos.x - gateX) < 1.15) {
@@ -646,7 +654,6 @@ function Player({
         }
       }
 
-      // Rintangan Tingkat 3: Palang Pemutar di Z = -33.5
       if (Math.abs(pos.z - -33.5) < 2.6 && pos.y < 1.55) {
         const angle = t * 2.6;
         const barDirX = Math.cos(angle);
@@ -660,7 +667,6 @@ function Player({
         }
       }
 
-      // Simpan Checkpoint & Tingkat Kesulitan
       if (onSegment) {
         onBridgeStageChange(onSegment.stage);
         if (onSegment.id === "cp-1") {
@@ -673,7 +679,6 @@ function Player({
         }
       }
 
-      // Jika jatuh ke air di bawah jembatan -> kembali ke Checkpoint
       if (pos.y < -3.5) {
         const [cx, cy, cz] = bridgeCheckpointRef.current;
         pos.set(cx, cy, cz);
@@ -682,7 +687,6 @@ function Player({
         onBridgeFall();
       }
 
-      // Deteksi dekat portal kembali di area Start jembatan
       const distReturnBridge = new THREE.Vector2(pos.x, pos.z).distanceTo(new THREE.Vector2(0, 28.5));
       onNearReturnPortal(distReturnBridge < 3.2);
     } else {
@@ -779,6 +783,7 @@ function Player({
         rotY: groupRef.current.rotation.y,
         isMoving: isCurrentlyMoving,
         worldMap,
+        questionLevel,
       });
     }
 
@@ -808,7 +813,7 @@ function Player({
         outlineWidth={0.05}
         outlineColor="black"
       >
-        {`${isEliminated ? "👻 (Gugur) " : ""}${playerName}`}
+        {`${isEliminated ? "👻 (Gugur) " : ""}${playerName} • Lv.${questionLevel}`}
       </Text>
     </group>
   );
@@ -831,13 +836,11 @@ function ChampionBridgeEnvironment() {
 
   return (
     <group>
-      {/* Hamparan Danau Biru di Bawah Jembatan */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -4, -12]} receiveShadow>
         <planeGeometry args={[140, 140]} />
         <meshStandardMaterial color="#0284c7" />
       </mesh>
 
-      {/* Seluruh Segmen Jembatan */}
       {BRIDGE_SEGMENTS.map((seg) => {
         const width = seg.maxX - seg.minX;
         const depth = seg.maxZ - seg.minZ;
@@ -851,7 +854,6 @@ function ChampionBridgeEnvironment() {
         );
       })}
 
-      {/* Portal Kembali di Awal Jembatan */}
       <group position={[0, 0.4, 29]}>
         <mesh position={[-1.5, 1.8, 0]}>
           <boxGeometry args={[0.35, 3.6, 0.35]} />
@@ -870,7 +872,6 @@ function ChampionBridgeEnvironment() {
         </Text>
       </group>
 
-      {/* TINGKAT 1 (MUDAH): 2 Balok Lompat */}
       <Text position={[0, 3.2, 20]} fontSize={0.65} color="#bbf7d0" outlineWidth={0.07} outlineColor="black">
         🟢 TINGKAT 1: MUDAH (Lompati Balok!)
       </Text>
@@ -883,7 +884,6 @@ function ChampionBridgeEnvironment() {
         <meshStandardMaterial color="#f97316" />
       </mesh>
 
-      {/* CHECKPOINT 1 & TINGKAT 2 (SEDANG): Celah Lompat + Pintu Geser */}
       <Text position={[0, 3.2, 1.5]} fontSize={0.65} color="#fef08a" outlineWidth={0.07} outlineColor="black">
         🟡 POS 1 • TINGKAT 2: SEDANG (Lompati Celah & Hindari Pintu Geser!)
       </Text>
@@ -892,7 +892,6 @@ function ChampionBridgeEnvironment() {
         <meshStandardMaterial color="#dc2626" />
       </mesh>
 
-      {/* CHECKPOINT 2 & TINGKAT 3 (SULIT): Jalur Zig-Zag + Palang Pemutar + Celah */}
       <Text position={[0, 3.2, -22.5]} fontSize={0.65} color="#fecdd3" outlineWidth={0.07} outlineColor="black">
         🔴 POS 2 • TINGKAT 3: SULIT (Zig-Zag & Palang Pemutar!)
       </Text>
@@ -907,7 +906,6 @@ function ChampionBridgeEnvironment() {
         </mesh>
       </group>
 
-      {/* GARIS FINISH & PIALA JUARA */}
       <group position={[0, 0.4, -48]}>
         <mesh position={[-4.5, 2.5, 0]} castShadow>
           <boxGeometry args={[0.45, 5, 0.45]} />
@@ -1452,6 +1450,63 @@ export default function GameWorld({
   const [selectedExploreModal, setSelectedExploreModal] = useState<(typeof EXPLORE_OBJECTS)[0] | null>(null);
   const [readExploreIds, setReadExploreIds] = useState<string[]>([]);
 
+  // Kemajuan & Level Soal Karakter (tersimpan per Nama Karakter & Fase)
+  const [score, setScore] = useState(0);
+  const [questionLevel, setQuestionLevel] = useState(1);
+  const [correctCount, setCorrectCount] = useState(0);
+  const [levelUpBanner, setLevelUpBanner] = useState<string | null>(null);
+  const [progressLoaded, setProgressLoaded] = useState(false);
+
+  const storageKey = useMemo(() => {
+    const cleanName = (playerName || "siswa").trim().toLowerCase().replace(/\s+/g, "_");
+    return `pjok_progress_${faseData.id}_${cleanName}`;
+  }, [faseData.id, playerName]);
+
+  // Muat kemajuan karakter saat masuk ke fase
+  useEffect(() => {
+    if (isSpectator || typeof window === "undefined") return;
+    setProgressLoaded(false);
+    try {
+      const savedRaw = localStorage.getItem(storageKey);
+      if (savedRaw) {
+        const parsed = JSON.parse(savedRaw);
+        setScore(typeof parsed.score === "number" ? parsed.score : 0);
+        setQuestionLevel(typeof parsed.questionLevel === "number" ? parsed.questionLevel : 1);
+        setCorrectCount(typeof parsed.correctCount === "number" ? parsed.correctCount : 0);
+        setReadExploreIds(Array.isArray(parsed.readExploreIds) ? parsed.readExploreIds : []);
+      } else {
+        setScore(0);
+        setQuestionLevel(1);
+        setCorrectCount(0);
+        setReadExploreIds([]);
+      }
+    } catch {
+      // Abaikan jika penyimpanan browser terbatas
+    }
+    setProgressLoaded(true);
+  }, [storageKey, isSpectator]);
+
+  // Simpan kemajuan otomatis setiap kali XP, Level Soal, atau Progres Explore berubah
+  useEffect(() => {
+    if (isSpectator || !progressLoaded || typeof window === "undefined") return;
+    try {
+      localStorage.setItem(
+        storageKey,
+        JSON.stringify({
+          playerName,
+          faseId: faseData.id,
+          score,
+          questionLevel,
+          correctCount,
+          readExploreIds,
+          updatedAt: Date.now(),
+        })
+      );
+    } catch {
+      // Abaikan jika penyimpanan penuh
+    }
+  }, [storageKey, playerName, faseData.id, score, questionLevel, correctCount, readExploreIds, isSpectator, progressLoaded]);
+
   // State Jembatan Juara
   const [bridgeStage, setBridgeStage] = useState<number>(1);
   const [bridgeSeconds, setBridgeSeconds] = useState<number>(0);
@@ -1468,10 +1523,10 @@ export default function GameWorld({
   const [nearPortal, setNearPortal] = useState(false);
   const [nearAdventurePortal, setNearAdventurePortal] = useState(false);
   const [activeBuilding, setActiveBuilding] = useState<any>(null);
+  const [buildingQuestions, setBuildingQuestions] = useState<any[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [quizIndex, setQuizIndex] = useState(0);
   const [feedback, setFeedback] = useState<string | null>(null);
-  const [score, setScore] = useState(0);
 
   const [standingTile, setStandingTile] = useState<number | null>(null);
   const [miniGameActive, setMiniGameActive] = useState(false);
@@ -1487,10 +1542,11 @@ export default function GameWorld({
   const allCollectedQuestions = useMemo(() => {
     const list: any[] = [];
     faseData.gedung_materi.forEach((g: any) => {
-      g.kuis.forEach((k: any) => {
+      g.kuis.forEach((k: any, qIdx: number) => {
         list.push({
           ...k,
           sumberGedung: g.nama_gedung,
+          tingkatDasar: Math.min(5, qIdx + 1),
         });
       });
     });
@@ -1509,6 +1565,23 @@ export default function GameWorld({
       utterance.rate = 0.95;
       window.speechSynthesis.speak(utterance);
     }
+  };
+
+  // Fungsi catat jawaban benar & naikkan level soal setiap kelipatan 3 jawaban benar
+  const recordCorrectProgress = () => {
+    setCorrectCount((prevCorrect) => {
+      const nextCorrect = prevCorrect + 1;
+      const computedLevel = Math.min(5, Math.floor(nextCorrect / 3) + 1);
+      if (computedLevel > questionLevel) {
+        setQuestionLevel(computedLevel);
+        setScore((s) => s + 150);
+        const msg = `⬆️ LEVEL SOAL NAIK ke Level ${computedLevel} (${LEVEL_NAMES[computedLevel]})! +150 XP`;
+        setLevelUpBanner(msg);
+        speakText(`Hebat ${playerName}! Level soal kamu naik ke level ${computedLevel}!`);
+        setTimeout(() => setLevelUpBanner(null), 4000);
+      }
+      return nextCorrect;
+    });
   };
 
   // Timer Lomba Jembatan Juara
@@ -1570,8 +1643,8 @@ export default function GameWorld({
 
   const launchAdventureSession = () => {
     setWorldMap("stadium");
-    const randomized = shuffleArray(allCollectedQuestions);
-    setShuffledQuestions(randomized);
+    const prioritized = prioritizeQuestionsByLevel(allCollectedQuestions, questionLevel);
+    setShuffledQuestions(prioritized);
     setGameMode("adventure");
     setIsEliminated(false);
     setChampionBanner(null);
@@ -1579,10 +1652,10 @@ export default function GameWorld({
     setMgIndex(0);
     setMgTimeLeft(9);
     setMgPhase("running");
-    setMgStatusText("👑 Bertahan hidup! Jawab benar agar tidak gugur!");
+    setMgStatusText(`👑 Level ${questionLevel} • Jawab benar agar tidak gugur!`);
     setTeleportTrigger({ pos: [0, 0.5, 18], id: Date.now() });
     socketRef.current?.emit("eliminationState", false);
-    if (randomized[0]) speakText(randomized[0].pertanyaan);
+    if (prioritized[0]) speakText(prioritized[0].pertanyaan);
   };
 
   useEffect(() => {
@@ -1662,8 +1735,8 @@ export default function GameWorld({
   }, [isSpectator, isEliminated, playerName, studentList]);
 
   const startPracticeMiniGame = () => {
-    const randomized = shuffleArray(allCollectedQuestions);
-    setShuffledQuestions(randomized);
+    const prioritized = prioritizeQuestionsByLevel(allCollectedQuestions, questionLevel);
+    setShuffledQuestions(prioritized);
     setGameMode("practice");
     setIsEliminated(false);
     setChampionBanner(null);
@@ -1671,9 +1744,9 @@ export default function GameWorld({
     setMgIndex(0);
     setMgTimeLeft(8);
     setMgPhase("running");
-    setMgStatusText("Lari ke ubin jawaban!");
+    setMgStatusText(`Level Soal ${questionLevel} (${LEVEL_NAMES[questionLevel]})`);
     setTeleportTrigger({ pos: [0, 0.5, 18], id: Date.now() });
-    if (randomized[0]) speakText(randomized[0].pertanyaan);
+    if (prioritized[0]) speakText(prioritized[0].pertanyaan);
   };
 
   const triggerGlobalAdventure = () => {
@@ -1711,6 +1784,7 @@ export default function GameWorld({
             if (!isEliminated) {
               if (standingTile === correctId) {
                 setScore((s) => s + 250);
+                recordCorrectProgress();
                 setMgStatusText(`✅ LOLOS! Jawaban ${correctLabel} (+250 XP)`);
               } else {
                 setIsEliminated(true);
@@ -1723,6 +1797,7 @@ export default function GameWorld({
           } else {
             if (standingTile === correctId) {
               setScore((s) => s + 200);
+              recordCorrectProgress();
               setMgStatusText(`🎉 BENAR (${correctLabel}) +200 XP`);
             } else {
               setMgStatusText(`💥 Salah! Jawaban: ${correctLabel}`);
@@ -1755,8 +1830,8 @@ export default function GameWorld({
             gameMode === "adventure"
               ? isEliminated
                 ? "👻 Kamu sudah gugur, saksikan temanmu bertanding!"
-                : "👑 Lari ke ubin jawaban benar untuk bertahan!"
-              : "Lari ke ubin jawaban!"
+                : `👑 Level ${questionLevel} • Lari ke ubin jawaban benar!`
+              : `Level Soal ${questionLevel} (${LEVEL_NAMES[questionLevel]})`
           );
           if (!isEliminated) {
             setTeleportTrigger({ pos: [0, 0.5, 18], id: Date.now() });
@@ -1782,6 +1857,7 @@ export default function GameWorld({
     survivors,
     studentList.length,
     playerName,
+    questionLevel,
   ]);
 
   const isTileFallen = (tileId: number) => {
@@ -1789,11 +1865,22 @@ export default function GameWorld({
     return tileId !== currentMgQuestion.jawaban_benar;
   };
 
+  const openBuildingQuiz = () => {
+    if (!activeBuilding) return;
+    const orderedQuiz = prioritizeQuestionsByLevel(activeBuilding.kuis, questionLevel);
+    setBuildingQuestions(orderedQuiz);
+    setShowModal(true);
+    setQuizIndex(0);
+    setFeedback(null);
+  };
+
   const handleAnswer = (idx: number) => {
-    const currentQuiz = activeBuilding.kuis[quizIndex];
+    const activeQuizList = buildingQuestions.length > 0 ? buildingQuestions : activeBuilding.kuis;
+    const currentQuiz = activeQuizList[quizIndex];
     if (idx === currentQuiz.jawaban_benar) {
       setFeedback(`✅ ${currentQuiz.pembahasan}`);
-      setScore((s) => s + 100);
+      setScore((s) => s + 100 * questionLevel);
+      recordCorrectProgress();
     } else {
       setFeedback(`❌ Kurang tepat. ${currentQuiz.pembahasan}`);
     }
@@ -1801,7 +1888,8 @@ export default function GameWorld({
 
   const nextQuestion = () => {
     setFeedback(null);
-    if (quizIndex + 1 < activeBuilding.kuis.length) {
+    const activeQuizList = buildingQuestions.length > 0 ? buildingQuestions : activeBuilding.kuis;
+    if (quizIndex + 1 < activeQuizList.length) {
       setQuizIndex(quizIndex + 1);
     } else {
       setShowModal(false);
@@ -1809,11 +1897,15 @@ export default function GameWorld({
     }
   };
 
+  const activeQuizList =
+    activeBuilding && (buildingQuestions.length > 0 ? buildingQuestions : activeBuilding.kuis);
+  const nextLevelProgress = correctCount % 3;
+
   return (
     <div className="relative w-full h-[100dvh] overflow-hidden select-none">
       <CheerfulBGM muted={isMuted} />
 
-      {/* HUD Atas Ramping */}
+      {/* HUD Atas Ramping + Level Soal Karakter */}
       <div
         style={{
           paddingTop: "max(0.5rem, env(safe-area-inset-top))",
@@ -1829,7 +1921,7 @@ export default function GameWorld({
           >
             ← Fase
           </button>
-          <span className="text-xs font-bold text-yellow-400 truncate max-w-[125px] sm:max-w-none">
+          <span className="text-xs font-bold text-yellow-400 truncate max-w-[115px] sm:max-w-none">
             {worldMap === "explore"
               ? "🌍 Explore PJOK"
               : worldMap === "bridge"
@@ -1847,7 +1939,13 @@ export default function GameWorld({
         </div>
 
         {!isSpectator ? (
-          <div className="flex items-center gap-2 bg-slate-900/90 text-white px-3 py-1.5 rounded-xl border border-slate-700 shadow pointer-events-auto text-xs">
+          <div className="flex items-center gap-1.5 bg-slate-900/90 text-white px-2.5 py-1.5 rounded-xl border border-slate-700 shadow pointer-events-auto text-xs">
+            <span
+              title={`Jawab ${3 - nextLevelProgress} soal benar lagi untuk naik level`}
+              className="bg-amber-400/20 border border-amber-400 text-amber-300 px-2 py-0.5 rounded-lg font-extrabold"
+            >
+              ⭐ Lv.{questionLevel} ({nextLevelProgress}/3)
+            </span>
             {worldMap === "explore" && (
               <span className="text-sky-300 font-bold">
                 🔍 {readExploreIds.length}/{EXPLORE_OBJECTS.length}
@@ -1898,6 +1996,16 @@ export default function GameWorld({
           </div>
         )}
       </div>
+
+      {/* Notifikasi Naik Level Soal Otomatis */}
+      {!isSpectator && levelUpBanner && (
+        <div
+          style={{ top: "max(3.2rem, calc(env(safe-area-inset-top) + 2.8rem))" }}
+          className="fixed left-1/2 -translate-x-1/2 z-30 bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 px-4 py-2 rounded-2xl border-2 border-white font-extrabold text-xs md:text-sm shadow-2xl animate-bounce text-center"
+        >
+          {levelUpBanner}
+        </div>
+      )}
 
       {/* Indikator Tingkat Kesulitan Jembatan Juara */}
       {!isSpectator && worldMap === "bridge" && !bridgeWinModal && (
@@ -1986,7 +2094,7 @@ export default function GameWorld({
                         className="w-3 h-3 rounded-full shrink-0 border border-white"
                       />
                       <span className={`font-bold truncate ${student.isEliminated ? "line-through text-slate-400" : ""}`}>
-                        {student.name || "Siswa"}
+                        {student.name || "Siswa"} {student.questionLevel ? `(Lv.${student.questionLevel})` : ""}
                       </span>
                     </div>
                     {student.worldMap === "bridge" ? (
@@ -2062,6 +2170,9 @@ export default function GameWorld({
             <div className="flex items-center gap-1.5">
               <span className="bg-yellow-400 text-slate-950 text-[11px] font-extrabold px-2 py-0.5 rounded-full">
                 ⏱️ {mgTimeLeft}d
+              </span>
+              <span className="bg-amber-500/20 text-amber-300 border border-amber-400 text-[11px] font-extrabold px-2 py-0.5 rounded-full">
+                ⭐ Lv.{questionLevel}
               </span>
               {gameMode === "adventure" && (
                 <span className="bg-purple-600 text-white text-[11px] font-extrabold px-2 py-0.5 rounded-full">
@@ -2150,7 +2261,7 @@ export default function GameWorld({
             onClick={startPracticeMiniGame}
             className="w-full bg-amber-400 hover:bg-amber-300 text-slate-950 font-extrabold px-4 py-3 rounded-full shadow-2xl border-2 border-white animate-bounce text-xs md:text-sm"
           >
-            🏆 Mulai Lomba Jatuh Bangun!
+            🏆 Mulai Lomba Jatuh Bangun (Lv.{questionLevel})!
           </button>
         </div>
       )}
@@ -2281,7 +2392,7 @@ export default function GameWorld({
           </div>
           <p className="text-xs md:text-sm leading-relaxed">{pjokData.npc_utama.dialog_awal}</p>
           <p className="text-xs text-emerald-400 mt-1 font-medium">
-            👉 Portal Hijau (Depan): Jembatan Juara • Portal Biru (Belakang): Explore PJOK • Kanan/Kiri: Kuis Arena!
+            ⭐ Kemajuan {playerName}: Level {questionLevel} ({LEVEL_NAMES[questionLevel]}) • Total {correctCount} Benar (Tersimpan Otomatis)
           </p>
         </div>
       )}
@@ -2289,24 +2400,25 @@ export default function GameWorld({
       {!isSpectator && worldMap === "stadium" && activeBuilding && !miniGameActive && !showModal && (
         <div className="absolute bottom-36 left-1/2 -translate-x-1/2 z-10 w-[85%] max-w-xs text-center">
           <button
-            onClick={() => {
-              setShowModal(true);
-              setQuizIndex(0);
-              setFeedback(null);
-            }}
+            onClick={openBuildingQuiz}
             className="w-full bg-yellow-400 hover:bg-yellow-300 text-slate-950 font-extrabold px-4 py-3 rounded-full shadow-2xl border-2 border-white animate-bounce text-xs md:text-sm"
           >
-            🚪 Masuk: {activeBuilding.nama_gedung}
+            🚪 Masuk: {activeBuilding.nama_gedung} (Lv.{questionLevel})
           </button>
         </div>
       )}
 
-      {!isSpectator && showModal && activeBuilding && (
+      {!isSpectator && showModal && activeBuilding && activeQuizList && (
         <div className="absolute inset-0 z-20 bg-black/75 flex items-center justify-center p-4">
           <div className="bg-white text-slate-900 max-w-2xl w-full rounded-2xl p-5 shadow-2xl max-h-[88dvh] overflow-y-auto">
             <div className="flex justify-between items-start border-b pb-3 mb-3">
               <div>
-                <h2 className="text-lg md:text-xl font-extrabold text-blue-700">{activeBuilding.nama_gedung}</h2>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-lg md:text-xl font-extrabold text-blue-700">{activeBuilding.nama_gedung}</h2>
+                  <span className="bg-amber-400 text-slate-950 text-[11px] font-extrabold px-2 py-0.5 rounded-full">
+                    ⭐ Level {questionLevel} ({LEVEL_NAMES[questionLevel]})
+                  </span>
+                </div>
                 <p className="text-xs md:text-sm font-semibold text-slate-500">{activeBuilding.topik}</p>
               </div>
               <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-red-600 font-bold text-xl">
@@ -2328,12 +2440,17 @@ export default function GameWorld({
             </div>
 
             <div>
-              <p className="text-xs font-bold uppercase text-emerald-600 mb-1">
-                Kuis PJOK ({quizIndex + 1} dari {activeBuilding.kuis.length})
-              </p>
-              <h3 className="font-bold text-sm md:text-base mb-2.5">{activeBuilding.kuis[quizIndex].pertanyaan}</h3>
+              <div className="flex justify-between items-center mb-1">
+                <p className="text-xs font-bold uppercase text-emerald-600">
+                  Kuis PJOK ({quizIndex + 1} dari {activeQuizList.length})
+                </p>
+                <span className="text-[11px] font-bold text-amber-600">
+                  Progres Naik Level: {nextLevelProgress}/3 benar
+                </span>
+              </div>
+              <h3 className="font-bold text-sm md:text-base mb-2.5">{activeQuizList[quizIndex].pertanyaan}</h3>
               <div className="grid grid-cols-1 gap-2">
-                {activeBuilding.kuis[quizIndex].pilihan.map((opsi: string, i: number) => (
+                {activeQuizList[quizIndex].pilihan.map((opsi: string, i: number) => (
                   <button
                     key={i}
                     onClick={() => handleAnswer(i)}
@@ -2352,7 +2469,7 @@ export default function GameWorld({
                     onClick={nextQuestion}
                     className="bg-blue-600 text-white px-4 py-2 rounded-lg text-xs font-bold shrink-0"
                   >
-                    {quizIndex + 1 < activeBuilding.kuis.length ? "Soal Berikutnya →" : "Selesai"}
+                    {quizIndex + 1 < activeQuizList.length ? "Soal Berikutnya →" : "Selesai"}
                   </button>
                 </div>
               )}
@@ -2417,6 +2534,7 @@ export default function GameWorld({
           <Player
             playerName={playerName}
             avatarPreset={avatarPreset}
+            questionLevel={questionLevel}
             isEliminated={isEliminated}
             worldMap={worldMap}
             socketRef={socketRef}
