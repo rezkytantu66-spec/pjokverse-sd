@@ -102,7 +102,7 @@ export default function HomePage() {
             Kurikulum Merdeka • PJOK SD
           </span>
           <h1 className="text-2xl md:text-4xl font-extrabold mt-2 text-yellow-400">
-            🏃‍♂️ {pjokData.judul_game}
+            🏃‍♂️ {(pjokData as any).judul_game || "PJOKVerse SD"}
           </h1>
           <p className="text-xs md:text-sm text-slate-300 mt-1">
             Atur karaktermu, lalu pilih fase belajar atau masuk sebagai Layar Pemantau Guru!
