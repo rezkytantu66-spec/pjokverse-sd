@@ -448,6 +448,12 @@ interface PodiumModalState {
   bonusXp: number;
 }
 
+interface CameraOrbitState {
+  yaw: number;
+  pitch: number;
+  zoom: number;
+}
+
 function shuffleArray<T>(items: T[]): T[] {
   const arr = [...items];
   for (let i = arr.length - 1; i > 0; i--) {
@@ -783,13 +789,14 @@ function ArenaFloorTile({
 function SpectatorCameraController({
   preset,
   followedPlayer,
+  cameraOrbitRef,
 }: {
   preset: "overview" | "arena";
   followedPlayer: any | null;
+  cameraOrbitRef: React.MutableRefObject<CameraOrbitState>;
 }) {
   const targetFocus = useRef(new THREE.Vector3(0, 1, 2));
   const manualOffset = useRef(new THREE.Vector3(0, 0, 0));
-  const zoomOffset = useRef(0);
   const keys = useRef<{ [key: string]: boolean }>({});
 
   useEffect(() => {
@@ -813,28 +820,34 @@ function SpectatorCameraController({
     if (keys.current["s"] || keys.current["arrowdown"]) manualOffset.current.z += moveSpeed;
     if (keys.current["a"] || keys.current["arrowleft"]) manualOffset.current.x -= moveSpeed;
     if (keys.current["d"] || keys.current["arrowright"]) manualOffset.current.x += moveSpeed;
-    if (keys.current["q"]) zoomOffset.current = Math.max(zoomOffset.current - moveSpeed, -10);
-    if (keys.current["e"]) zoomOffset.current = Math.min(zoomOffset.current + moveSpeed, 18);
+    if (keys.current["q"]) cameraOrbitRef.current.yaw -= 1.8 * delta;
+    if (keys.current["e"]) cameraOrbitRef.current.yaw += 1.8 * delta;
 
+    const orbit = cameraOrbitRef.current;
     let desiredFocus = new THREE.Vector3(0, 1, 2);
-    let desiredCamPos = new THREE.Vector3(0, 26, 34);
+    let baseRadius = 42;
 
     if (followedPlayer && followedPlayer.pos) {
       const [px, py, pz] = followedPlayer.pos;
       desiredFocus.set(px, Math.max(py, 0) + 1.5, pz);
-      desiredCamPos.set(px, Math.max(py, 0) + 14 + zoomOffset.current * 0.5, pz + 22 + zoomOffset.current * 0.6);
+      baseRadius = 26;
     } else if (preset === "arena") {
       desiredFocus.set(0, 1, 18);
-      desiredCamPos.set(0, 20 + zoomOffset.current * 0.6, 36 + zoomOffset.current * 0.7);
+      baseRadius = 40;
     } else {
-      desiredFocus.set(0, 1, 3);
-      desiredCamPos.set(0, 28 + zoomOffset.current * 0.6, 35 + zoomOffset.current * 0.7);
+      desiredFocus.set(0, 1, -2);
+      baseRadius = 46;
     }
 
     desiredFocus.add(manualOffset.current);
-    desiredCamPos.add(manualOffset.current);
 
-    state.camera.position.lerp(desiredCamPos, 0.08);
+    const radius = baseRadius * orbit.zoom;
+    const horizDist = radius * Math.cos(orbit.pitch);
+    const camX = desiredFocus.x + Math.sin(orbit.yaw) * horizDist;
+    const camY = desiredFocus.y + Math.sin(orbit.pitch) * radius;
+    const camZ = desiredFocus.z + Math.cos(orbit.yaw) * horizDist;
+
+    state.camera.position.lerp(new THREE.Vector3(camX, camY, camZ), 0.1);
     targetFocus.current.lerp(desiredFocus, 0.1);
     state.camera.lookAt(targetFocus.current);
   });
@@ -858,6 +871,7 @@ function Player({
   joyVector,
   jumpTrigger,
   teleportTrigger,
+  cameraOrbitRef,
   onInteractBuilding,
   onNearCoach,
   onNearPakLukman,
@@ -932,13 +946,22 @@ function Player({
     if (!groupRef.current) return;
     const speed = 10.5;
 
-    let moveX = joyVector.x;
-    let moveZ = joyVector.y;
+    // Putar kamera dengan tombol Q / E di keyboard
+    if (keys.current["q"]) cameraOrbitRef.current.yaw -= 1.8 * delta;
+    if (keys.current["e"]) cameraOrbitRef.current.yaw += 1.8 * delta;
 
-    if (keys.current["w"] || keys.current["arrowup"]) moveZ -= 1;
-    if (keys.current["s"] || keys.current["arrowdown"]) moveZ += 1;
-    if (keys.current["a"] || keys.current["arrowleft"]) moveX -= 1;
-    if (keys.current["d"] || keys.current["arrowright"]) moveX += 1;
+    let rawX = joyVector.x;
+    let rawZ = joyVector.y;
+
+    if (keys.current["w"] || keys.current["arrowup"]) rawZ -= 1;
+    if (keys.current["s"] || keys.current["arrowdown"]) rawZ += 1;
+    if (keys.current["a"] || keys.current["arrowleft"]) rawX -= 1;
+    if (keys.current["d"] || keys.current["arrowright"]) rawX += 1;
+
+    // Gerakan karakter mengikuti sudut putaran kamera aktif agar selalu intuitif
+    const yaw = cameraOrbitRef.current.yaw;
+    const moveX = rawX * Math.cos(yaw) + rawZ * Math.sin(yaw);
+    const moveZ = -rawX * Math.sin(yaw) + rawZ * Math.cos(yaw);
 
     const length = Math.hypot(moveX, moveZ);
     const isCurrentlyMoving = length > 0.05;
@@ -1068,7 +1091,6 @@ function Player({
       const distReturnBridge = new THREE.Vector2(pos.x, pos.z).distanceTo(new THREE.Vector2(0, 30.5));
       onNearReturnPortal(distReturnBridge < 3.5);
     } else if (worldMap === "school") {
-      // Di Dalam Gedung Sekolah (Kelas 1 - 6)
       onStandingTileChange(null);
       onNearCoach(false);
       onNearPakLukman(false);
@@ -1090,15 +1112,12 @@ function Player({
         }
       }
 
-      // Batasi dinding interior Gedung Sekolah
       pos.x = THREE.MathUtils.clamp(pos.x, -11.5, 11.5);
       pos.z = THREE.MathUtils.clamp(pos.z, -21, 21);
 
-      // Pintu Keluar Gedung Sekolah (di bagian belakang lorong z = 19.5)
       const distExitSchool = new THREE.Vector2(pos.x, pos.z).distanceTo(new THREE.Vector2(0, 19.5));
       onNearReturnPortal(distExitSchool < 3.6);
 
-      // Cek kedekatan dengan salah satu dari 6 Ruang Kelas (Kelas 1 - 6)
       let foundClass: SchoolClassroomMission | null = null;
       for (const cls of SCHOOL_CLASSROOMS) {
         const distCls = new THREE.Vector2(pos.x, pos.z).distanceTo(
@@ -1149,13 +1168,13 @@ function Player({
         const distCoach = new THREE.Vector2(pos.x, pos.z).distanceTo(new THREE.Vector2(0, -4));
         onNearCoach(distCoach < 3.8);
 
-        // NPC Pak Lukman menunggu di depan Gerbang Sekolah (-20.5, 13.5)
-        const distPakLukman = new THREE.Vector2(pos.x, pos.z).distanceTo(new THREE.Vector2(-20.5, 13.5));
+        // NPC Pak Lukman (Kepala Sekolah) berdiri di depan sekolah (x = 2.8, z = -29.5)
+        const distPakLukman = new THREE.Vector2(pos.x, pos.z).distanceTo(new THREE.Vector2(2.8, -29.5));
         onNearPakLukman(distPakLukman < 4.2);
 
-        // Pintu Masuk Gedung Sekolah (-27.5, 10)
-        const distSchoolDoor = new THREE.Vector2(pos.x, pos.z).distanceTo(new THREE.Vector2(-27.5, 10));
-        onNearSchoolDoor(distSchoolDoor < 4.6);
+        // Pintu Masuk Gedung Sekolah di bagian belakang lapangan (x = 0, z = -31.8)
+        const distSchoolDoor = new THREE.Vector2(pos.x, pos.z).distanceTo(new THREE.Vector2(0, -31.8));
+        onNearSchoolDoor(distSchoolDoor < 4.5);
 
         const distPortal = new THREE.Vector2(pos.x, pos.z).distanceTo(new THREE.Vector2(14, -4));
         onNearPortal(distPortal < 3.8);
@@ -1225,13 +1244,19 @@ function Player({
       });
     }
 
-    const camHeight = isMiniGame ? 22 : worldMap === "bridge" ? 17 : worldMap === "school" ? 16 : 18;
-    const camDist = isMiniGame ? 30 : worldMap === "bridge" ? 23 : worldMap === "school" ? 21 : 26;
-    state.camera.position.lerp(
-      new THREE.Vector3(pos.x, Math.max(pos.y, 0) + camHeight, pos.z + camDist),
-      0.1
-    );
-    state.camera.lookAt(pos.x, Math.max(pos.y, 0) + 1.2, pos.z - 3);
+    // Kamera Dinamis yang Bisa Diputar & Di-zoom oleh Pemain
+    const orbit = cameraOrbitRef.current;
+    const baseDist = isMiniGame ? 34 : worldMap === "bridge" ? 27 : worldMap === "school" ? 24 : 30;
+    const radius = baseDist * orbit.zoom;
+    const targetY = Math.max(pos.y, 0) + 1.4;
+    const horizDist = radius * Math.cos(orbit.pitch);
+
+    const camX = pos.x + Math.sin(orbit.yaw) * horizDist;
+    const camY = targetY + Math.sin(orbit.pitch) * radius;
+    const camZ = pos.z + Math.cos(orbit.yaw) * horizDist;
+
+    state.camera.position.lerp(new THREE.Vector3(camX, camY, camZ), 0.14);
+    state.camera.lookAt(pos.x, targetY, pos.z - 1.5);
   });
 
   return (
@@ -1267,19 +1292,16 @@ function SchoolInteriorEnvironment({
 }) {
   return (
     <group>
-      {/* Lantai Koridor Sekolah */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
         <planeGeometry args={[28, 46]} />
         <meshStandardMaterial color="#f8fafc" />
       </mesh>
 
-      {/* Karpet Merah Lorong Tengah Sekolah */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]} receiveShadow>
         <planeGeometry args={[5.5, 42]} />
         <meshStandardMaterial color="#dc2626" />
       </mesh>
 
-      {/* Dinding Keliling Gedung Sekolah */}
       <mesh position={[-13.5, 3.5, 0]} receiveShadow>
         <boxGeometry args={[0.8, 7, 46]} />
         <meshStandardMaterial color="#fef3c7" />
@@ -1293,7 +1315,6 @@ function SchoolInteriorEnvironment({
         <meshStandardMaterial color="#fde68a" />
       </mesh>
 
-      {/* Papan Selamat Datang di Bagian Ujung Koridor */}
       <group position={[0, 3.8, -21.8]}>
         <mesh>
           <boxGeometry args={[14, 2.2, 0.3]} />
@@ -1319,7 +1340,6 @@ function SchoolInteriorEnvironment({
         </Text>
       </group>
 
-      {/* Pintu Keluar Kembali ke Lapangan Stadion (z = 20.5) */}
       <group position={[0, 0, 20.5]}>
         <mesh position={[-2.1, 2.1, 0]} castShadow>
           <boxGeometry args={[0.45, 4.2, 0.45]} />
@@ -1348,7 +1368,6 @@ function SchoolInteriorEnvironment({
         </Text>
       </group>
 
-      {/* 6 Ruang Kelas (Kelas 1 - 6) di Kiri dan Kanan Lorong */}
       {SCHOOL_CLASSROOMS.map((cls) => {
         const isDone = completedClassIds.includes(cls.id);
         const dirSign = cls.sisi === "kiri" ? -1 : 1;
@@ -1356,13 +1375,11 @@ function SchoolInteriorEnvironment({
 
         return (
           <group key={cls.id} position={cls.pos}>
-            {/* Karpet Area Masuk Kelas */}
             <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.03, 0]} receiveShadow>
               <planeGeometry args={[4.8, 5.2]} />
               <meshStandardMaterial color={isDone ? "#86efac" : cls.warna} />
             </mesh>
 
-            {/* Bingkai Pintu Kelas Menempel Dinding */}
             <group position={[dirSign * 4.4, 0, 0]} rotation={[0, rotY, 0]}>
               <mesh position={[0, 2.3, 0]} castShadow>
                 <boxGeometry args={[4.4, 4.6, 0.45]} />
@@ -1372,7 +1389,6 @@ function SchoolInteriorEnvironment({
                 <boxGeometry args={[2.2, 3.5, 0.15]} />
                 <meshStandardMaterial color="#78350f" />
               </mesh>
-              {/* Papan Nama Kelas di Atas Pintu */}
               <mesh position={[0, 4.95, 0.2]}>
                 <boxGeometry args={[4.6, 0.85, 0.25]} />
                 <meshStandardMaterial color="#0f172a" />
@@ -1468,13 +1484,11 @@ function ChampionBridgeEnvironment({ raceStarted }: { raceStarted: boolean }) {
         );
       })}
 
-      {/* Garis Start Putih di Lantai */}
       <mesh position={[0, 0.42, 22.2]} receiveShadow>
         <boxGeometry args={[17.5, 0.05, 0.55]} />
         <meshStandardMaterial color="#ffffff" />
       </mesh>
 
-      {/* Palang Pembatas Start Bersama-sama */}
       <group ref={barrierRef} position={[0, 0, 22.1]}>
         <mesh position={[-8.4, 1.8, 0]} castShadow>
           <boxGeometry args={[0.45, 3.6, 0.45]} />
@@ -1777,7 +1791,7 @@ function SportsEnvironment({ faseId, nearPakLukman }: { faseId: string; nearPakL
     [-28, 0, -28],
     [28, 0, -28],
     [-34, 0, -4],
-    [30, 0, 10],
+    [34, 0, -4],
     [-25, 0, 32],
     [25, 0, 32],
   ];
@@ -1809,34 +1823,35 @@ function SportsEnvironment({ faseId, nearPakLukman }: { faseId: string; nearPakL
       </mesh>
 
       {/* =================================================================
-          GEDUNG SEKOLAH + GERBANG SELAMAT DATANG + PAK LUKMAN (DI SEMUA FASE)
+          GEDUNG SEKOLAH DI BELAKANG LAPANGAN + GERBANG SELAMAT DATANG
+          + NPC PAK LUKMAN (KEPALA SEKOLAH) DI DEPAN SEKOLAH (SEMUA FASE)
          ================================================================= */}
       <group>
-        {/* Jalan Setapak Masuk Sekolah */}
-        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-23, 0.03, 10]} receiveShadow>
-          <planeGeometry args={[12, 4.4]} />
+        {/* Jalan Setapak Masuk Sekolah dari Lapangan ke Pintu Sekolah */}
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.03, -27.5]} receiveShadow>
+          <planeGeometry args={[5.2, 11.5]} />
           <meshStandardMaterial color="#cbd5e1" />
         </mesh>
 
-        {/* Gerbang Sekolah Bertuliskan SELAMAT DATANG */}
-        <group position={[-18.2, 0, 10]} rotation={[0, Math.PI / 2, 0]}>
+        {/* Gerbang Sekolah Bertuliskan SELAMAT DATANG (x = 0, z = -23.5) */}
+        <group position={[0, 0, -23.5]}>
           {/* Pilar Gerbang Kiri & Kanan */}
-          <mesh position={[-2.6, 2.3, 0]} castShadow>
-            <boxGeometry args={[0.65, 4.6, 0.65]} />
+          <mesh position={[-3.0, 2.4, 0]} castShadow>
+            <boxGeometry args={[0.7, 4.8, 0.7]} />
             <meshStandardMaterial color="#dc2626" />
           </mesh>
-          <mesh position={[2.6, 2.3, 0]} castShadow>
-            <boxGeometry args={[0.65, 4.6, 0.65]} />
+          <mesh position={[3.0, 2.4, 0]} castShadow>
+            <boxGeometry args={[0.7, 4.8, 0.7]} />
             <meshStandardMaterial color="#dc2626" />
           </mesh>
           {/* Balok Atas Gerbang */}
-          <mesh position={[0, 4.7, 0]} castShadow>
-            <boxGeometry args={[6.2, 1.15, 0.75]} />
+          <mesh position={[0, 4.9, 0]} castShadow>
+            <boxGeometry args={[7.0, 1.25, 0.8]} />
             <meshStandardMaterial color="#1e3a8a" />
           </mesh>
           <Text
-            position={[0, 4.88, 0.42]}
-            fontSize={0.46}
+            position={[0, 5.1, 0.45]}
+            fontSize={0.5}
             color="#facc15"
             outlineWidth={0.05}
             outlineColor="black"
@@ -1844,8 +1859,8 @@ function SportsEnvironment({ faseId, nearPakLukman }: { faseId: string; nearPakL
             SELAMAT DATANG
           </Text>
           <Text
-            position={[0, 4.38, 0.42]}
-            fontSize={0.28}
+            position={[0, 4.55, 0.45]}
+            fontSize={0.3}
             color="#ffffff"
             outlineWidth={0.04}
             outlineColor="black"
@@ -1854,17 +1869,18 @@ function SportsEnvironment({ faseId, nearPakLukman }: { faseId: string; nearPakL
           </Text>
         </group>
 
-        {/* NPC Pak Lukman Menunggu Siswa Datang di Depan Gerbang */}
-        <group position={[-20.5, 0, 13.5]} rotation={[0, Math.PI / 2.4, 0]}>
+        {/* NPC Pak Lukman (Kepala Sekolah) Menyambut di Depan Sekolah (x = 2.8, z = -29.5) */}
+        <group position={[2.8, 0, -29.5]}>
           <VoxelCharacter
             shirtColor="#0f766e"
             pantsColor="#1e293b"
             skinColor="#fcd34d"
             headStyle="glasses"
             isMoving={false}
+            isCoach={true}
           />
           <Text
-            position={[0, 3.45, 0]}
+            position={[0, 3.65, 0]}
             fontSize={0.44}
             color="#fde047"
             outlineWidth={0.06}
@@ -1872,46 +1888,55 @@ function SportsEnvironment({ faseId, nearPakLukman }: { faseId: string; nearPakL
           >
             {nearPakLukman ? "💬 Pak Lukman" : "👋 Pak Lukman"}
           </Text>
+          <Text
+            position={[0, 3.22, 0]}
+            fontSize={0.3}
+            color="#99f6e4"
+            outlineWidth={0.05}
+            outlineColor="black"
+          >
+            (Kepala Sekolah)
+          </Text>
         </group>
 
-        {/* Bangunan Gedung Sekolah Utama (x = -31.5, z = 10) */}
-        <group position={[-31.5, 0, 10]} rotation={[0, Math.PI / 2, 0]}>
+        {/* Bangunan Gedung Sekolah Utama di Bagian Belakang (x = 0, z = -36.5) */}
+        <group position={[0, 0, -36.5]}>
           {/* Dinding Utama Gedung */}
-          <mesh position={[0, 3.4, 0]} castShadow receiveShadow>
-            <boxGeometry args={[13.5, 6.8, 7.5]} />
+          <mesh position={[0, 3.6, 0]} castShadow receiveShadow>
+            <boxGeometry args={[16.5, 7.2, 8.0]} />
             <meshStandardMaterial color="#fef3c7" />
           </mesh>
-          {/* Atap Limas / Pelana Gedung Sekolah */}
-          <mesh position={[0, 7.6, 0]} castShadow>
-            <boxGeometry args={[14.5, 1.6, 8.3]} />
+          {/* Atap Gedung Sekolah */}
+          <mesh position={[0, 8.0, 0]} castShadow>
+            <boxGeometry args={[17.6, 1.7, 8.8]} />
             <meshStandardMaterial color="#b91c1c" />
           </mesh>
-          {/* Pintu Masuk Utama Sekolah */}
-          <mesh position={[0, 1.75, 3.82]}>
-            <boxGeometry args={[2.8, 3.5, 0.25]} />
+          {/* Pintu Masuk Utama Sekolah Menghadap Depan (z = +4.05) */}
+          <mesh position={[0, 1.85, 4.05]}>
+            <boxGeometry args={[3.2, 3.7, 0.25]} />
             <meshStandardMaterial color="#2563eb" />
           </mesh>
           {/* Jendela Kelas Kiri & Kanan */}
-          {[-4.4, -2.5, 2.5, 4.4].map((wx, idx) => (
+          {[-5.6, -3.3, 3.3, 5.6].map((wx, idx) => (
             <React.Fragment key={idx}>
-              <mesh position={[wx, 2.3, 3.8]}>
-                <boxGeometry args={[1.3, 1.3, 0.15]} />
+              <mesh position={[wx, 2.4, 4.05]}>
+                <boxGeometry args={[1.4, 1.4, 0.15]} />
                 <meshStandardMaterial color="#38bdf8" />
               </mesh>
-              <mesh position={[wx, 4.7, 3.8]}>
-                <boxGeometry args={[1.3, 1.3, 0.15]} />
+              <mesh position={[wx, 4.9, 4.05]}>
+                <boxGeometry args={[1.4, 1.4, 0.15]} />
                 <meshStandardMaterial color="#38bdf8" />
               </mesh>
             </React.Fragment>
           ))}
           {/* Papan Nama Gedung Sekolah */}
-          <mesh position={[0, 5.9, 3.85]}>
-            <boxGeometry args={[9.5, 1.0, 0.25]} />
+          <mesh position={[0, 6.2, 4.08]}>
+            <boxGeometry args={[11.2, 1.1, 0.25]} />
             <meshStandardMaterial color="#0f172a" />
           </mesh>
           <Text
-            position={[0, 5.9, 4.02]}
-            fontSize={0.5}
+            position={[0, 6.2, 4.25]}
+            fontSize={0.54}
             color="#facc15"
             outlineWidth={0.05}
             outlineColor="black"
@@ -1923,8 +1948,8 @@ function SportsEnvironment({ faseId, nearPakLukman }: { faseId: string; nearPakL
 
       {faseId === "fase-a" && (
         <group>
-          {[-8, -4, 0, 4, 8].map((xPos, i) => (
-            <mesh key={i} position={[xPos, 0.45, -21]} castShadow>
+          {[-11, -7, 7, 11].map((xPos, i) => (
+            <mesh key={i} position={[xPos, 0.45, -20]} castShadow>
               <coneGeometry args={[0.45, 0.9, 16]} />
               <meshStandardMaterial color={i % 2 === 0 ? "#f97316" : "#ec4899"} />
             </mesh>
@@ -1932,10 +1957,6 @@ function SportsEnvironment({ faseId, nearPakLukman }: { faseId: string; nearPakL
           <mesh position={[-7, 0.2, 2]} castShadow>
             <boxGeometry args={[0.8, 0.4, 7]} />
             <meshStandardMaterial color="#f59e0b" />
-          </mesh>
-          <mesh position={[0, 0.1, -26]} rotation={[0, 0, 0]}>
-            <torusGeometry args={[2.5, 0.35, 16, 32, Math.PI]} />
-            <meshStandardMaterial color="#3b82f6" />
           </mesh>
         </group>
       )}
@@ -1946,28 +1967,32 @@ function SportsEnvironment({ faseId, nearPakLukman }: { faseId: string; nearPakL
             <planeGeometry args={[18, 0.25]} />
             <meshStandardMaterial color="#ffffff" />
           </mesh>
-          <group position={[0, 0, -27]}>
-            <mesh position={[-3.2, 1.3, 0]} castShadow>
+          <group position={[-13, 0, -25]}>
+            <mesh position={[-2.4, 1.3, 0]} castShadow>
               <boxGeometry args={[0.25, 2.6, 0.25]} />
               <meshStandardMaterial color="#ffffff" />
             </mesh>
-            <mesh position={[3.2, 1.3, 0]} castShadow>
+            <mesh position={[2.4, 1.3, 0]} castShadow>
               <boxGeometry args={[0.25, 2.6, 0.25]} />
               <meshStandardMaterial color="#ffffff" />
             </mesh>
             <mesh position={[0, 2.6, 0]} castShadow>
-              <boxGeometry args={[6.65, 0.25, 0.25]} />
+              <boxGeometry args={[5.05, 0.25, 0.25]} />
               <meshStandardMaterial color="#ffffff" />
             </mesh>
           </group>
-          <group position={[0, 0, -33]}>
-            <mesh position={[0, 0.6, 0]} castShadow>
-              <boxGeometry args={[24, 1.2, 2.5]} />
-              <meshStandardMaterial color="#dc2626" />
+          <group position={[13, 0, -25]}>
+            <mesh position={[-2.4, 1.3, 0]} castShadow>
+              <boxGeometry args={[0.25, 2.6, 0.25]} />
+              <meshStandardMaterial color="#ffffff" />
             </mesh>
-            <mesh position={[0, 1.6, -1.5]} castShadow>
-              <boxGeometry args={[24, 2.2, 2.5]} />
-              <meshStandardMaterial color="#f8fafc" />
+            <mesh position={[2.4, 1.3, 0]} castShadow>
+              <boxGeometry args={[0.25, 2.6, 0.25]} />
+              <meshStandardMaterial color="#ffffff" />
+            </mesh>
+            <mesh position={[0, 2.6, 0]} castShadow>
+              <boxGeometry args={[5.05, 0.25, 0.25]} />
+              <meshStandardMaterial color="#ffffff" />
             </mesh>
           </group>
         </group>
@@ -1975,7 +2000,7 @@ function SportsEnvironment({ faseId, nearPakLukman }: { faseId: string; nearPakL
 
       {faseId === "fase-c" && (
         <group>
-          <group position={[0, 0, -26]}>
+          <group position={[-14, 0, -25]}>
             <mesh position={[-2.2, 0.6, 0]} castShadow>
               <boxGeometry args={[2, 1.2, 2]} />
               <meshStandardMaterial color="#cbd5e1" />
@@ -1999,18 +2024,7 @@ function SportsEnvironment({ faseId, nearPakLukman }: { faseId: string; nearPakL
             </Text>
           </group>
 
-          <group position={[-10, 0, -26]}>
-            <mesh position={[0, 2.5, 0]} castShadow>
-              <cylinderGeometry args={[0.5, 0.9, 5, 16]} />
-              <meshStandardMaterial color="#e2e8f0" metalness={0.5} />
-            </mesh>
-            <mesh position={[0, 5.4, 0]}>
-              <coneGeometry args={[0.7, 1.4, 16]} />
-              <meshStandardMaterial color="#f97316" emissive="#ea580c" emissiveIntensity={0.8} />
-            </mesh>
-          </group>
-
-          <group position={[10, 0, -26]}>
+          <group position={[14, 0, -25]}>
             <mesh position={[0, 2.2, 0]} castShadow>
               <boxGeometry args={[0.3, 4.4, 0.3]} />
               <meshStandardMaterial color="#1e293b" />
@@ -2213,6 +2227,26 @@ export default function GameWorld({
   const [otherPlayers, setOtherPlayers] = useState<{ [id: string]: any }>({});
   const [onlineCount, setOnlineCount] = useState(isSpectator ? 0 : 1);
 
+  // State Kamera Bebas (Putar Horizontal/Vertikal + Zoom)
+  const cameraOrbitRef = useRef<CameraOrbitState>({ yaw: 0, pitch: 0.62, zoom: 1 });
+  const cameraDragRef = useRef<{ active: boolean; lastX: number; lastY: number; pointerId: number | null }>({
+    active: false,
+    lastX: 0,
+    lastY: 0,
+    pointerId: null,
+  });
+
+  const adjustCameraOrbit = (dYaw: number, dPitch: number, dZoom: number) => {
+    const cur = cameraOrbitRef.current;
+    cur.yaw += dYaw;
+    cur.pitch = THREE.MathUtils.clamp(cur.pitch + dPitch, 0.22, 1.32);
+    cur.zoom = THREE.MathUtils.clamp(cur.zoom + dZoom, 0.55, 1.85);
+  };
+
+  const resetCameraOrbit = () => {
+    cameraOrbitRef.current = { yaw: 0, pitch: 0.62, zoom: 1 };
+  };
+
   const [worldMap, setWorldMap] = useState<"stadium" | "explore" | "bridge" | "school">("stadium");
   const [nearExplorePortal, setNearExplorePortal] = useState(false);
   const [nearBridgePortal, setNearBridgePortal] = useState(false);
@@ -2334,14 +2368,12 @@ export default function GameWorld({
     prevCharLevelRef.current = characterLevel;
   }, [characterLevel, isSpectator, progressLoaded, playerName]);
 
-  // State Jembatan Juara (20 Level + Start Bersama-sama)
   const [bridgeLevel, setBridgeLevel] = useState<number>(1);
   const [bridgeSeconds, setBridgeSeconds] = useState<number>(0);
   const [bridgeNotice, setBridgeNotice] = useState<string | null>(null);
   const [bridgeRaceStarted, setBridgeRaceStarted] = useState<boolean>(false);
   const [bridgeCountdown, setBridgeCountdown] = useState<number | null>(null);
 
-  // State Mode Guru
   const [teacherTab, setTeacherTab] = useState<"leaderboard" | "live">("leaderboard");
   const [summaryStudentId, setSummaryStudentId] = useState<string | null>(null);
   const [confirmDeleteStudent, setConfirmDeleteStudent] = useState<{ id: string; name: string } | null>(null);
@@ -2445,7 +2477,6 @@ export default function GameWorld({
     return [spawnOffsetX, 0.5, 27];
   };
 
-  // Masuk ke Gedung Sekolah (6 Kelas: Kelas 1 - 6)
   const enterSchoolBuilding = () => {
     setWorldMap("school");
     setNearSchoolDoor(false);
@@ -2568,7 +2599,7 @@ export default function GameWorld({
     setBridgeRaceStarted(false);
     setBridgeCountdown(null);
     setTeleportTrigger({
-      pos: cameFromSchool ? [-22, 0, 10] : [0, 0, 5],
+      pos: cameFromSchool ? [0, 0, -27.5] : [0, 0, 5],
       id: Date.now(),
     });
   };
@@ -3061,10 +3092,17 @@ export default function GameWorld({
     activeBuilding && (buildingQuestions.length > 0 ? buildingQuestions : activeBuilding.kuis);
   const nextLevelProgress = correctCount % 3;
 
-  const pakLukmanDialog = `Selamat datang di Sekolah Juara PJOK, ${playerName}! Saya Pak Lukman. Silakan masuk melewati gerbang ke dalam Gedung Sekolah untuk menyelesaikan misi dari Kelas 1 sampai Kelas 6!`;
+  const pakLukmanDialog = `Selamat datang di SD Negeri Juara PJOK, ${playerName}! Saya Pak Lukman, Kepala Sekolah di sini. Silakan masuk ke dalam Gedung Sekolah di belakang saya untuk menyelesaikan misi dari Kelas 1 sampai Kelas 6!`;
 
   return (
-    <div className="relative w-full h-[100dvh] overflow-hidden select-none">
+    <div
+      onWheel={(e) => {
+        if (!showModal && !selectedExploreModal && !activeClassroomModal && !podiumModal) {
+          adjustCameraOrbit(0, 0, e.deltaY * 0.0008);
+        }
+      }}
+      className="relative w-full h-[100dvh] overflow-hidden select-none"
+    >
       <CheerfulBGM muted={isMuted} />
 
       {/* HUD Atas Ramping + Level Karakter & XP */}
@@ -3083,7 +3121,7 @@ export default function GameWorld({
           >
             ← Fase
           </button>
-          <span className="text-xs font-bold text-yellow-400 truncate max-w-[115px] sm:max-w-none">
+          <span className="text-xs font-bold text-yellow-400 truncate max-w-[105px] sm:max-w-none">
             {worldMap === "school"
               ? "🏫 Gedung Sekolah"
               : worldMap === "explore"
@@ -3112,7 +3150,7 @@ export default function GameWorld({
             </span>
             {worldMap === "school" && (
               <span className="text-amber-300 font-bold">
-                🏫 {completedClassIds.length}/{SCHOOL_CLASSROOMS.length} Kelas
+                🏫 {completedClassIds.length}/{SCHOOL_CLASSROOMS.length}
               </span>
             )}
             {worldMap === "explore" && (
@@ -3126,7 +3164,7 @@ export default function GameWorld({
               </span>
             )}
             <span className="text-emerald-400 font-extrabold">
-              {score} XP ({xpInCurrentLevel}/{XP_PER_CHARACTER_LEVEL})
+              {score} XP
             </span>
             <span className="text-sky-400 font-bold">👥 {onlineCount}</span>
           </div>
@@ -3148,6 +3186,7 @@ export default function GameWorld({
               onClick={() => {
                 setFollowedPlayerId(null);
                 setCameraPreset("overview");
+                resetCameraOrbit();
               }}
               className={`px-2.5 py-1 rounded-lg text-xs font-bold transition ${
                 !followedPlayerId && cameraPreset === "overview"
@@ -3161,6 +3200,7 @@ export default function GameWorld({
               onClick={() => {
                 setFollowedPlayerId(null);
                 setCameraPreset("arena");
+                resetCameraOrbit();
               }}
               className={`px-2.5 py-1 rounded-lg text-xs font-bold transition ${
                 !followedPlayerId && cameraPreset === "arena"
@@ -3174,10 +3214,56 @@ export default function GameWorld({
         )}
       </div>
 
+      {/* Kontrol Kamera Bebas (Putar Kiri/Kanan, Atas/Bawah, Zoom In/Out, Reset) */}
+      <div
+        style={{
+          top: "max(3.2rem, calc(env(safe-area-inset-top) + 2.8rem))",
+          right: "max(0.75rem, env(safe-area-inset-right))",
+        }}
+        className="fixed z-10 flex items-center gap-1 bg-slate-900/85 backdrop-blur-sm text-white px-2 py-1 rounded-xl border border-slate-700 shadow-lg pointer-events-auto text-[11px] font-extrabold"
+      >
+        <span className="text-slate-300 hidden sm:inline mr-0.5">🎥 Kamera:</span>
+        <button
+          title="Putar Kamera ke Kiri"
+          onClick={() => adjustCameraOrbit(-0.35, 0, 0)}
+          className="bg-slate-800 hover:bg-slate-700 px-2 py-1 rounded-lg"
+        >
+          ↺
+        </button>
+        <button
+          title="Putar Kamera ke Kanan"
+          onClick={() => adjustCameraOrbit(0.35, 0, 0)}
+          className="bg-slate-800 hover:bg-slate-700 px-2 py-1 rounded-lg"
+        >
+          ↻
+        </button>
+        <button
+          title="Perbesar (Zoom In)"
+          onClick={() => adjustCameraOrbit(0, 0, -0.15)}
+          className="bg-slate-800 hover:bg-slate-700 px-2 py-1 rounded-lg"
+        >
+          🔍+
+        </button>
+        <button
+          title="Perkecil (Zoom Out)"
+          onClick={() => adjustCameraOrbit(0, 0, 0.15)}
+          className="bg-slate-800 hover:bg-slate-700 px-2 py-1 rounded-lg"
+        >
+          🔍-
+        </button>
+        <button
+          title="Reset Sudut Kamera"
+          onClick={resetCameraOrbit}
+          className="bg-yellow-400 hover:bg-yellow-300 text-slate-950 px-2 py-1 rounded-lg"
+        >
+          Reset
+        </button>
+      </div>
+
       {/* Notifikasi Guru */}
       {isSpectator && teacherToast && (
         <div
-          style={{ top: "max(3.2rem, calc(env(safe-area-inset-top) + 2.8rem))" }}
+          style={{ top: "max(5.8rem, calc(env(safe-area-inset-top) + 5.2rem))" }}
           className="fixed left-1/2 -translate-x-1/2 z-30 bg-emerald-600 text-white px-4 py-2 rounded-2xl border-2 border-white font-extrabold text-xs shadow-2xl text-center"
         >
           {teacherToast}
@@ -3187,28 +3273,28 @@ export default function GameWorld({
       {/* Notifikasi Naik Level Karakter / Misi */}
       {!isSpectator && levelUpBanner && (
         <div
-          style={{ top: "max(3.2rem, calc(env(safe-area-inset-top) + 2.8rem))" }}
+          style={{ top: "max(5.8rem, calc(env(safe-area-inset-top) + 5.2rem))" }}
           className="fixed left-1/2 -translate-x-1/2 z-30 bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 px-4 py-2 rounded-2xl border-2 border-white font-extrabold text-xs md:text-sm shadow-2xl animate-bounce text-center"
         >
           {levelUpBanner}
         </div>
       )}
 
-      {/* Dialog NPC Pak Lukman di Depan Gerbang Sekolah */}
+      {/* Dialog NPC Pak Lukman (Kepala Sekolah) di Depan Gedung Sekolah */}
       {!isSpectator && worldMap === "stadium" && nearPakLukman && !miniGameActive && !showModal && (
         <div
-          style={{ top: "max(3.2rem, calc(env(safe-area-inset-top) + 2.8rem))" }}
+          style={{ top: "max(5.8rem, calc(env(safe-area-inset-top) + 5.2rem))" }}
           className="fixed left-1/2 -translate-x-1/2 z-20 w-[92%] max-w-lg bg-slate-900/95 text-white p-3.5 rounded-2xl border-2 border-teal-400 shadow-2xl"
         >
           <div className="flex justify-between items-center mb-1">
             <span className="font-extrabold text-teal-300 text-sm md:text-base">
-              👨‍🏫 Pak Lukman (Guru Penyambut Gerbang)
+              👨‍🏫 Pak Lukman (Kepala Sekolah)
             </span>
             <button
               onClick={() => speakText(pakLukmanDialog)}
               className="bg-teal-600 hover:bg-teal-500 text-xs px-3 py-1 rounded-full font-bold"
             >
-              🔊 Suara Pak Lukman
+              🔊 Suara Kepala Sekolah
             </button>
           </div>
           <p className="text-xs md:text-sm leading-relaxed text-slate-100">
@@ -3342,7 +3428,7 @@ export default function GameWorld({
               Selamat & Apresiasi untuk {playerName}!
             </h2>
             <p className="text-xs md:text-sm text-slate-200 leading-relaxed mb-4">
-              Pak Lukman sangat bangga! Kamu telah menuntaskan seluruh <b>6 misi kelas (Kelas 1 hingga Kelas 6)</b> di dalam Gedung Sekolah. Bonus <b>+600 XP</b> telah ditambahkan ke karaktermu!
+              Kepala Sekolah Pak Lukman sangat bangga! Kamu telah menuntaskan seluruh <b>6 misi kelas (Kelas 1 hingga Kelas 6)</b> di dalam Gedung Sekolah. Bonus <b>+600 XP</b> telah ditambahkan ke karaktermu!
             </p>
             <div className="flex gap-2">
               <button
@@ -3379,7 +3465,7 @@ export default function GameWorld({
       {/* Panel Status & Tombol Start Bersama-sama saat berada di Area Start Jembatan Juara */}
       {!isSpectator && worldMap === "bridge" && !bridgeRaceStarted && bridgeCountdown === null && !podiumModal && (
         <div
-          style={{ top: "max(3.2rem, calc(env(safe-area-inset-top) + 2.8rem))" }}
+          style={{ top: "max(5.8rem, calc(env(safe-area-inset-top) + 5.2rem))" }}
           className="fixed left-1/2 -translate-x-1/2 z-20 w-[92%] max-w-md bg-slate-950/90 backdrop-blur-md text-white p-3.5 rounded-2xl border-2 border-yellow-400 shadow-2xl text-center"
         >
           <p className="text-xs font-extrabold text-yellow-300 mb-1">
@@ -3400,7 +3486,7 @@ export default function GameWorld({
       {/* Indikator Level 1..20 Jembatan Juara setelah Start Dibuka */}
       {!isSpectator && worldMap === "bridge" && bridgeRaceStarted && !podiumModal && (
         <div
-          style={{ top: "max(3.1rem, calc(env(safe-area-inset-top) + 2.7rem))" }}
+          style={{ top: "max(5.8rem, calc(env(safe-area-inset-top) + 5.2rem))" }}
           className="fixed left-1/2 -translate-x-1/2 z-20 bg-slate-950/85 text-white px-4 py-1.5 rounded-full border border-emerald-400 text-xs font-extrabold shadow-lg pointer-events-none"
         >
           {bridgeNotice
@@ -3548,7 +3634,7 @@ export default function GameWorld({
 
       {/* Panel Mode Guru */}
       {isSpectator && (
-        <div className="absolute top-16 right-3 z-10 w-80 max-h-[82vh] overflow-y-auto bg-slate-900/95 backdrop-blur-md text-white p-3.5 rounded-2xl border border-slate-700 shadow-2xl">
+        <div className="absolute top-24 right-3 z-10 w-80 max-h-[78vh] overflow-y-auto bg-slate-900/95 backdrop-blur-md text-white p-3.5 rounded-2xl border border-slate-700 shadow-2xl">
           <div className="flex items-center justify-between border-b border-slate-700 pb-2 mb-2.5">
             <span className="text-xs font-extrabold text-yellow-400 uppercase tracking-wide">
               📊 Panel Guru ({studentList.length} Siswa)
@@ -3808,7 +3894,7 @@ export default function GameWorld({
       {/* Panel Soal Mini-Game & Mode Petualangan Eliminasi */}
       {!isSpectator && worldMap === "stadium" && miniGameActive && currentMgQuestion && !podiumModal && (
         <div
-          style={{ top: "max(3.1rem, calc(env(safe-area-inset-top) + 2.7rem))" }}
+          style={{ top: "max(5.8rem, calc(env(safe-area-inset-top) + 5.2rem))" }}
           className={`fixed left-1/2 -translate-x-1/2 z-20 w-[94%] max-w-xl bg-slate-950/85 backdrop-blur-sm text-white px-3 py-2.5 rounded-2xl border-2 shadow-lg pointer-events-auto ${
             gameMode === "adventure" ? "border-purple-400" : "border-yellow-400/90"
           }`}
@@ -4039,7 +4125,10 @@ export default function GameWorld({
       )}
 
       {!isSpectator && worldMap === "stadium" && nearCoach && !miniGameActive && !showModal && (
-        <div className="absolute top-16 left-1/2 -translate-x-1/2 z-10 w-[92%] max-w-lg bg-slate-900/95 text-white p-3.5 rounded-2xl border-2 border-yellow-400 shadow-2xl">
+        <div
+          style={{ top: "max(5.8rem, calc(env(safe-area-inset-top) + 5.2rem))" }}
+          className="fixed left-1/2 -translate-x-1/2 z-10 w-[92%] max-w-lg bg-slate-900/95 text-white p-3.5 rounded-2xl border-2 border-yellow-400 shadow-2xl"
+        >
           <div className="flex justify-between items-center mb-1">
             <span className="font-bold text-yellow-400 text-sm md:text-base">🧢 {pjokData.npc_utama.nama}</span>
             <button
@@ -4137,106 +4226,135 @@ export default function GameWorld({
         </div>
       )}
 
-      <Canvas shadows camera={{ position: [0, 18, 26], fov: 60 }}>
-        <Sky sunPosition={worldMap === "explore" ? [60, 50, 80] : [100, 30, 100]} />
-        <ambientLight intensity={0.65} />
-        <directionalLight position={[15, 25, 15]} intensity={1.2} castShadow />
-        <Environment preset="park" />
+      {/* Area 3D dengan dukungan Sentuh / Mouse Drag untuk Memutar Kamera */}
+      <div
+        onPointerDown={(e) => {
+          cameraDragRef.current = {
+            active: true,
+            lastX: e.clientX,
+            lastY: e.clientY,
+            pointerId: e.pointerId,
+          };
+        }}
+        onPointerMove={(e) => {
+          if (!cameraDragRef.current.active) return;
+          const dx = e.clientX - cameraDragRef.current.lastX;
+          const dy = e.clientY - cameraDragRef.current.lastY;
+          cameraDragRef.current.lastX = e.clientX;
+          cameraDragRef.current.lastY = e.clientY;
+          adjustCameraOrbit(-dx * 0.008, dy * 0.006, 0);
+        }}
+        onPointerUp={() => {
+          cameraDragRef.current.active = false;
+        }}
+        onPointerCancel={() => {
+          cameraDragRef.current.active = false;
+        }}
+        className="w-full h-full touch-none cursor-grab active:cursor-grabbing"
+      >
+        <Canvas shadows camera={{ position: [0, 18, 26], fov: 60 }}>
+          <Sky sunPosition={worldMap === "explore" ? [60, 50, 80] : [100, 30, 100]} />
+          <ambientLight intensity={0.65} />
+          <directionalLight position={[15, 25, 15]} intensity={1.2} castShadow />
+          <Environment preset="park" />
 
-        {worldMap === "stadium" || isSpectator ? (
-          <>
-            <SportsEnvironment faseId={faseData.id} nearPakLukman={nearPakLukman} />
+          {worldMap === "stadium" || isSpectator ? (
+            <>
+              <SportsEnvironment faseId={faseData.id} nearPakLukman={nearPakLukman} />
 
-            {ARENA_TILES.map((tile) => (
-              <ArenaFloorTile key={tile.id} tile={tile} isFallen={isTileFallen(tile.id)} />
-            ))}
+              {ARENA_TILES.map((tile) => (
+                <ArenaFloorTile key={tile.id} tile={tile} isFallen={isTileFallen(tile.id)} />
+              ))}
 
-            <group position={[0, 0, -4]}>
-              <VoxelCharacter shirtColor="#2563eb" pantsColor="#0f172a" isMoving={false} isCoach={true} />
-              <Text position={[0, 3.45, 0]} fontSize={0.45} color="#facc15" outlineWidth={0.06} outlineColor="black">
-                {nearCoach ? "💬 Coach Resky" : "❗ Coach Resky"}
-              </Text>
-            </group>
-
-            {faseData.gedung_materi.map((gedung: any, index: number) => (
-              <group key={gedung.id} position={gedung.posisi_3d}>
-                <mesh position={[0, 2.5, 0]} castShadow>
-                  <boxGeometry args={[5.5, 5, 5.5]} />
-                  <meshStandardMaterial color={BUILDING_COLORS[index % BUILDING_COLORS.length]} />
-                </mesh>
-                <mesh position={[0, 5.3, 0]} castShadow>
-                  <boxGeometry args={[6.1, 0.6, 6.1]} />
-                  <meshStandardMaterial color="#1e293b" />
-                </mesh>
-                <mesh position={[0, 1.3, 2.8]}>
-                  <boxGeometry args={[1.6, 2.6, 0.2]} />
-                  <meshStandardMaterial color="#facc15" />
-                </mesh>
-                <Text position={[0, 6.3, 0]} fontSize={0.55} color="white" outlineWidth={0.07} outlineColor="black">
-                  {gedung.nama_gedung}
+              <group position={[0, 0, -4]}>
+                <VoxelCharacter shirtColor="#2563eb" pantsColor="#0f172a" isMoving={false} isCoach={true} />
+                <Text position={[0, 3.45, 0]} fontSize={0.45} color="#facc15" outlineWidth={0.06} outlineColor="black">
+                  {nearCoach ? "💬 Coach Resky" : "❗ Coach Resky"}
                 </Text>
               </group>
-            ))}
-          </>
-        ) : worldMap === "explore" ? (
-          <ExploreWorldEnvironment readIds={readExploreIds} />
-        ) : worldMap === "school" ? (
-          <SchoolInteriorEnvironment completedClassIds={completedClassIds} />
-        ) : (
-          <ChampionBridgeEnvironment raceStarted={bridgeRaceStarted} />
-        )}
 
-        {isSpectator ? (
-          <SpectatorCameraController
-            preset={cameraPreset}
-            followedPlayer={followedPlayer}
-          />
-        ) : (
-          <Player
-            playerName={playerName}
-            avatarPreset={avatarPreset}
-            characterLevel={characterLevel}
-            questionLevel={questionLevel}
-            score={score}
-            correctCount={correctCount}
-            readExploreCount={readExploreIds.length}
-            completedSchoolCount={completedClassIds.length}
-            isEliminated={isEliminated}
-            bridgeRaceStarted={bridgeRaceStarted}
-            worldMap={worldMap}
-            socketRef={socketRef}
-            joyVector={joyVector}
-            jumpTrigger={jumpTrigger}
-            teleportTrigger={teleportTrigger}
-            onInteractBuilding={setActiveBuilding}
-            onNearCoach={setNearCoach}
-            onNearPakLukman={setNearPakLukman}
-            onNearSchoolDoor={setNearSchoolDoor}
-            onNearPortal={setNearPortal}
-            onNearAdventurePortal={setNearAdventurePortal}
-            onNearExplorePortal={setNearExplorePortal}
-            onNearBridgePortal={setNearBridgePortal}
-            onNearReturnPortal={setNearReturnPortal}
-            onNearExploreObject={setNearbyExploreObj}
-            onNearClassroom={setNearbyClassroom}
-            onBridgeLevelChange={setBridgeLevel}
-            onBridgeFall={handleBridgeFall}
-            onBridgeFinish={handleBridgeFinish}
-            onStandingTileChange={setStandingTile}
-            gedungList={faseData.gedung_materi}
-            isTileFallen={isTileFallen}
-            isMiniGame={miniGameActive}
-          />
-        )}
+              {faseData.gedung_materi.map((gedung: any, index: number) => (
+                <group key={gedung.id} position={gedung.posisi_3d}>
+                  <mesh position={[0, 2.5, 0]} castShadow>
+                    <boxGeometry args={[5.5, 5, 5.5]} />
+                    <meshStandardMaterial color={BUILDING_COLORS[index % BUILDING_COLORS.length]} />
+                  </mesh>
+                  <mesh position={[0, 5.3, 0]} castShadow>
+                    <boxGeometry args={[6.1, 0.6, 6.1]} />
+                    <meshStandardMaterial color="#1e293b" />
+                  </mesh>
+                  <mesh position={[0, 1.3, 2.8]}>
+                    <boxGeometry args={[1.6, 2.6, 0.2]} />
+                    <meshStandardMaterial color="#facc15" />
+                  </mesh>
+                  <Text position={[0, 6.3, 0]} fontSize={0.55} color="white" outlineWidth={0.07} outlineColor="black">
+                    {gedung.nama_gedung}
+                  </Text>
+                </group>
+              ))}
+            </>
+          ) : worldMap === "explore" ? (
+            <ExploreWorldEnvironment readIds={readExploreIds} />
+          ) : worldMap === "school" ? (
+            <SchoolInteriorEnvironment completedClassIds={completedClassIds} />
+          ) : (
+            <ChampionBridgeEnvironment raceStarted={bridgeRaceStarted} />
+          )}
 
-        {visibleRemotePlayers.map((p: any) => (
-          <RemotePlayer
-            key={p.id}
-            data={p}
-            isHighlighted={isSpectator && followedPlayerId === p.id}
-          />
-        ))}
-      </Canvas>
+          {isSpectator ? (
+            <SpectatorCameraController
+              preset={cameraPreset}
+              followedPlayer={followedPlayer}
+              cameraOrbitRef={cameraOrbitRef}
+            />
+          ) : (
+            <Player
+              playerName={playerName}
+              avatarPreset={avatarPreset}
+              characterLevel={characterLevel}
+              questionLevel={questionLevel}
+              score={score}
+              correctCount={correctCount}
+              readExploreCount={readExploreIds.length}
+              completedSchoolCount={completedClassIds.length}
+              isEliminated={isEliminated}
+              bridgeRaceStarted={bridgeRaceStarted}
+              worldMap={worldMap}
+              socketRef={socketRef}
+              joyVector={joyVector}
+              jumpTrigger={jumpTrigger}
+              teleportTrigger={teleportTrigger}
+              cameraOrbitRef={cameraOrbitRef}
+              onInteractBuilding={setActiveBuilding}
+              onNearCoach={setNearCoach}
+              onNearPakLukman={setNearPakLukman}
+              onNearSchoolDoor={setNearSchoolDoor}
+              onNearPortal={setNearPortal}
+              onNearAdventurePortal={setNearAdventurePortal}
+              onNearExplorePortal={setNearExplorePortal}
+              onNearBridgePortal={setNearBridgePortal}
+              onNearReturnPortal={setNearReturnPortal}
+              onNearExploreObject={setNearbyExploreObj}
+              onNearClassroom={setNearbyClassroom}
+              onBridgeLevelChange={setBridgeLevel}
+              onBridgeFall={handleBridgeFall}
+              onBridgeFinish={handleBridgeFinish}
+              onStandingTileChange={setStandingTile}
+              gedungList={faseData.gedung_materi}
+              isTileFallen={isTileFallen}
+              isMiniGame={miniGameActive}
+            />
+          )}
+
+          {visibleRemotePlayers.map((p: any) => (
+            <RemotePlayer
+              key={p.id}
+              data={p}
+              isHighlighted={isSpectator && followedPlayerId === p.id}
+            />
+          ))}
+        </Canvas>
+      </div>
     </div>
   );
 }
