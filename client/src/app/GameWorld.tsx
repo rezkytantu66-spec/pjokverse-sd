@@ -46,6 +46,246 @@ function getCharacterTitle(charLevel: number): string {
   return "Legenda PJOK";
 }
 
+// =========================================================================
+// DATA 6 RUANG KELAS DI DALAM GEDUNG SEKOLAH (KELAS 1 - 6)
+// =========================================================================
+interface SchoolClassroomMission {
+  id: string;
+  kelas: number;
+  namaKelas: string;
+  tingkatKesulitan: string;
+  bintang: string;
+  warna: string;
+  pos: [number, number, number];
+  sisi: "kiri" | "kanan";
+  judulMisi: string;
+  deskripsiMisi: string;
+  xpReward: number;
+  soalMisi: {
+    pertanyaan: string;
+    pilihan: string[];
+    jawaban_benar: number;
+    pembahasan: string;
+  }[];
+}
+
+const SCHOOL_CLASSROOMS: SchoolClassroomMission[] = [
+  {
+    id: "kelas-1",
+    kelas: 1,
+    namaKelas: "Ruang Kelas 1",
+    tingkatKesulitan: "Tingkat 1 • Pemula",
+    bintang: "⭐",
+    warna: "#22c55e",
+    pos: [-8.5, 0, 12],
+    sisi: "kiri",
+    judulMisi: "Misi Gerak Lokomotor Dasar",
+    deskripsiMisi: "Bantu Pak Lukman mengenali gerak berjalan dan berlari yang benar untuk siswa Kelas 1!",
+    xpReward: 100,
+    soalMisi: [
+      {
+        pertanyaan: "Saat berjalan ke depan dengan sikap tubuh yang baik, pandangan mata seharusnya mengarah ke ...",
+        pilihan: ["Bawah sepatu", "Depan lurus", "Samping kiri terus", "Langit atas"],
+        jawaban_benar: 1,
+        pembahasan: "Pandangan mata lurus ke depan menjaga keseimbangan dan mencegah menabrak rintangan.",
+      },
+      {
+        pertanyaan: "Gerakan berpindah tempat dari satu titik ke titik lain seperti berjalan dan berlari disebut gerak ...",
+        pilihan: ["Lokomotor", "Non-lokomotor", "Diam di tempat", "Tidur siang"],
+        jawaban_benar: 0,
+        pembahasan: "Gerak lokomotor adalah gerakan yang memindahkan seluruh tubuh dari satu tempat ke tempat lain.",
+      },
+    ],
+  },
+  {
+    id: "kelas-2",
+    kelas: 2,
+    namaKelas: "Ruang Kelas 2",
+    tingkatKesulitan: "Tingkat 2 • Dasar",
+    bintang: "⭐⭐",
+    warna: "#14b8a6",
+    pos: [8.5, 0, 12],
+    sisi: "kanan",
+    judulMisi: "Misi Keseimbangan & Sikap Pesawat Terbang",
+    deskripsiMisi: "Uji pengetahuan keseimbangan statis dan senam lantai dasar tingkat Kelas 2!",
+    xpReward: 150,
+    soalMisi: [
+      {
+        pertanyaan: "Untuk menjaga keseimbangan saat berdiri dengan satu kaki meniru pesawat terbang, kedua lengan sebaiknya ...",
+        pilihan: ["Dilipat di dada", "Direntangkan lurus ke samping", "Dimasukkan ke saku", "Diletakkan di kepala"],
+        jawaban_benar: 1,
+        pembahasan: "Merentangkan kedua lengan ke samping membantu menjaga titik pusat keseimbangan tubuh.",
+      },
+      {
+        pertanyaan: "Alat empuk yang digunakan sebagai alas saat berlatih senam lantai agar tidak cedera adalah ...",
+        pilihan: ["Papan kayu", "Matras senam", "Lantai keramik", "Batu bata"],
+        jawaban_benar: 1,
+        pembahasan: "Matras empuk melindungi kepala, punggung, dan persendian saat berlatih senam lantai.",
+      },
+    ],
+  },
+  {
+    id: "kelas-3",
+    kelas: 3,
+    namaKelas: "Ruang Kelas 3",
+    tingkatKesulitan: "Tingkat 3 • Terampil",
+    bintang: "⭐⭐⭐",
+    warna: "#3b82f6",
+    pos: [-8.5, 0, 0],
+    sisi: "kiri",
+    judulMisi: "Misi Koordinasi Lempar Tangkap Bola",
+    deskripsiMisi: "Selesaikan tantangan gerak manipulatif melempar dan menangkap bola tingkat Kelas 3!",
+    xpReward: 200,
+    soalMisi: [
+      {
+        pertanyaan: "Ketika menangkap bola yang datang setinggi dada, posisi kedua telapak tangan yang tepat adalah ...",
+        pilihan: [
+          "Membentuk mangkuk terbuka menghadap arah bola",
+          "Mengepal erat seperti meninju",
+          "Disilangkan di belakang punggung",
+          "Ditutup rapat menghadap tanah",
+        ],
+        jawaban_benar: 0,
+        pembahasan: "Telapak tangan terbuka membentuk mangkuk dengan jari rileks meredam laju bola agar tidak terlepas.",
+      },
+      {
+        pertanyaan: "Permainan kasti dan rounders mengombinasikan tiga gerak dasar utama, yaitu ...",
+        pilihan: [
+          "Berenang, menyelam, dan mengapung",
+          "Melempar, menangkap, dan memukul bola",
+          "Berguling, meroda, dan kayang",
+          "Menendang, menyundul, dan menggiring",
+        ],
+        jawaban_benar: 1,
+        pembahasan: "Permainan bola kecil seperti kasti melatih ketepatan melempar, menangkap, dan memukul bola.",
+      },
+    ],
+  },
+  {
+    id: "kelas-4",
+    kelas: 4,
+    namaKelas: "Ruang Kelas 4",
+    tingkatKesulitan: "Tingkat 4 • Menengah",
+    bintang: "⭐⭐⭐⭐",
+    warna: "#8b5cf6",
+    pos: [8.5, 0, 0],
+    sisi: "kanan",
+    judulMisi: "Misi Taktik Permainan Invasi & Net",
+    deskripsiMisi: "Pecahkan strategi operan akurat dan teknik dasar permainan beregu Kelas 4!",
+    xpReward: 250,
+    soalMisi: [
+      {
+        pertanyaan: "Dalam permainan sepak bola, bagian kaki yang paling akurat digunakan untuk mengoper bola jarak pendek kepada teman adalah ...",
+        pilihan: ["Ujung jari kaki", "Kaki bagian dalam", "Tumit belakang", "Lutut"],
+        jawaban_benar: 1,
+        pembahasan: "Permukaan kaki bagian dalam lebih lebar dan datar sehingga arah bola mudah dikontrol.",
+      },
+      {
+        pertanyaan: "Pada saat melakukan passing bawah bola voli, perkenaan bola yang benar berada pada ...",
+        pilihan: [
+          "Ujung jari-jari tangan",
+          "Pergelangan hingga lengan bawah yang dirapatkan lurus",
+          "Siku yang ditekuk ke atas",
+          "Dahi atau kepala bagian atas",
+        ],
+        jawaban_benar: 1,
+        pembahasan: "Lengan bawah yang rapat dan lurus menghasilkan pantulan bola voli yang stabil dan terarah.",
+      },
+    ],
+  },
+  {
+    id: "kelas-5",
+    kelas: 5,
+    namaKelas: "Ruang Kelas 5",
+    tingkatKesulitan: "Tingkat 5 • Mahir",
+    bintang: "⭐⭐⭐⭐⭐",
+    warna: "#f97316",
+    pos: [-8.5, 0, -12],
+    sisi: "kiri",
+    judulMisi: "Misi Kebugaran Jasmani & Daya Tahan Jantung",
+    deskripsiMisi: "Tantangan analisis kebugaran jasmani, pemanasan, dan daya tahan kardiorespirasi Kelas 5!",
+    xpReward: 350,
+    soalMisi: [
+      {
+        pertanyaan: "Mengapa pemanasan (warming up) wajib dilakukan sebelum olahraga inti dengan intensitas tinggi?",
+        pilihan: [
+          "Agar cepat merasa lelah dan mengantuk",
+          "Menaikkan suhu tubuh secara bertahap dan menyiapkan otot serta sendi agar terhindar dari cedera",
+          "Menurunkan detak jantung hingga berhenti",
+          "Menggantikan kebutuhan minum air putih",
+        ],
+        jawaban_benar: 1,
+        pembahasan: "Pemanasan melancarkan aliran darah ke otot dan meningkatkan kelenturan sendi sebelum aktivitas berat.",
+      },
+      {
+        pertanyaan: "Latihan lari pelan secara teratur selama 15-20 menit (jogging) terutama bermanfaat untuk melatih ...",
+        pilihan: [
+          "Daya tahan jantung dan paru-paru",
+          "Kekuatan otot jari tangan saja",
+          "Kemampuan menahan napas di dalam air",
+          "Kelenturan pergelangan kaki saja",
+        ],
+        jawaban_benar: 0,
+        pembahasan: "Jogging adalah latihan aerobik yang memperkuat kerja jantung dan kapasitas paru-paru.",
+      },
+      {
+        pertanyaan: "Gerakan push-up dan plank secara teratur bertujuan untuk meningkatkan kekuatan serta daya tahan otot ...",
+        pilihan: ["Lengan, bahu, dada, dan otot inti perut", "Daun telinga", "Jari kaki saja", "Otot leher bagian belakang"],
+        jawaban_benar: 0,
+        pembahasan: "Push-up dan plank melatih kekuatan otot tubuh bagian atas serta stabilitas otot inti (core).",
+      },
+    ],
+  },
+  {
+    id: "kelas-6",
+    kelas: 6,
+    namaKelas: "Ruang Kelas 6",
+    tingkatKesulitan: "Tingkat 6 • Juara Ujian",
+    bintang: "👑",
+    warna: "#ef4444",
+    pos: [8.5, 0, -12],
+    sisi: "kanan",
+    judulMisi: "Misi Ujian Akhir Juara PJOK SD",
+    deskripsiMisi: "Misi tertinggi di gedung sekolah! Buktikan penguasaan penuh PJOK dan pertolongan pertama Kelas 6!",
+    xpReward: 500,
+    soalMisi: [
+      {
+        pertanyaan: "Saat teman mengalami kram otot betis di lapangan olahraga, tindakan pertolongan pertama yang paling tepat adalah ...",
+        pilihan: [
+          "Memaksanya langsung berlari cepat kembali",
+          "Menghentikan aktivitas, meluruskan kaki perlahan, dan meregangkan otot betis dengan lembut",
+          "Memukul bagian betis dengan benda keras",
+          "Menyuruhnya melompat-lompat dengan satu kaki",
+        ],
+        jawaban_benar: 1,
+        pembahasan: "Mengistirahatkan otot dan melakukan peregangan perlahan membantu melemaskan kontraksi otot yang kram.",
+      },
+      {
+        pertanyaan: "Prinsip penanganan cedera terkilir (keseleo) ringan yang dikenal dengan metode RICE terdiri dari ...",
+        pilihan: [
+          "Run, Jump, Climb, Exercise",
+          "Rest (Istirahat), Ice (Kompres Es), Compression (Balut Tekan), Elevation (Tinggikan)",
+          "Read, Inspect, Count, Evaluate",
+          "Relax, Inhale, Cool, Eat",
+        ],
+        jawaban_benar: 1,
+        pembahasan: "Metode RICE (Rest, Ice, Compression, Elevation) efektif mengurangi pembengkakan dan nyeri pada cedera jaringan lunak.",
+      },
+      {
+        pertanyaan: "Kombinasi pola hidup sehat yang paling ideal untuk mendukung pertumbuhan fisik siswa usia sekolah adalah ...",
+        pilihan: [
+          "Begadang bermain gawai dan melewatkan sarapan",
+          "Gizi seimbang, aktivitas fisik teratur 60 menit/hari, minum air cukup, dan tidur 8-10 jam",
+          "Hanya makan makanan manis tanpa sayuran",
+          "Berolahraga berat tanpa pernah istirahat",
+        ],
+        jawaban_benar: 1,
+        pembahasan: "Keseimbangan nutrisi, olahraga rutin, hidrasi, dan tidur berkualitas adalah kunci kebugaran optimal.",
+      },
+    ],
+  },
+];
+
 const EXPLORE_OBJECTS = [
   {
     id: "obj-bola-sepak",
@@ -610,6 +850,7 @@ function Player({
   score,
   correctCount,
   readExploreCount,
+  completedSchoolCount,
   isEliminated,
   bridgeRaceStarted,
   worldMap,
@@ -619,12 +860,15 @@ function Player({
   teleportTrigger,
   onInteractBuilding,
   onNearCoach,
+  onNearPakLukman,
+  onNearSchoolDoor,
   onNearPortal,
   onNearAdventurePortal,
   onNearExplorePortal,
   onNearBridgePortal,
   onNearReturnPortal,
   onNearExploreObject,
+  onNearClassroom,
   onBridgeLevelChange,
   onBridgeFall,
   onBridgeFinish,
@@ -721,14 +965,16 @@ function Player({
     if (worldMap === "bridge") {
       onStandingTileChange(null);
       onNearCoach(false);
+      onNearPakLukman(false);
+      onNearSchoolDoor(false);
       onNearPortal(false);
       onNearAdventurePortal(false);
       onNearExplorePortal(false);
       onNearBridgePortal(false);
       onNearExploreObject(null);
+      onNearClassroom(null);
       onInteractBuilding(null);
 
-      // Tahan semua peserta di belakang garis Start sebelum aba-aba Start Bersama-sama!
       if (!bridgeRaceStarted && pos.z < BRIDGE_START_LINE_Z) {
         pos.z = BRIDGE_START_LINE_Z;
       }
@@ -821,6 +1067,49 @@ function Player({
 
       const distReturnBridge = new THREE.Vector2(pos.x, pos.z).distanceTo(new THREE.Vector2(0, 30.5));
       onNearReturnPortal(distReturnBridge < 3.5);
+    } else if (worldMap === "school") {
+      // Di Dalam Gedung Sekolah (Kelas 1 - 6)
+      onStandingTileChange(null);
+      onNearCoach(false);
+      onNearPakLukman(false);
+      onNearSchoolDoor(false);
+      onNearPortal(false);
+      onNearAdventurePortal(false);
+      onNearExplorePortal(false);
+      onNearBridgePortal(false);
+      onNearExploreObject(null);
+      onInteractBuilding(null);
+
+      if (!isGrounded.current || pos.y > 0) {
+        pos.y += velocityY.current * delta;
+        velocityY.current -= 24 * delta;
+        if (pos.y <= 0) {
+          pos.y = 0;
+          velocityY.current = 0;
+          isGrounded.current = true;
+        }
+      }
+
+      // Batasi dinding interior Gedung Sekolah
+      pos.x = THREE.MathUtils.clamp(pos.x, -11.5, 11.5);
+      pos.z = THREE.MathUtils.clamp(pos.z, -21, 21);
+
+      // Pintu Keluar Gedung Sekolah (di bagian belakang lorong z = 19.5)
+      const distExitSchool = new THREE.Vector2(pos.x, pos.z).distanceTo(new THREE.Vector2(0, 19.5));
+      onNearReturnPortal(distExitSchool < 3.6);
+
+      // Cek kedekatan dengan salah satu dari 6 Ruang Kelas (Kelas 1 - 6)
+      let foundClass: SchoolClassroomMission | null = null;
+      for (const cls of SCHOOL_CLASSROOMS) {
+        const distCls = new THREE.Vector2(pos.x, pos.z).distanceTo(
+          new THREE.Vector2(cls.pos[0], cls.pos[2])
+        );
+        if (distCls < 4.2) {
+          foundClass = cls;
+          break;
+        }
+      }
+      onNearClassroom(foundClass);
     } else {
       let currentTileId: number | null = null;
       if (worldMap === "stadium") {
@@ -855,9 +1144,18 @@ function Player({
       if (worldMap === "stadium") {
         onNearReturnPortal(false);
         onNearExploreObject(null);
+        onNearClassroom(null);
 
         const distCoach = new THREE.Vector2(pos.x, pos.z).distanceTo(new THREE.Vector2(0, -4));
         onNearCoach(distCoach < 3.8);
+
+        // NPC Pak Lukman menunggu di depan Gerbang Sekolah (-20.5, 13.5)
+        const distPakLukman = new THREE.Vector2(pos.x, pos.z).distanceTo(new THREE.Vector2(-20.5, 13.5));
+        onNearPakLukman(distPakLukman < 4.2);
+
+        // Pintu Masuk Gedung Sekolah (-27.5, 10)
+        const distSchoolDoor = new THREE.Vector2(pos.x, pos.z).distanceTo(new THREE.Vector2(-27.5, 10));
+        onNearSchoolDoor(distSchoolDoor < 4.6);
 
         const distPortal = new THREE.Vector2(pos.x, pos.z).distanceTo(new THREE.Vector2(14, -4));
         onNearPortal(distPortal < 3.8);
@@ -884,10 +1182,13 @@ function Player({
         onInteractBuilding(foundBuilding);
       } else {
         onNearCoach(false);
+        onNearPakLukman(false);
+        onNearSchoolDoor(false);
         onNearPortal(false);
         onNearAdventurePortal(false);
         onNearExplorePortal(false);
         onNearBridgePortal(false);
+        onNearClassroom(null);
         onInteractBuilding(null);
 
         const distReturn = new THREE.Vector2(pos.x, pos.z).distanceTo(new THREE.Vector2(0, -18));
@@ -920,11 +1221,12 @@ function Player({
         score,
         correctCount,
         readExploreCount,
+        completedSchoolCount,
       });
     }
 
-    const camHeight = isMiniGame ? 22 : worldMap === "bridge" ? 17 : 18;
-    const camDist = isMiniGame ? 30 : worldMap === "bridge" ? 23 : 26;
+    const camHeight = isMiniGame ? 22 : worldMap === "bridge" ? 17 : worldMap === "school" ? 16 : 18;
+    const camDist = isMiniGame ? 30 : worldMap === "bridge" ? 23 : worldMap === "school" ? 21 : 26;
     state.camera.position.lerp(
       new THREE.Vector3(pos.x, Math.max(pos.y, 0) + camHeight, pos.z + camDist),
       0.1
@@ -951,6 +1253,152 @@ function Player({
       >
         {`${isEliminated ? "👻 (Gugur) " : ""}${playerName} • Lv.${characterLevel}`}
       </Text>
+    </group>
+  );
+}
+
+// =========================================================================
+// KOMPONEN 3D INTERIOR GEDUNG SEKOLAH (6 RUANG KELAS: KELAS 1 - 6)
+// =========================================================================
+function SchoolInteriorEnvironment({
+  completedClassIds,
+}: {
+  completedClassIds: string[];
+}) {
+  return (
+    <group>
+      {/* Lantai Koridor Sekolah */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+        <planeGeometry args={[28, 46]} />
+        <meshStandardMaterial color="#f8fafc" />
+      </mesh>
+
+      {/* Karpet Merah Lorong Tengah Sekolah */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]} receiveShadow>
+        <planeGeometry args={[5.5, 42]} />
+        <meshStandardMaterial color="#dc2626" />
+      </mesh>
+
+      {/* Dinding Keliling Gedung Sekolah */}
+      <mesh position={[-13.5, 3.5, 0]} receiveShadow>
+        <boxGeometry args={[0.8, 7, 46]} />
+        <meshStandardMaterial color="#fef3c7" />
+      </mesh>
+      <mesh position={[13.5, 3.5, 0]} receiveShadow>
+        <boxGeometry args={[0.8, 7, 46]} />
+        <meshStandardMaterial color="#fef3c7" />
+      </mesh>
+      <mesh position={[0, 3.5, -22.5]} receiveShadow>
+        <boxGeometry args={[28, 7, 0.8]} />
+        <meshStandardMaterial color="#fde68a" />
+      </mesh>
+
+      {/* Papan Selamat Datang di Bagian Ujung Koridor */}
+      <group position={[0, 3.8, -21.8]}>
+        <mesh>
+          <boxGeometry args={[14, 2.2, 0.3]} />
+          <meshStandardMaterial color="#1e3a8a" />
+        </mesh>
+        <Text
+          position={[0, 0.3, 0.25]}
+          fontSize={0.62}
+          color="#facc15"
+          outlineWidth={0.06}
+          outlineColor="black"
+        >
+          🏫 GEDUNG SEKOLAH PJOK (KELAS 1 - 6)
+        </Text>
+        <Text
+          position={[0, -0.45, 0.25]}
+          fontSize={0.38}
+          color="#ffffff"
+          outlineWidth={0.04}
+          outlineColor="black"
+        >
+          Pilih Ruang Kelas & Selesaikan Semua Misi Bertingkat!
+        </Text>
+      </group>
+
+      {/* Pintu Keluar Kembali ke Lapangan Stadion (z = 20.5) */}
+      <group position={[0, 0, 20.5]}>
+        <mesh position={[-2.1, 2.1, 0]} castShadow>
+          <boxGeometry args={[0.45, 4.2, 0.45]} />
+          <meshStandardMaterial color="#f97316" />
+        </mesh>
+        <mesh position={[2.1, 2.1, 0]} castShadow>
+          <boxGeometry args={[0.45, 4.2, 0.45]} />
+          <meshStandardMaterial color="#f97316" />
+        </mesh>
+        <mesh position={[0, 4.2, 0]} castShadow>
+          <boxGeometry args={[4.6, 0.5, 0.5]} />
+          <meshStandardMaterial color="#f97316" />
+        </mesh>
+        <mesh position={[0, 2.1, 0]}>
+          <planeGeometry args={[3.8, 3.9]} />
+          <meshStandardMaterial color="#fdba74" transparent opacity={0.8} side={THREE.DoubleSide} />
+        </mesh>
+        <Text
+          position={[0, 5.0, 0]}
+          fontSize={0.55}
+          color="#ffedd5"
+          outlineWidth={0.07}
+          outlineColor="black"
+        >
+          🚪 Keluar ke Lapangan Sekolah
+        </Text>
+      </group>
+
+      {/* 6 Ruang Kelas (Kelas 1 - 6) di Kiri dan Kanan Lorong */}
+      {SCHOOL_CLASSROOMS.map((cls) => {
+        const isDone = completedClassIds.includes(cls.id);
+        const dirSign = cls.sisi === "kiri" ? -1 : 1;
+        const rotY = cls.sisi === "kiri" ? Math.PI / 2 : -Math.PI / 2;
+
+        return (
+          <group key={cls.id} position={cls.pos}>
+            {/* Karpet Area Masuk Kelas */}
+            <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.03, 0]} receiveShadow>
+              <planeGeometry args={[4.8, 5.2]} />
+              <meshStandardMaterial color={isDone ? "#86efac" : cls.warna} />
+            </mesh>
+
+            {/* Bingkai Pintu Kelas Menempel Dinding */}
+            <group position={[dirSign * 4.4, 0, 0]} rotation={[0, rotY, 0]}>
+              <mesh position={[0, 2.3, 0]} castShadow>
+                <boxGeometry args={[4.4, 4.6, 0.45]} />
+                <meshStandardMaterial color={cls.warna} />
+              </mesh>
+              <mesh position={[0, 1.8, 0.25]}>
+                <boxGeometry args={[2.2, 3.5, 0.15]} />
+                <meshStandardMaterial color="#78350f" />
+              </mesh>
+              {/* Papan Nama Kelas di Atas Pintu */}
+              <mesh position={[0, 4.95, 0.2]}>
+                <boxGeometry args={[4.6, 0.85, 0.25]} />
+                <meshStandardMaterial color="#0f172a" />
+              </mesh>
+              <Text
+                position={[0, 4.95, 0.36]}
+                fontSize={0.44}
+                color={isDone ? "#86efac" : "#fef08a"}
+                outlineWidth={0.05}
+                outlineColor="black"
+              >
+                {`${isDone ? "✅ " : ""}${cls.namaKelas} (${cls.bintang})`}
+              </Text>
+              <Text
+                position={[0, 3.95, 0.36]}
+                fontSize={0.28}
+                color="#ffffff"
+                outlineWidth={0.04}
+                outlineColor="black"
+              >
+                {cls.judulMisi}
+              </Text>
+            </group>
+          </group>
+        );
+      })}
     </group>
   );
 }
@@ -1324,11 +1772,11 @@ function ExploreWorldEnvironment({ readIds }: { readIds: string[] }) {
   );
 }
 
-function SportsEnvironment({ faseId }: { faseId: string }) {
+function SportsEnvironment({ faseId, nearPakLukman }: { faseId: string; nearPakLukman: boolean }) {
   const treePositions: [number, number, number][] = [
     [-28, 0, -28],
     [28, 0, -28],
-    [-30, 0, 10],
+    [-34, 0, -4],
     [30, 0, 10],
     [-25, 0, 32],
     [25, 0, 32],
@@ -1359,6 +1807,119 @@ function SportsEnvironment({ faseId }: { faseId: string }) {
         <ringGeometry args={[21, 25, 48]} />
         <meshStandardMaterial color={trackColor} />
       </mesh>
+
+      {/* =================================================================
+          GEDUNG SEKOLAH + GERBANG SELAMAT DATANG + PAK LUKMAN (DI SEMUA FASE)
+         ================================================================= */}
+      <group>
+        {/* Jalan Setapak Masuk Sekolah */}
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-23, 0.03, 10]} receiveShadow>
+          <planeGeometry args={[12, 4.4]} />
+          <meshStandardMaterial color="#cbd5e1" />
+        </mesh>
+
+        {/* Gerbang Sekolah Bertuliskan SELAMAT DATANG */}
+        <group position={[-18.2, 0, 10]} rotation={[0, Math.PI / 2, 0]}>
+          {/* Pilar Gerbang Kiri & Kanan */}
+          <mesh position={[-2.6, 2.3, 0]} castShadow>
+            <boxGeometry args={[0.65, 4.6, 0.65]} />
+            <meshStandardMaterial color="#dc2626" />
+          </mesh>
+          <mesh position={[2.6, 2.3, 0]} castShadow>
+            <boxGeometry args={[0.65, 4.6, 0.65]} />
+            <meshStandardMaterial color="#dc2626" />
+          </mesh>
+          {/* Balok Atas Gerbang */}
+          <mesh position={[0, 4.7, 0]} castShadow>
+            <boxGeometry args={[6.2, 1.15, 0.75]} />
+            <meshStandardMaterial color="#1e3a8a" />
+          </mesh>
+          <Text
+            position={[0, 4.88, 0.42]}
+            fontSize={0.46}
+            color="#facc15"
+            outlineWidth={0.05}
+            outlineColor="black"
+          >
+            SELAMAT DATANG
+          </Text>
+          <Text
+            position={[0, 4.38, 0.42]}
+            fontSize={0.28}
+            color="#ffffff"
+            outlineWidth={0.04}
+            outlineColor="black"
+          >
+            SD NEGERI JUARA PJOK
+          </Text>
+        </group>
+
+        {/* NPC Pak Lukman Menunggu Siswa Datang di Depan Gerbang */}
+        <group position={[-20.5, 0, 13.5]} rotation={[0, Math.PI / 2.4, 0]}>
+          <VoxelCharacter
+            shirtColor="#0f766e"
+            pantsColor="#1e293b"
+            skinColor="#fcd34d"
+            headStyle="glasses"
+            isMoving={false}
+          />
+          <Text
+            position={[0, 3.45, 0]}
+            fontSize={0.44}
+            color="#fde047"
+            outlineWidth={0.06}
+            outlineColor="black"
+          >
+            {nearPakLukman ? "💬 Pak Lukman" : "👋 Pak Lukman"}
+          </Text>
+        </group>
+
+        {/* Bangunan Gedung Sekolah Utama (x = -31.5, z = 10) */}
+        <group position={[-31.5, 0, 10]} rotation={[0, Math.PI / 2, 0]}>
+          {/* Dinding Utama Gedung */}
+          <mesh position={[0, 3.4, 0]} castShadow receiveShadow>
+            <boxGeometry args={[13.5, 6.8, 7.5]} />
+            <meshStandardMaterial color="#fef3c7" />
+          </mesh>
+          {/* Atap Limas / Pelana Gedung Sekolah */}
+          <mesh position={[0, 7.6, 0]} castShadow>
+            <boxGeometry args={[14.5, 1.6, 8.3]} />
+            <meshStandardMaterial color="#b91c1c" />
+          </mesh>
+          {/* Pintu Masuk Utama Sekolah */}
+          <mesh position={[0, 1.75, 3.82]}>
+            <boxGeometry args={[2.8, 3.5, 0.25]} />
+            <meshStandardMaterial color="#2563eb" />
+          </mesh>
+          {/* Jendela Kelas Kiri & Kanan */}
+          {[-4.4, -2.5, 2.5, 4.4].map((wx, idx) => (
+            <React.Fragment key={idx}>
+              <mesh position={[wx, 2.3, 3.8]}>
+                <boxGeometry args={[1.3, 1.3, 0.15]} />
+                <meshStandardMaterial color="#38bdf8" />
+              </mesh>
+              <mesh position={[wx, 4.7, 3.8]}>
+                <boxGeometry args={[1.3, 1.3, 0.15]} />
+                <meshStandardMaterial color="#38bdf8" />
+              </mesh>
+            </React.Fragment>
+          ))}
+          {/* Papan Nama Gedung Sekolah */}
+          <mesh position={[0, 5.9, 3.85]}>
+            <boxGeometry args={[9.5, 1.0, 0.25]} />
+            <meshStandardMaterial color="#0f172a" />
+          </mesh>
+          <Text
+            position={[0, 5.9, 4.02]}
+            fontSize={0.5}
+            color="#facc15"
+            outlineWidth={0.05}
+            outlineColor="black"
+          >
+            🏫 GEDUNG SEKOLAH (KELAS 1 - 6)
+          </Text>
+        </group>
+      </group>
 
       {faseId === "fase-a" && (
         <group>
@@ -1652,10 +2213,19 @@ export default function GameWorld({
   const [otherPlayers, setOtherPlayers] = useState<{ [id: string]: any }>({});
   const [onlineCount, setOnlineCount] = useState(isSpectator ? 0 : 1);
 
-  const [worldMap, setWorldMap] = useState<"stadium" | "explore" | "bridge">("stadium");
+  const [worldMap, setWorldMap] = useState<"stadium" | "explore" | "bridge" | "school">("stadium");
   const [nearExplorePortal, setNearExplorePortal] = useState(false);
   const [nearBridgePortal, setNearBridgePortal] = useState(false);
   const [nearReturnPortal, setNearReturnPortal] = useState(false);
+  const [nearPakLukman, setNearPakLukman] = useState(false);
+  const [nearSchoolDoor, setNearSchoolDoor] = useState(false);
+  const [nearbyClassroom, setNearbyClassroom] = useState<SchoolClassroomMission | null>(null);
+  const [activeClassroomModal, setActiveClassroomModal] = useState<SchoolClassroomMission | null>(null);
+  const [classQuizIndex, setClassQuizIndex] = useState(0);
+  const [classQuizFeedback, setClassQuizFeedback] = useState<string | null>(null);
+  const [completedClassIds, setCompletedClassIds] = useState<string[]>([]);
+  const [schoolGraduatedModal, setSchoolGraduatedModal] = useState(false);
+
   const [nearbyExploreObj, setNearbyExploreObj] = useState<(typeof EXPLORE_OBJECTS)[0] | null>(null);
   const [selectedExploreModal, setSelectedExploreModal] = useState<(typeof EXPLORE_OBJECTS)[0] | null>(null);
   const [readExploreIds, setReadExploreIds] = useState<string[]>([]);
@@ -1668,7 +2238,6 @@ export default function GameWorld({
   const [podiumModal, setPodiumModal] = useState<PodiumModalState | null>(null);
   const [progressLoaded, setProgressLoaded] = useState(false);
 
-  // Level Karakter Otomatis Berdasarkan Total XP
   const characterLevel = useMemo(() => getCharacterLevelFromXp(score), [score]);
   const characterTitle = useMemo(() => getCharacterTitle(characterLevel), [characterLevel]);
   const xpInCurrentLevel = score % XP_PER_CHARACTER_LEVEL;
@@ -1692,12 +2261,14 @@ export default function GameWorld({
         setQuestionLevel(typeof parsed.questionLevel === "number" ? parsed.questionLevel : 1);
         setCorrectCount(typeof parsed.correctCount === "number" ? parsed.correctCount : 0);
         setReadExploreIds(Array.isArray(parsed.readExploreIds) ? parsed.readExploreIds : []);
+        setCompletedClassIds(Array.isArray(parsed.completedClassIds) ? parsed.completedClassIds : []);
       } else {
         setScore(0);
         prevCharLevelRef.current = 1;
         setQuestionLevel(1);
         setCorrectCount(0);
         setReadExploreIds([]);
+        setCompletedClassIds([]);
       }
     } catch {
       // Abaikan jika penyimpanan terbatas
@@ -1718,6 +2289,7 @@ export default function GameWorld({
           questionLevel,
           correctCount,
           readExploreIds,
+          completedClassIds,
           updatedAt: Date.now(),
         })
       );
@@ -1733,6 +2305,7 @@ export default function GameWorld({
     questionLevel,
     correctCount,
     readExploreIds,
+    completedClassIds,
     isSpectator,
     progressLoaded,
   ]);
@@ -1747,7 +2320,6 @@ export default function GameWorld({
     }
   };
 
-  // Deteksi kenaikan Level Karakter dari XP
   useEffect(() => {
     if (isSpectator || !progressLoaded) return;
     if (characterLevel > prevCharLevelRef.current) {
@@ -1769,7 +2341,7 @@ export default function GameWorld({
   const [bridgeRaceStarted, setBridgeRaceStarted] = useState<boolean>(false);
   const [bridgeCountdown, setBridgeCountdown] = useState<number | null>(null);
 
-  // State Mode Guru: Tab Leaderboard, Rangkuman & Konfirmasi Hapus Siswa
+  // State Mode Guru
   const [teacherTab, setTeacherTab] = useState<"leaderboard" | "live">("leaderboard");
   const [summaryStudentId, setSummaryStudentId] = useState<string | null>(null);
   const [confirmDeleteStudent, setConfirmDeleteStudent] = useState<{ id: string; name: string } | null>(null);
@@ -1835,7 +2407,6 @@ export default function GameWorld({
     });
   };
 
-  // Timer Jembatan Juara hanya berjalan setelah Start Bersama-sama dibuka
   useEffect(() => {
     if (worldMap !== "bridge" || !bridgeRaceStarted || Boolean(podiumModal) || isSpectator) return;
     const t = setInterval(() => {
@@ -1844,7 +2415,6 @@ export default function GameWorld({
     return () => clearInterval(t);
   }, [worldMap, bridgeRaceStarted, podiumModal, isSpectator]);
 
-  // Hitung mundur serentak 3..2..1..MULAI! untuk Start Bersama-sama Jembatan Juara
   useEffect(() => {
     if (bridgeCountdown === null) return;
     if (bridgeCountdown > 0) {
@@ -1875,6 +2445,76 @@ export default function GameWorld({
     return [spawnOffsetX, 0.5, 27];
   };
 
+  // Masuk ke Gedung Sekolah (6 Kelas: Kelas 1 - 6)
+  const enterSchoolBuilding = () => {
+    setWorldMap("school");
+    setNearSchoolDoor(false);
+    setNearPakLukman(false);
+    setActiveClassroomModal(null);
+    setSchoolGraduatedModal(false);
+    setTeleportTrigger({ pos: [0, 0, 15], id: Date.now() });
+    speakText(
+      `Selamat datang di dalam Gedung Sekolah, ${playerName}! Silakan masuk ke Ruang Kelas 1 sampai Kelas 6 dan selesaikan setiap misinya!`
+    );
+  };
+
+  const openClassroomMission = (cls: SchoolClassroomMission) => {
+    setActiveClassroomModal(cls);
+    setClassQuizIndex(0);
+    setClassQuizFeedback(null);
+    speakText(`${cls.namaKelas}. ${cls.judulMisi}. ${cls.soalMisi[0].pertanyaan}`);
+  };
+
+  const handleClassroomAnswer = (idx: number) => {
+    if (!activeClassroomModal) return;
+    const currentQ = activeClassroomModal.soalMisi[classQuizIndex];
+    if (idx === currentQ.jawaban_benar) {
+      setClassQuizFeedback(`✅ Benar! ${currentQ.pembahasan}`);
+      recordCorrectProgress();
+    } else {
+      setClassQuizFeedback(`❌ Belum tepat. ${currentQ.pembahasan}`);
+    }
+  };
+
+  const nextClassroomStep = () => {
+    if (!activeClassroomModal) return;
+    setClassQuizFeedback(null);
+    if (classQuizIndex + 1 < activeClassroomModal.soalMisi.length) {
+      const nextIdx = classQuizIndex + 1;
+      setClassQuizIndex(nextIdx);
+      speakText(activeClassroomModal.soalMisi[nextIdx].pertanyaan);
+    } else {
+      const finishedCls = activeClassroomModal;
+      const alreadyDone = completedClassIds.includes(finishedCls.id);
+      const updatedClasses = alreadyDone
+        ? completedClassIds
+        : [...completedClassIds, finishedCls.id];
+
+      if (!alreadyDone) {
+        setCompletedClassIds(updatedClasses);
+        const isAll6Done = updatedClasses.length === SCHOOL_CLASSROOMS.length;
+        setScore((s) => s + finishedCls.xpReward + (isAll6Done ? 600 : 0));
+
+        if (isAll6Done) {
+          setActiveClassroomModal(null);
+          setSchoolGraduatedModal(true);
+          speakText(
+            `Selamat dan luar biasa ${playerName}! Kamu telah menyelesaikan seluruh misi Kelas 1 sampai Kelas 6 di Gedung Sekolah!`
+          );
+          return;
+        } else {
+          setLevelUpBanner(
+            `🎓 Misi ${finishedCls.namaKelas} Selesai! +${finishedCls.xpReward} XP (${updatedClasses.length}/6 Kelas)`
+          );
+          setTimeout(() => setLevelUpBanner(null), 4000);
+        }
+      }
+
+      setActiveClassroomModal(null);
+      setClassQuizIndex(0);
+    }
+  };
+
   const enterExploreWorld = () => {
     setWorldMap("explore");
     setNearExplorePortal(false);
@@ -1903,7 +2543,6 @@ export default function GameWorld({
     }
   };
 
-  // Memicu Start Bersama-sama untuk seluruh peserta di fase ini
   const triggerBridgeMassStart = () => {
     socketRef.current?.emit("startBridgeRaceAll", { faseId: faseData.id });
     if (!isSpectator) {
@@ -1915,16 +2554,23 @@ export default function GameWorld({
   };
 
   const returnToStadiumWorld = () => {
+    const cameFromSchool = worldMap === "school";
     setWorldMap("stadium");
     setNearReturnPortal(false);
     setNearbyExploreObj(null);
+    setNearbyClassroom(null);
     setSelectedExploreModal(null);
+    setActiveClassroomModal(null);
     setExploreCompletedModal(false);
+    setSchoolGraduatedModal(false);
     setPodiumModal(null);
     setBridgeNotice(null);
     setBridgeRaceStarted(false);
     setBridgeCountdown(null);
-    setTeleportTrigger({ pos: [0, 0, 5], id: Date.now() });
+    setTeleportTrigger({
+      pos: cameFromSchool ? [-22, 0, 10] : [0, 0, 5],
+      id: Date.now(),
+    });
   };
 
   const handleBridgeFall = (checkpointLvl: number) => {
@@ -1932,7 +2578,6 @@ export default function GameWorld({
     setTimeout(() => setBridgeNotice(null), 2000);
   };
 
-  // Apresiasi Juara 1, 2, 3 pada Jembatan Juara
   const handleBridgeFinish = () => {
     const bridgePeers = Object.values(otherPlayers).filter((p: any) => p.worldMap === "bridge");
     const aheadPeers = bridgePeers.filter((p: any) => (p.pos?.[2] ?? 0) <= -395);
@@ -1973,7 +2618,6 @@ export default function GameWorld({
     );
   };
 
-  // Apresiasi setelah membaca semua materi di Portal Explore PJOK
   const openExploreObjectMaterial = (obj: (typeof EXPLORE_OBJECTS)[0]) => {
     setSelectedExploreModal(obj);
     if (!readExploreIds.includes(obj.id)) {
@@ -2060,14 +2704,12 @@ export default function GameWorld({
       }
     });
 
-    // Terima sinyal Start Bersama-sama Jembatan Juara dari Guru atau teman
     socket.on("bridgeRaceStarted", ({ faseId }: { faseId: string }) => {
       if (faseId === faseData.id && !isSpectator) {
         enterBridgeWorld(true);
       }
     });
 
-    // Jika guru menghapus karakter siswa ini
     socket.on("kickedByTeacher", ({ targetId, targetName }: { targetId?: string; targetName?: string }) => {
       if (isSpectator) return;
       const isMeById = targetId && socket.id === targetId;
@@ -2085,7 +2727,6 @@ export default function GameWorld({
     };
   }, [faseData.id, playerName, avatarPreset, isSpectator]);
 
-  // Fungsi Guru Menghapus Karakter Siswa
   const handleDeleteStudent = (studentId: string, studentName: string) => {
     socketRef.current?.emit("removeStudent", {
       studentId,
@@ -2114,7 +2755,6 @@ export default function GameWorld({
     return remoteInBridge + (!isSpectator && worldMap === "bridge" ? 1 : 0);
   }, [studentList, isSpectator, worldMap]);
 
-  // Leaderboard Mode Guru (urut berdasarkan Level Karakter tertinggi lalu Total XP)
   const leaderboardStudents = useMemo(() => {
     return [...studentList].sort((a: any, b: any) => {
       const scoreA = a.score || 0;
@@ -2177,7 +2817,6 @@ export default function GameWorld({
     }
   };
 
-  // Podium Juara 1, 2, 3 untuk Arena Jatuh Bangun
   const finishPracticeArenaWithPodium = (finalHits: number) => {
     setMiniGameActive(false);
     setMgPhase("running");
@@ -2422,6 +3061,8 @@ export default function GameWorld({
     activeBuilding && (buildingQuestions.length > 0 ? buildingQuestions : activeBuilding.kuis);
   const nextLevelProgress = correctCount % 3;
 
+  const pakLukmanDialog = `Selamat datang di Sekolah Juara PJOK, ${playerName}! Saya Pak Lukman. Silakan masuk melewati gerbang ke dalam Gedung Sekolah untuk menyelesaikan misi dari Kelas 1 sampai Kelas 6!`;
+
   return (
     <div className="relative w-full h-[100dvh] overflow-hidden select-none">
       <CheerfulBGM muted={isMuted} />
@@ -2443,7 +3084,9 @@ export default function GameWorld({
             ← Fase
           </button>
           <span className="text-xs font-bold text-yellow-400 truncate max-w-[115px] sm:max-w-none">
-            {worldMap === "explore"
+            {worldMap === "school"
+              ? "🏫 Gedung Sekolah"
+              : worldMap === "explore"
               ? "🌍 Explore PJOK"
               : worldMap === "bridge"
               ? "🌉 Jembatan Juara"
@@ -2467,12 +3110,11 @@ export default function GameWorld({
             >
               🎖️ Lv.{characterLevel}
             </span>
-            <span
-              title={`Soal Lv.${questionLevel} (${nextLevelProgress}/3 benar)`}
-              className="hidden sm:inline bg-amber-400/20 border border-amber-400 text-amber-300 px-2 py-0.5 rounded-lg font-extrabold"
-            >
-              📚 Soal Lv.{questionLevel}
-            </span>
+            {worldMap === "school" && (
+              <span className="text-amber-300 font-bold">
+                🏫 {completedClassIds.length}/{SCHOOL_CLASSROOMS.length} Kelas
+              </span>
+            )}
             {worldMap === "explore" && (
               <span className="text-sky-300 font-bold">
                 🔍 {readExploreIds.length}/{EXPLORE_OBJECTS.length}
@@ -2542,13 +3184,181 @@ export default function GameWorld({
         </div>
       )}
 
-      {/* Notifikasi Naik Level Karakter / Soal */}
+      {/* Notifikasi Naik Level Karakter / Misi */}
       {!isSpectator && levelUpBanner && (
         <div
           style={{ top: "max(3.2rem, calc(env(safe-area-inset-top) + 2.8rem))" }}
           className="fixed left-1/2 -translate-x-1/2 z-30 bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 px-4 py-2 rounded-2xl border-2 border-white font-extrabold text-xs md:text-sm shadow-2xl animate-bounce text-center"
         >
           {levelUpBanner}
+        </div>
+      )}
+
+      {/* Dialog NPC Pak Lukman di Depan Gerbang Sekolah */}
+      {!isSpectator && worldMap === "stadium" && nearPakLukman && !miniGameActive && !showModal && (
+        <div
+          style={{ top: "max(3.2rem, calc(env(safe-area-inset-top) + 2.8rem))" }}
+          className="fixed left-1/2 -translate-x-1/2 z-20 w-[92%] max-w-lg bg-slate-900/95 text-white p-3.5 rounded-2xl border-2 border-teal-400 shadow-2xl"
+        >
+          <div className="flex justify-between items-center mb-1">
+            <span className="font-extrabold text-teal-300 text-sm md:text-base">
+              👨‍🏫 Pak Lukman (Guru Penyambut Gerbang)
+            </span>
+            <button
+              onClick={() => speakText(pakLukmanDialog)}
+              className="bg-teal-600 hover:bg-teal-500 text-xs px-3 py-1 rounded-full font-bold"
+            >
+              🔊 Suara Pak Lukman
+            </button>
+          </div>
+          <p className="text-xs md:text-sm leading-relaxed text-slate-100">
+            {pakLukmanDialog}
+          </p>
+          <p className="text-[11px] text-amber-300 mt-1.5 font-bold">
+            🏫 Progres Kelas Sekolahmu: {completedClassIds.length} dari 6 Kelas Selesai!
+          </p>
+        </div>
+      )}
+
+      {/* Tombol Masuk ke Gedung Sekolah saat Dekat Pintu Sekolah */}
+      {!isSpectator && worldMap === "stadium" && nearSchoolDoor && !miniGameActive && !showModal && (
+        <div className="absolute bottom-36 left-1/2 -translate-x-1/2 z-10 w-[88%] max-w-xs text-center">
+          <button
+            onClick={enterSchoolBuilding}
+            className="w-full bg-teal-400 hover:bg-teal-300 text-slate-950 font-extrabold px-4 py-3 rounded-full shadow-2xl border-2 border-white animate-bounce text-xs md:text-sm"
+          >
+            🏫 Masuk ke Gedung Sekolah (Kelas 1 - 6)!
+          </button>
+        </div>
+      )}
+
+      {/* Tombol Masuk Ruang Kelas (Kelas 1 - 6) di Dalam Gedung Sekolah */}
+      {!isSpectator && worldMap === "school" && nearbyClassroom && !activeClassroomModal && (
+        <div className="absolute bottom-36 left-1/2 -translate-x-1/2 z-10 w-[90%] max-w-sm text-center">
+          <button
+            onClick={() => openClassroomMission(nearbyClassroom)}
+            className="w-full bg-yellow-400 hover:bg-yellow-300 text-slate-950 font-extrabold px-4 py-3 rounded-full shadow-2xl border-2 border-white animate-bounce text-xs md:text-sm"
+          >
+            🚪 Masuk {nearbyClassroom.namaKelas} • {nearbyClassroom.tingkatKesulitan}
+          </button>
+        </div>
+      )}
+
+      {/* Modal Misi Ruang Kelas (Kelas 1 - 6) */}
+      {!isSpectator && activeClassroomModal && (
+        <div className="fixed inset-0 z-30 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-900 text-white border-2 border-yellow-400 rounded-3xl p-5 max-w-xl w-full shadow-2xl max-h-[90dvh] overflow-y-auto">
+            <div className="flex justify-between items-start border-b border-slate-700 pb-3 mb-3">
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <span
+                    style={{ backgroundColor: activeClassroomModal.warna }}
+                    className="text-slate-950 text-xs font-extrabold px-2.5 py-0.5 rounded-full"
+                  >
+                    {activeClassroomModal.namaKelas}
+                  </span>
+                  <span className="bg-slate-800 border border-amber-400 text-amber-300 text-[11px] font-bold px-2.5 py-0.5 rounded-full">
+                    {activeClassroomModal.bintang} {activeClassroomModal.tingkatKesulitan}
+                  </span>
+                </div>
+                <h3 className="text-base md:text-lg font-extrabold text-yellow-300">
+                  {activeClassroomModal.judulMisi}
+                </h3>
+                <p className="text-xs text-slate-300 mt-0.5">
+                  {activeClassroomModal.deskripsiMisi}
+                </p>
+              </div>
+              <button
+                onClick={() => setActiveClassroomModal(null)}
+                className="text-slate-400 hover:text-white font-bold text-xl"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="bg-slate-800/90 border border-slate-700 rounded-2xl p-4">
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-xs font-extrabold text-emerald-400">
+                  🎯 Soal Misi {classQuizIndex + 1} dari {activeClassroomModal.soalMisi.length} • Hadiah +{activeClassroomModal.xpReward} XP
+                </span>
+                <button
+                  onClick={() =>
+                    speakText(activeClassroomModal.soalMisi[classQuizIndex].pertanyaan)
+                  }
+                  className="bg-sky-600 hover:bg-sky-500 text-white text-xs px-3 py-1 rounded-full font-bold"
+                >
+                  🔊 Bacakan Soal
+                </button>
+              </div>
+
+              <h4 className="font-bold text-sm md:text-base text-white mb-3 leading-snug">
+                {activeClassroomModal.soalMisi[classQuizIndex].pertanyaan}
+              </h4>
+
+              <div className="grid grid-cols-1 gap-2">
+                {activeClassroomModal.soalMisi[classQuizIndex].pilihan.map(
+                  (opsi: string, i: number) => (
+                    <button
+                      key={i}
+                      onClick={() => handleClassroomAnswer(i)}
+                      disabled={classQuizFeedback !== null}
+                      className="text-left px-4 py-2.5 rounded-xl bg-slate-900/90 border border-slate-600 hover:border-yellow-400 hover:bg-slate-800 font-medium text-xs md:text-sm transition"
+                    >
+                      {String.fromCharCode(65 + i)}. {opsi}
+                    </button>
+                  )
+                )}
+              </div>
+
+              {classQuizFeedback && (
+                <div className="mt-3 p-3 rounded-xl bg-slate-950 border border-emerald-500/50 flex flex-col sm:flex-row justify-between items-center gap-3">
+                  <p className="text-xs md:text-sm font-semibold text-slate-100">
+                    {classQuizFeedback}
+                  </p>
+                  <button
+                    onClick={nextClassroomStep}
+                    className="bg-yellow-400 hover:bg-yellow-300 text-slate-950 px-4 py-2 rounded-xl text-xs font-extrabold shrink-0"
+                  >
+                    {classQuizIndex + 1 < activeClassroomModal.soalMisi.length
+                      ? "Soal Berikutnya →"
+                      : "Selesaikan Misi Kelas ✅"}
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Apresiasi Lulus Semua 6 Kelas Sekolah */}
+      {!isSpectator && schoolGraduatedModal && (
+        <div className="fixed inset-0 z-30 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-gradient-to-b from-teal-900 to-slate-900 border-4 border-yellow-400 rounded-3xl p-6 max-w-md w-full text-center text-white shadow-2xl">
+            <div className="text-5xl mb-2 animate-bounce">🎓🏆</div>
+            <span className="inline-block bg-yellow-400 text-slate-950 text-[11px] font-extrabold px-3 py-0.5 rounded-full mb-2">
+              LULUSAN TERBAIK SEKOLAH PJOK (KELAS 1 - 6)
+            </span>
+            <h2 className="text-lg md:text-xl font-extrabold text-yellow-300 mb-2">
+              Selamat & Apresiasi untuk {playerName}!
+            </h2>
+            <p className="text-xs md:text-sm text-slate-200 leading-relaxed mb-4">
+              Pak Lukman sangat bangga! Kamu telah menuntaskan seluruh <b>6 misi kelas (Kelas 1 hingga Kelas 6)</b> di dalam Gedung Sekolah. Bonus <b>+600 XP</b> telah ditambahkan ke karaktermu!
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setSchoolGraduatedModal(false)}
+                className="flex-1 bg-yellow-400 hover:bg-yellow-300 text-slate-950 font-extrabold py-2.5 rounded-xl text-xs"
+              >
+                🏫 Tetap di Sekolah
+              </button>
+              <button
+                onClick={returnToStadiumWorld}
+                className="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-bold py-2.5 rounded-xl text-xs"
+              >
+                🏟️ Keluar ke Lapangan
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -2736,7 +3546,7 @@ export default function GameWorld({
         </div>
       )}
 
-      {/* Panel Mode Guru: Leaderboard XP & Level + Rangkuman + Hapus Siswa */}
+      {/* Panel Mode Guru */}
       {isSpectator && (
         <div className="absolute top-16 right-3 z-10 w-80 max-h-[82vh] overflow-y-auto bg-slate-900/95 backdrop-blur-md text-white p-3.5 rounded-2xl border border-slate-700 shadow-2xl">
           <div className="flex items-center justify-between border-b border-slate-700 pb-2 mb-2.5">
@@ -2866,7 +3676,11 @@ export default function GameWorld({
                           {student.name || "Siswa"}
                         </span>
                       </div>
-                      {student.worldMap === "bridge" ? (
+                      {student.worldMap === "school" ? (
+                        <span className="px-2 py-0.5 rounded text-[10px] font-extrabold bg-teal-600 text-white shrink-0">
+                          🏫 Sekolah
+                        </span>
+                      ) : student.worldMap === "bridge" ? (
                         <span className="px-2 py-0.5 rounded text-[10px] font-extrabold bg-emerald-600 text-white shrink-0">
                           🌉 Jembatan
                         </span>
@@ -2911,7 +3725,6 @@ export default function GameWorld({
             </div>
           )}
 
-          {/* Kartu Rangkuman Kemajuan Tiap Karakter pada Mode Guru */}
           {summaryStudent && (
             <div className="mt-3 pt-3 border-t border-slate-700 bg-slate-950/90 p-3 rounded-xl border border-sky-500/40">
               <div className="flex items-center justify-between mb-2">
@@ -2931,6 +3744,7 @@ export default function GameWorld({
                 const sQuestionLvl = summaryStudent.questionLevel || 1;
                 const sCorrect = summaryStudent.correctCount || 0;
                 const sExplore = summaryStudent.readExploreCount || 0;
+                const sSchool = summaryStudent.completedSchoolCount || 0;
                 return (
                   <div className="space-y-1.5 text-[11px]">
                     <div className="flex justify-between">
@@ -2942,6 +3756,12 @@ export default function GameWorld({
                     <div className="flex justify-between">
                       <span className="text-slate-400">Total XP Terkumpul:</span>
                       <span className="font-extrabold text-emerald-400">{sScore} XP</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Misi Kelas Sekolah:</span>
+                      <span className="font-bold text-teal-300">
+                        {sSchool}/{SCHOOL_CLASSROOMS.length} kelas
+                      </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-slate-400">Tingkat Kesulitan Soal:</span>
@@ -3052,34 +3872,40 @@ export default function GameWorld({
       )}
 
       {/* Kontrol Layar Sentuh Mode Portrait */}
-      {!isSpectator && !showModal && !selectedExploreModal && !podiumModal && !exploreCompletedModal && (
-        <>
-          <div
-            style={{
-              bottom: "max(1.5rem, env(safe-area-inset-bottom))",
-              left: "max(1.25rem, env(safe-area-inset-left))",
-            }}
-            className="absolute z-10"
-          >
-            <VirtualJoystick onMove={setJoyVector} />
-          </div>
-
-          <div
-            style={{
-              bottom: "max(1.75rem, env(safe-area-inset-bottom))",
-              right: "max(1.25rem, env(safe-area-inset-right))",
-            }}
-            className="absolute z-10"
-          >
-            <button
-              onPointerDown={() => setJumpTrigger((n) => n + 1)}
-              className="w-20 h-20 rounded-full bg-emerald-500/90 active:bg-emerald-400 border-4 border-white text-slate-950 font-extrabold text-sm shadow-xl touch-none"
+      {!isSpectator &&
+        !showModal &&
+        !selectedExploreModal &&
+        !activeClassroomModal &&
+        !podiumModal &&
+        !exploreCompletedModal &&
+        !schoolGraduatedModal && (
+          <>
+            <div
+              style={{
+                bottom: "max(1.5rem, env(safe-area-inset-bottom))",
+                left: "max(1.25rem, env(safe-area-inset-left))",
+              }}
+              className="absolute z-10"
             >
-              LOMPAT
-            </button>
-          </div>
-        </>
-      )}
+              <VirtualJoystick onMove={setJoyVector} />
+            </div>
+
+            <div
+              style={{
+                bottom: "max(1.75rem, env(safe-area-inset-bottom))",
+                right: "max(1.25rem, env(safe-area-inset-right))",
+              }}
+              className="absolute z-10"
+            >
+              <button
+                onPointerDown={() => setJumpTrigger((n) => n + 1)}
+                className="w-20 h-20 rounded-full bg-emerald-500/90 active:bg-emerald-400 border-4 border-white text-slate-950 font-extrabold text-sm shadow-xl touch-none"
+              >
+                LOMPAT
+              </button>
+            </div>
+          </>
+        )}
 
       {/* Tombol Portal 1 (Kanan): Arena Jatuh Bangun */}
       {!isSpectator && worldMap === "stadium" && nearPortal && !miniGameActive && !showModal && (
@@ -3130,16 +3956,22 @@ export default function GameWorld({
       )}
 
       {/* Tombol Kembali ke Stadion Utama */}
-      {!isSpectator && worldMap !== "stadium" && nearReturnPortal && !selectedExploreModal && (
-        <div className="absolute bottom-36 left-1/2 -translate-x-1/2 z-10 w-[88%] max-w-xs text-center">
-          <button
-            onClick={returnToStadiumWorld}
-            className="w-full bg-orange-500 hover:bg-orange-400 text-slate-950 font-extrabold px-4 py-3 rounded-full shadow-2xl border-2 border-white animate-bounce text-xs md:text-sm"
-          >
-            🏟️ Kembali ke Stadion Utama
-          </button>
-        </div>
-      )}
+      {!isSpectator &&
+        worldMap !== "stadium" &&
+        nearReturnPortal &&
+        !selectedExploreModal &&
+        !activeClassroomModal && (
+          <div className="absolute bottom-36 left-1/2 -translate-x-1/2 z-10 w-[88%] max-w-xs text-center">
+            <button
+              onClick={returnToStadiumWorld}
+              className="w-full bg-orange-500 hover:bg-orange-400 text-slate-950 font-extrabold px-4 py-3 rounded-full shadow-2xl border-2 border-white animate-bounce text-xs md:text-sm"
+            >
+              {worldMap === "school"
+                ? "🚪 Keluar ke Lapangan Sekolah"
+                : "🏟️ Kembali ke Stadion Utama"}
+            </button>
+          </div>
+        )}
 
       {/* Tombol di Dunia Explore PJOK: Dekat Benda Olahraga */}
       {!isSpectator && worldMap === "explore" && nearbyExploreObj && !selectedExploreModal && (
@@ -3313,7 +4145,7 @@ export default function GameWorld({
 
         {worldMap === "stadium" || isSpectator ? (
           <>
-            <SportsEnvironment faseId={faseData.id} />
+            <SportsEnvironment faseId={faseData.id} nearPakLukman={nearPakLukman} />
 
             {ARENA_TILES.map((tile) => (
               <ArenaFloorTile key={tile.id} tile={tile} isFallen={isTileFallen(tile.id)} />
@@ -3348,6 +4180,8 @@ export default function GameWorld({
           </>
         ) : worldMap === "explore" ? (
           <ExploreWorldEnvironment readIds={readExploreIds} />
+        ) : worldMap === "school" ? (
+          <SchoolInteriorEnvironment completedClassIds={completedClassIds} />
         ) : (
           <ChampionBridgeEnvironment raceStarted={bridgeRaceStarted} />
         )}
@@ -3366,6 +4200,7 @@ export default function GameWorld({
             score={score}
             correctCount={correctCount}
             readExploreCount={readExploreIds.length}
+            completedSchoolCount={completedClassIds.length}
             isEliminated={isEliminated}
             bridgeRaceStarted={bridgeRaceStarted}
             worldMap={worldMap}
@@ -3375,12 +4210,15 @@ export default function GameWorld({
             teleportTrigger={teleportTrigger}
             onInteractBuilding={setActiveBuilding}
             onNearCoach={setNearCoach}
+            onNearPakLukman={setNearPakLukman}
+            onNearSchoolDoor={setNearSchoolDoor}
             onNearPortal={setNearPortal}
             onNearAdventurePortal={setNearAdventurePortal}
             onNearExplorePortal={setNearExplorePortal}
             onNearBridgePortal={setNearBridgePortal}
             onNearReturnPortal={setNearReturnPortal}
             onNearExploreObject={setNearbyExploreObj}
+            onNearClassroom={setNearbyClassroom}
             onBridgeLevelChange={setBridgeLevel}
             onBridgeFall={handleBridgeFall}
             onBridgeFinish={handleBridgeFinish}
