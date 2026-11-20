@@ -6,6 +6,10 @@ const cors = require("cors");
 const app = express();
 app.use(cors());
 
+app.get("/", (req, res) => {
+  res.send("Server Multiplayer PJOK 3D Aktif!");
+});
+
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
@@ -16,11 +20,9 @@ const io = new Server(server, {
 
 const players = {};
 
-app.get("/", (req, res) => {
-  res.send("Server PJOK 3D Multiplayer Aktif!");
-});
-
 io.on("connection", (socket) => {
+  console.log("Terhubung:", socket.id);
+
   socket.on("joinGame", (data) => {
     players[socket.id] = {
       id: socket.id,
@@ -28,56 +30,80 @@ io.on("connection", (socket) => {
       faseId: data.faseId || "fase-a",
       color: data.color || "#3b82f6",
       avatarType: data.avatarType || 1,
-      pos: [0, 0, 5],
+      pos: Array.isArray(data.pos) ? data.pos : [0, 0, 5],
       rotY: 0,
       isMoving: false,
-      isEliminated: false,
-      worldMap: "stadium",
+      worldMap: data.worldMap || "stadium",
+      score: 0,
       characterLevel: 1,
       questionLevel: 1,
-      score: 0,
       correctCount: 0,
       readExploreCount: 0,
+      completedSchoolCount: 0,
+      isEliminated: false,
     };
     io.emit("updatePlayers", players);
+  });
+
+  socket.on("changeWorld", (data) => {
+    if (players[socket.id]) {
+      players[socket.id].worldMap = data.worldMap || "stadium";
+      if (Array.isArray(data.pos)) {
+        players[socket.id].pos = data.pos;
+      }
+      players[socket.id].isMoving = false;
+      io.emit("playerMoved", {
+        id: socket.id,
+        ...players[socket.id],
+      });
+      io.emit("updatePlayers", players);
+    }
   });
 
   socket.on("movePlayer", (data) => {
-    if (!players[socket.id]) return;
-    players[socket.id] = {
-      ...players[socket.id],
-      ...data,
-      id: socket.id,
-    };
-    socket.broadcast.emit("playerMoved", players[socket.id]);
+    if (players[socket.id]) {
+      players[socket.id] = {
+        ...players[socket.id],
+        ...data,
+        pos: Array.isArray(data.pos) ? data.pos : players[socket.id].pos,
+        rotY: typeof data.rotY === "number" ? data.rotY : players[socket.id].rotY,
+        isMoving: Boolean(data.isMoving),
+        worldMap: data.worldMap || players[socket.id].worldMap || "stadium",
+      };
+      socket.broadcast.emit("playerMoved", {
+        id: socket.id,
+        ...players[socket.id],
+      });
+    }
   });
 
   socket.on("eliminationState", (isEliminated) => {
-    if (!players[socket.id]) return;
-    players[socket.id].isEliminated = Boolean(isEliminated);
-    io.emit("updatePlayers", players);
+    if (players[socket.id]) {
+      players[socket.id].isEliminated = Boolean(isEliminated);
+      io.emit("updatePlayers", players);
+    }
   });
 
   socket.on("startAdventureAll", ({ faseId }) => {
     io.emit("adventureStarted", { faseId });
   });
 
-  // Fitur Start Bersama-sama Lomba Jembatan Juara
   socket.on("startBridgeRaceAll", ({ faseId }) => {
     io.emit("bridgeRaceStarted", { faseId });
   });
 
-  // Fitur Guru Menghapus Karakter Siswa
   socket.on("removeStudent", ({ studentId, studentName, faseId }) => {
     if (studentId && players[studentId]) {
       delete players[studentId];
-    } else if (studentName) {
-      Object.keys(players).forEach((id) => {
+    }
+    if (studentName) {
+      Object.keys(players).forEach((pid) => {
         if (
-          players[id].faseId === faseId &&
-          players[id].name.toLowerCase() === String(studentName).toLowerCase()
+          players[pid].faseId === faseId &&
+          String(players[pid].name).trim().toLowerCase() ===
+            String(studentName).trim().toLowerCase()
         ) {
-          delete players[id];
+          delete players[pid];
         }
       });
     }
@@ -86,8 +112,10 @@ io.on("connection", (socket) => {
   });
 
   socket.on("disconnect", () => {
-    delete players[socket.id];
-    io.emit("updatePlayers", players);
+    if (players[socket.id]) {
+      delete players[socket.id];
+      io.emit("updatePlayers", players);
+    }
   });
 });
 

@@ -46,9 +46,6 @@ function getCharacterTitle(charLevel: number): string {
   return "Legenda PJOK";
 }
 
-// =========================================================================
-// DATA 6 RUANG KELAS DI DALAM GEDUNG SEKOLAH (KELAS 1 - 6)
-// =========================================================================
 interface SchoolClassroomMission {
   id: string;
   kelas: number;
@@ -343,9 +340,6 @@ const EXPLORE_OBJECTS = [
   },
 ];
 
-// =========================================================================
-// ARENA JEMBATAN JUARA: 20 LEVEL KESULITAN BERTINGKAT & LINTASAN SUPER PANJANG
-// =========================================================================
 const TOTAL_BRIDGE_LEVELS = 20;
 const BRIDGE_START_LINE_Z = 22.8;
 
@@ -433,6 +427,8 @@ const BRIDGE_SPINNERS = [
   { id: "s9", x: -3.3, z: -327, radius: 3.1, speed: -4.1 },
   { id: "s10", x: 3.3, z: -327, radius: 3.1, speed: 4.1 },
 ];
+
+type WorldMapType = "stadium" | "explore" | "bridge" | "school";
 
 interface PodiumEntry {
   rank: 1 | 2 | 3;
@@ -700,32 +696,65 @@ function VoxelCharacter({
   );
 }
 
+// =========================================================================
+// REMOTE PLAYER DENGAN SINKRONISASI POSISI, ROTASI & DUNIA NYATA
+// =========================================================================
 function RemotePlayer({ data, isHighlighted = false }: { data: any; isHighlighted?: boolean }) {
   const groupRef = useRef<THREE.Group>(null);
+  const initializedRef = useRef(false);
+  const targetPosRef = useRef(
+    new THREE.Vector3(
+      Array.isArray(data.pos) ? Number(data.pos[0]) || 0 : 0,
+      Array.isArray(data.pos) ? Number(data.pos[1]) || 0 : 0,
+      Array.isArray(data.pos) ? Number(data.pos[2]) || 5 : 5
+    )
+  );
+  const targetRotRef = useRef<number>(typeof data.rotY === "number" ? data.rotY : 0);
+
+  useEffect(() => {
+    if (Array.isArray(data.pos) && data.pos.length >= 3) {
+      targetPosRef.current.set(
+        Number(data.pos[0]) || 0,
+        Number(data.pos[1]) || 0,
+        Number(data.pos[2]) || 0
+      );
+      if (!initializedRef.current && groupRef.current) {
+        groupRef.current.position.copy(targetPosRef.current);
+        initializedRef.current = true;
+      }
+    }
+    if (typeof data.rotY === "number") {
+      targetRotRef.current = data.rotY;
+    }
+  }, [data.pos, data.rotY]);
+
   const preset = AVATAR_35_LIST.find((a) => a.id === data.avatarType);
   const remoteCharLevel = data.characterLevel || getCharacterLevelFromXp(data.score || 0);
 
   useFrame((_, delta) => {
-    if (!groupRef.current || !data.pos) return;
-    groupRef.current.position.lerp(
-      new THREE.Vector3(data.pos[0], data.pos[1], data.pos[2]),
-      delta * 12
-    );
-    groupRef.current.rotation.y = THREE.MathUtils.lerp(
-      groupRef.current.rotation.y,
-      data.rotY || 0,
-      delta * 12
-    );
+    if (!groupRef.current) return;
+    if (!initializedRef.current) {
+      groupRef.current.position.copy(targetPosRef.current);
+      initializedRef.current = true;
+    }
+
+    const smoothFactor = 1 - Math.exp(-14 * delta);
+    groupRef.current.position.lerp(targetPosRef.current, smoothFactor);
+
+    let diff = targetRotRef.current - groupRef.current.rotation.y;
+    while (diff > Math.PI) diff -= Math.PI * 2;
+    while (diff < -Math.PI) diff += Math.PI * 2;
+    groupRef.current.rotation.y += diff * smoothFactor;
   });
 
   return (
-    <group ref={groupRef} position={data.pos || [0, 0, 5]}>
+    <group ref={groupRef}>
       <VoxelCharacter
         shirtColor={preset?.shirtColor || data.color || "#3b82f6"}
         pantsColor={preset?.pantsColor || "#1e293b"}
         skinColor={preset?.skinColor || "#fcd34d"}
         headStyle={preset?.headStyle || "boy"}
-        isMoving={data.isMoving || false}
+        isMoving={Boolean(data.isMoving)}
         isGhost={Boolean(data.isEliminated)}
       />
       {isHighlighted && (
@@ -786,11 +815,16 @@ function ArenaFloorTile({
   );
 }
 
+// =========================================================================
+// KAMERA MODE GURU: MEMANTAU SEMUA GEDUNG, PORTAL, DUNIA & SISWA
+// =========================================================================
 function SpectatorCameraController({
+  spectatorWorld,
   preset,
   followedPlayer,
   cameraOrbitRef,
 }: {
+  spectatorWorld: WorldMapType;
   preset: "overview" | "arena";
   followedPlayer: any | null;
   cameraOrbitRef: React.MutableRefObject<CameraOrbitState>;
@@ -812,31 +846,38 @@ function SpectatorCameraController({
 
   useEffect(() => {
     manualOffset.current.set(0, 0, 0);
-  }, [preset, followedPlayer?.id]);
+  }, [spectatorWorld, preset, followedPlayer?.id]);
 
   useFrame((state, delta) => {
-    const moveSpeed = 16 * delta;
+    const moveSpeed = 18 * delta;
     if (keys.current["w"] || keys.current["arrowup"]) manualOffset.current.z -= moveSpeed;
     if (keys.current["s"] || keys.current["arrowdown"]) manualOffset.current.z += moveSpeed;
     if (keys.current["a"] || keys.current["arrowleft"]) manualOffset.current.x -= moveSpeed;
     if (keys.current["d"] || keys.current["arrowright"]) manualOffset.current.x += moveSpeed;
-    if (keys.current["q"]) cameraOrbitRef.current.yaw -= 1.8 * delta;
-    if (keys.current["e"]) cameraOrbitRef.current.yaw += 1.8 * delta;
 
     const orbit = cameraOrbitRef.current;
-    let desiredFocus = new THREE.Vector3(0, 1, 2);
-    let baseRadius = 42;
+    let desiredFocus = new THREE.Vector3(0, 1, -2);
+    let baseRadius = 46;
 
-    if (followedPlayer && followedPlayer.pos) {
+    if (followedPlayer && Array.isArray(followedPlayer.pos)) {
       const [px, py, pz] = followedPlayer.pos;
       desiredFocus.set(px, Math.max(py, 0) + 1.5, pz);
-      baseRadius = 26;
+      baseRadius = 24;
+    } else if (spectatorWorld === "school") {
+      desiredFocus.set(0, 1.5, 0);
+      baseRadius = 34;
+    } else if (spectatorWorld === "explore") {
+      desiredFocus.set(0, 1.5, 4);
+      baseRadius = 42;
+    } else if (spectatorWorld === "bridge") {
+      desiredFocus.set(0, 1.5, 16);
+      baseRadius = 38;
     } else if (preset === "arena") {
       desiredFocus.set(0, 1, 18);
       baseRadius = 40;
     } else {
-      desiredFocus.set(0, 1, -2);
-      baseRadius = 46;
+      desiredFocus.set(0, 1, -6);
+      baseRadius = 52;
     }
 
     desiredFocus.add(manualOffset.current);
@@ -847,8 +888,8 @@ function SpectatorCameraController({
     const camY = desiredFocus.y + Math.sin(orbit.pitch) * radius;
     const camZ = desiredFocus.z + Math.cos(orbit.yaw) * horizDist;
 
-    state.camera.position.lerp(new THREE.Vector3(camX, camY, camZ), 0.1);
-    targetFocus.current.lerp(desiredFocus, 0.1);
+    state.camera.position.lerp(new THREE.Vector3(camX, camY, camZ), 0.12);
+    targetFocus.current.lerp(desiredFocus, 0.12);
     state.camera.lookAt(targetFocus.current);
   });
 
@@ -897,9 +938,14 @@ function Player({
   const isGrounded = useRef(true);
   const [moving, setMoving] = useState(false);
   const lastEmitTime = useRef(0);
+  const worldMapRef = useRef<WorldMapType>(worldMap);
   const bridgeCheckpointRef = useRef<[number, number, number]>([0, 0.5, 27]);
   const highestBridgeLevelRef = useRef<number>(1);
   const bridgeFinishedRef = useRef(false);
+
+  useEffect(() => {
+    worldMapRef.current = worldMap;
+  }, [worldMap]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -934,21 +980,32 @@ function Player({
       );
       velocityY.current = 0;
       isGrounded.current = true;
-      if (worldMap === "bridge") {
+      if (worldMapRef.current === "bridge") {
         bridgeCheckpointRef.current = [teleportTrigger.pos[0], 0.5, teleportTrigger.pos[2]];
         highestBridgeLevelRef.current = 1;
         bridgeFinishedRef.current = false;
       }
+      if (socketRef.current && socketRef.current.connected) {
+        socketRef.current.emit("movePlayer", {
+          pos: [teleportTrigger.pos[0], teleportTrigger.pos[1], teleportTrigger.pos[2]],
+          rotY: groupRef.current.rotation.y,
+          isMoving: false,
+          worldMap: worldMapRef.current,
+          characterLevel,
+          questionLevel,
+          score,
+          correctCount,
+          readExploreCount,
+          completedSchoolCount,
+        });
+      }
     }
-  }, [teleportTrigger, worldMap]);
+  }, [teleportTrigger]);
 
   useFrame((state, delta) => {
     if (!groupRef.current) return;
     const speed = 10.5;
-
-    // Putar kamera dengan tombol Q / E di keyboard
-    if (keys.current["q"]) cameraOrbitRef.current.yaw -= 1.8 * delta;
-    if (keys.current["e"]) cameraOrbitRef.current.yaw += 1.8 * delta;
+    const currentWorld = worldMapRef.current;
 
     let rawX = joyVector.x;
     let rawZ = joyVector.y;
@@ -958,7 +1015,6 @@ function Player({
     if (keys.current["a"] || keys.current["arrowleft"]) rawX -= 1;
     if (keys.current["d"] || keys.current["arrowright"]) rawX += 1;
 
-    // Gerakan karakter mengikuti sudut putaran kamera aktif agar selalu intuitif
     const yaw = cameraOrbitRef.current.yaw;
     const moveX = rawX * Math.cos(yaw) + rawZ * Math.sin(yaw);
     const moveZ = -rawX * Math.sin(yaw) + rawZ * Math.cos(yaw);
@@ -985,7 +1041,7 @@ function Player({
     const pos = groupRef.current.position;
     const t = state.clock.getElapsedTime();
 
-    if (worldMap === "bridge") {
+    if (currentWorld === "bridge") {
       onStandingTileChange(null);
       onNearCoach(false);
       onNearPakLukman(false);
@@ -1090,7 +1146,7 @@ function Player({
 
       const distReturnBridge = new THREE.Vector2(pos.x, pos.z).distanceTo(new THREE.Vector2(0, 30.5));
       onNearReturnPortal(distReturnBridge < 3.5);
-    } else if (worldMap === "school") {
+    } else if (currentWorld === "school") {
       onStandingTileChange(null);
       onNearCoach(false);
       onNearPakLukman(false);
@@ -1131,7 +1187,7 @@ function Player({
       onNearClassroom(foundClass);
     } else {
       let currentTileId: number | null = null;
-      if (worldMap === "stadium") {
+      if (currentWorld === "stadium") {
         for (const tile of ARENA_TILES) {
           if (Math.abs(pos.x - tile.pos[0]) < 3.9 && Math.abs(pos.z - tile.pos[2]) < 3.9) {
             currentTileId = tile.id;
@@ -1160,7 +1216,7 @@ function Player({
       pos.x = THREE.MathUtils.clamp(pos.x, -42, 42);
       pos.z = THREE.MathUtils.clamp(pos.z, -42, 42);
 
-      if (worldMap === "stadium") {
+      if (currentWorld === "stadium") {
         onNearReturnPortal(false);
         onNearExploreObject(null);
         onNearClassroom(null);
@@ -1168,11 +1224,9 @@ function Player({
         const distCoach = new THREE.Vector2(pos.x, pos.z).distanceTo(new THREE.Vector2(0, -4));
         onNearCoach(distCoach < 3.8);
 
-        // NPC Pak Lukman (Kepala Sekolah) berdiri di depan sekolah (x = 2.8, z = -29.5)
         const distPakLukman = new THREE.Vector2(pos.x, pos.z).distanceTo(new THREE.Vector2(2.8, -29.5));
         onNearPakLukman(distPakLukman < 4.2);
 
-        // Pintu Masuk Gedung Sekolah di bagian belakang lapangan (x = 0, z = -31.8)
         const distSchoolDoor = new THREE.Vector2(pos.x, pos.z).distanceTo(new THREE.Vector2(0, -31.8));
         onNearSchoolDoor(distSchoolDoor < 4.5);
 
@@ -1234,7 +1288,7 @@ function Player({
         pos: [pos.x, pos.y, pos.z],
         rotY: groupRef.current.rotation.y,
         isMoving: isCurrentlyMoving,
-        worldMap,
+        worldMap: worldMapRef.current,
         characterLevel,
         questionLevel,
         score,
@@ -1244,9 +1298,8 @@ function Player({
       });
     }
 
-    // Kamera Dinamis yang Bisa Diputar & Di-zoom oleh Pemain
     const orbit = cameraOrbitRef.current;
-    const baseDist = isMiniGame ? 34 : worldMap === "bridge" ? 27 : worldMap === "school" ? 24 : 30;
+    const baseDist = isMiniGame ? 34 : currentWorld === "bridge" ? 27 : currentWorld === "school" ? 24 : 30;
     const radius = baseDist * orbit.zoom;
     const targetY = Math.max(pos.y, 0) + 1.4;
     const horizDist = radius * Math.cos(orbit.pitch);
@@ -1282,9 +1335,6 @@ function Player({
   );
 }
 
-// =========================================================================
-// KOMPONEN 3D INTERIOR GEDUNG SEKOLAH (6 RUANG KELAS: KELAS 1 - 6)
-// =========================================================================
 function SchoolInteriorEnvironment({
   completedClassIds,
 }: {
@@ -1419,9 +1469,6 @@ function SchoolInteriorEnvironment({
   );
 }
 
-// =========================================================================
-// KOMPONEN 3D JEMBATAN JUARA (20 LEVEL & GARIS PEMBATAS START BERSAMA)
-// =========================================================================
 function ChampionBridgeEnvironment({ raceStarted }: { raceStarted: boolean }) {
   const gateRefs = useRef<(THREE.Mesh | null)[]>([]);
   const spinnerRefs = useRef<(THREE.Mesh | null)[]>([]);
@@ -1822,20 +1869,13 @@ function SportsEnvironment({ faseId, nearPakLukman }: { faseId: string; nearPakL
         <meshStandardMaterial color={trackColor} />
       </mesh>
 
-      {/* =================================================================
-          GEDUNG SEKOLAH DI BELAKANG LAPANGAN + GERBANG SELAMAT DATANG
-          + NPC PAK LUKMAN (KEPALA SEKOLAH) DI DEPAN SEKOLAH (SEMUA FASE)
-         ================================================================= */}
       <group>
-        {/* Jalan Setapak Masuk Sekolah dari Lapangan ke Pintu Sekolah */}
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.03, -27.5]} receiveShadow>
           <planeGeometry args={[5.2, 11.5]} />
           <meshStandardMaterial color="#cbd5e1" />
         </mesh>
 
-        {/* Gerbang Sekolah Bertuliskan SELAMAT DATANG (x = 0, z = -23.5) */}
         <group position={[0, 0, -23.5]}>
-          {/* Pilar Gerbang Kiri & Kanan */}
           <mesh position={[-3.0, 2.4, 0]} castShadow>
             <boxGeometry args={[0.7, 4.8, 0.7]} />
             <meshStandardMaterial color="#dc2626" />
@@ -1844,7 +1884,6 @@ function SportsEnvironment({ faseId, nearPakLukman }: { faseId: string; nearPakL
             <boxGeometry args={[0.7, 4.8, 0.7]} />
             <meshStandardMaterial color="#dc2626" />
           </mesh>
-          {/* Balok Atas Gerbang */}
           <mesh position={[0, 4.9, 0]} castShadow>
             <boxGeometry args={[7.0, 1.25, 0.8]} />
             <meshStandardMaterial color="#1e3a8a" />
@@ -1869,7 +1908,6 @@ function SportsEnvironment({ faseId, nearPakLukman }: { faseId: string; nearPakL
           </Text>
         </group>
 
-        {/* NPC Pak Lukman (Kepala Sekolah) Menyambut di Depan Sekolah (x = 2.8, z = -29.5) */}
         <group position={[2.8, 0, -29.5]}>
           <VoxelCharacter
             shirtColor="#0f766e"
@@ -1899,24 +1937,19 @@ function SportsEnvironment({ faseId, nearPakLukman }: { faseId: string; nearPakL
           </Text>
         </group>
 
-        {/* Bangunan Gedung Sekolah Utama di Bagian Belakang (x = 0, z = -36.5) */}
         <group position={[0, 0, -36.5]}>
-          {/* Dinding Utama Gedung */}
           <mesh position={[0, 3.6, 0]} castShadow receiveShadow>
             <boxGeometry args={[16.5, 7.2, 8.0]} />
             <meshStandardMaterial color="#fef3c7" />
           </mesh>
-          {/* Atap Gedung Sekolah */}
           <mesh position={[0, 8.0, 0]} castShadow>
             <boxGeometry args={[17.6, 1.7, 8.8]} />
             <meshStandardMaterial color="#b91c1c" />
           </mesh>
-          {/* Pintu Masuk Utama Sekolah Menghadap Depan (z = +4.05) */}
           <mesh position={[0, 1.85, 4.05]}>
             <boxGeometry args={[3.2, 3.7, 0.25]} />
             <meshStandardMaterial color="#2563eb" />
           </mesh>
-          {/* Jendela Kelas Kiri & Kanan */}
           {[-5.6, -3.3, 3.3, 5.6].map((wx, idx) => (
             <React.Fragment key={idx}>
               <mesh position={[wx, 2.4, 4.05]}>
@@ -1929,7 +1962,6 @@ function SportsEnvironment({ faseId, nearPakLukman }: { faseId: string; nearPakL
               </mesh>
             </React.Fragment>
           ))}
-          {/* Papan Nama Gedung Sekolah */}
           <mesh position={[0, 6.2, 4.08]}>
             <boxGeometry args={[11.2, 1.1, 0.25]} />
             <meshStandardMaterial color="#0f172a" />
@@ -2041,7 +2073,6 @@ function SportsEnvironment({ faseId, nearPakLukman }: { faseId: string; nearPakL
         </group>
       )}
 
-      {/* Portal 1 (Kanan): Arena Jatuh Bangun */}
       <group position={[14, 0, -4]}>
         <mesh position={[-1.6, 2, 0]} castShadow>
           <boxGeometry args={[0.4, 4, 0.4]} />
@@ -2064,7 +2095,6 @@ function SportsEnvironment({ faseId, nearPakLukman }: { faseId: string; nearPakL
         </Text>
       </group>
 
-      {/* Portal 2 (Kiri): Petualangan Eliminasi */}
       <group position={[-14, 0, -4]}>
         <mesh position={[-1.6, 2, 0]} castShadow>
           <boxGeometry args={[0.4, 4, 0.4]} />
@@ -2087,7 +2117,6 @@ function SportsEnvironment({ faseId, nearPakLukman }: { faseId: string; nearPakL
         </Text>
       </group>
 
-      {/* Portal 3 (Belakang Tengah): Dunia Explore PJOK */}
       <group position={[0, 0, -15]}>
         <mesh position={[-1.6, 2, 0]} castShadow>
           <boxGeometry args={[0.4, 4, 0.4]} />
@@ -2110,7 +2139,6 @@ function SportsEnvironment({ faseId, nearPakLukman }: { faseId: string; nearPakL
         </Text>
       </group>
 
-      {/* Portal 4 (Depan Arena): Jembatan Juara 20 Level */}
       <group position={[0, 0, 31]}>
         <mesh position={[-1.6, 2, 0]} castShadow>
           <boxGeometry args={[0.4, 4, 0.4]} />
@@ -2227,27 +2255,23 @@ export default function GameWorld({
   const [otherPlayers, setOtherPlayers] = useState<{ [id: string]: any }>({});
   const [onlineCount, setOnlineCount] = useState(isSpectator ? 0 : 1);
 
-  // State Kamera Bebas (Putar Horizontal/Vertikal + Zoom)
+  // Kontrol Kamera Bebas: Hanya melalui Geser Layar (Drag) dan Scroll Mouse
   const cameraOrbitRef = useRef<CameraOrbitState>({ yaw: 0, pitch: 0.62, zoom: 1 });
-  const cameraDragRef = useRef<{ active: boolean; lastX: number; lastY: number; pointerId: number | null }>({
+  const cameraDragRef = useRef<{ active: boolean; lastX: number; lastY: number }>({
     active: false,
     lastX: 0,
     lastY: 0,
-    pointerId: null,
   });
 
   const adjustCameraOrbit = (dYaw: number, dPitch: number, dZoom: number) => {
     const cur = cameraOrbitRef.current;
     cur.yaw += dYaw;
     cur.pitch = THREE.MathUtils.clamp(cur.pitch + dPitch, 0.22, 1.32);
-    cur.zoom = THREE.MathUtils.clamp(cur.zoom + dZoom, 0.55, 1.85);
+    cur.zoom = THREE.MathUtils.clamp(cur.zoom + dZoom, 0.5, 1.9);
   };
 
-  const resetCameraOrbit = () => {
-    cameraOrbitRef.current = { yaw: 0, pitch: 0.62, zoom: 1 };
-  };
-
-  const [worldMap, setWorldMap] = useState<"stadium" | "explore" | "bridge" | "school">("stadium");
+  const [worldMap, setWorldMap] = useState<WorldMapType>("stadium");
+  const [spectatorWorld, setSpectatorWorld] = useState<WorldMapType>("stadium");
   const [nearExplorePortal, setNearExplorePortal] = useState(false);
   const [nearBridgePortal, setNearBridgePortal] = useState(false);
   const [nearReturnPortal, setNearReturnPortal] = useState(false);
@@ -2484,6 +2508,10 @@ export default function GameWorld({
     setActiveClassroomModal(null);
     setSchoolGraduatedModal(false);
     setTeleportTrigger({ pos: [0, 0, 15], id: Date.now() });
+    socketRef.current?.emit("changeWorld", {
+      worldMap: "school",
+      pos: [0, 0, 15],
+    });
     speakText(
       `Selamat datang di dalam Gedung Sekolah, ${playerName}! Silakan masuk ke Ruang Kelas 1 sampai Kelas 6 dan selesaikan setiap misinya!`
     );
@@ -2552,10 +2580,15 @@ export default function GameWorld({
     setSelectedExploreModal(null);
     setExploreCompletedModal(false);
     setTeleportTrigger({ pos: [0, 0, -10], id: Date.now() });
+    socketRef.current?.emit("changeWorld", {
+      worldMap: "explore",
+      pos: [0, 0, -10],
+    });
     speakText("Selamat datang di Dunia Explore PJOK! Dekati semua 6 benda olahraga untuk membaca materinya.");
   };
 
   const enterBridgeWorld = (autoCountdown = false) => {
+    const startPos = getBridgeStartPos();
     setWorldMap("bridge");
     setNearBridgePortal(false);
     setBridgeLevel(1);
@@ -2568,7 +2601,11 @@ export default function GameWorld({
         ? "🚦 Bersiap di belakang garis Start!"
         : "🚦 Siap di Garis Start! Tunggu Guru atau tekan Mulai Lomba Bersama!"
     );
-    setTeleportTrigger({ pos: getBridgeStartPos(), id: Date.now() });
+    setTeleportTrigger({ pos: startPos, id: Date.now() });
+    socketRef.current?.emit("changeWorld", {
+      worldMap: "bridge",
+      pos: startPos,
+    });
     if (!autoCountdown) {
       speakText("Berbaris di belakang garis start! Tunggu aba-aba start bersama-sama.");
     }
@@ -2579,6 +2616,8 @@ export default function GameWorld({
     if (!isSpectator) {
       enterBridgeWorld(true);
     } else {
+      setSpectatorWorld("bridge");
+      setFollowedPlayerId(null);
       setTeacherToast("🚦 Hitung mundur Start Bersama Jembatan Juara telah dikirim ke semua siswa!");
       setTimeout(() => setTeacherToast(null), 4000);
     }
@@ -2586,6 +2625,7 @@ export default function GameWorld({
 
   const returnToStadiumWorld = () => {
     const cameFromSchool = worldMap === "school";
+    const returnPos: [number, number, number] = cameFromSchool ? [0, 0, -27.5] : [0, 0, 5];
     setWorldMap("stadium");
     setNearReturnPortal(false);
     setNearbyExploreObj(null);
@@ -2599,8 +2639,12 @@ export default function GameWorld({
     setBridgeRaceStarted(false);
     setBridgeCountdown(null);
     setTeleportTrigger({
-      pos: cameFromSchool ? [0, 0, -27.5] : [0, 0, 5],
+      pos: returnPos,
       id: Date.now(),
+    });
+    socketRef.current?.emit("changeWorld", {
+      worldMap: "stadium",
+      pos: returnPos,
     });
   };
 
@@ -2683,6 +2727,7 @@ export default function GameWorld({
     setMgPhase("running");
     setMgStatusText(`👑 Level ${questionLevel} • Jawab benar agar tidak gugur!`);
     setTeleportTrigger({ pos: [0, 0.5, 18], id: Date.now() });
+    socketRef.current?.emit("changeWorld", { worldMap: "stadium", pos: [0, 0.5, 18] });
     socketRef.current?.emit("eliminationState", false);
     if (prioritized[0]) speakText(prioritized[0].pertanyaan);
   };
@@ -2700,6 +2745,8 @@ export default function GameWorld({
           faseId: faseData.id,
           color: avatarPreset.shirtColor,
           avatarType: avatarPreset.id,
+          worldMap: "stadium",
+          pos: [0, 0, 5],
         });
       }
     });
@@ -2724,7 +2771,14 @@ export default function GameWorld({
       if (movedPlayer.faseId === faseData.id && movedPlayer.id !== socket.id) {
         setOtherPlayers((prev) => ({
           ...prev,
-          [movedPlayer.id]: movedPlayer,
+          [movedPlayer.id]: {
+            ...(prev[movedPlayer.id] || {}),
+            ...movedPlayer,
+            worldMap: movedPlayer.worldMap || prev[movedPlayer.id]?.worldMap || "stadium",
+            pos: Array.isArray(movedPlayer.pos)
+              ? [...movedPlayer.pos]
+              : prev[movedPlayer.id]?.pos || [0, 0, 5],
+          },
         }));
       }
     });
@@ -2781,6 +2835,18 @@ export default function GameWorld({
 
   const studentList = useMemo(() => Object.values(otherPlayers), [otherPlayers]);
 
+  // Saat guru memilih mengikuti seorang siswa, dunia pantauan otomatis berpindah ke gedung/dunia tempat siswa itu berada
+  useEffect(() => {
+    if (!isSpectator || !followedPlayerId) return;
+    const targetStudent = otherPlayers[followedPlayerId];
+    if (targetStudent && targetStudent.worldMap) {
+      const targetWorld = targetStudent.worldMap as WorldMapType;
+      if (targetWorld !== spectatorWorld) {
+        setSpectatorWorld(targetWorld);
+      }
+    }
+  }, [isSpectator, followedPlayerId, otherPlayers, spectatorWorld]);
+
   const bridgeWaitingCount = useMemo(() => {
     const remoteInBridge = studentList.filter((p: any) => p.worldMap === "bridge").length;
     return remoteInBridge + (!isSpectator && worldMap === "bridge" ? 1 : 0);
@@ -2799,13 +2865,18 @@ export default function GameWorld({
 
   const summaryStudent = summaryStudentId ? otherPlayers[summaryStudentId] || null : null;
 
+  const activeRenderedWorld: WorldMapType = isSpectator ? spectatorWorld : worldMap;
+
+  // Hanya merender siswa yang berada di dunia/gedung yang sedang aktif dipantau
   const visibleRemotePlayers = useMemo(
     () =>
-      studentList.filter(
-        (p: any) => (p.worldMap || "stadium") === (isSpectator ? "stadium" : worldMap)
-      ),
-    [studentList, worldMap, isSpectator]
+      studentList.filter((p: any) => {
+        const studentWorld = p.worldMap || "stadium";
+        return studentWorld === activeRenderedWorld;
+      }),
+    [studentList, activeRenderedWorld]
   );
+
   const followedPlayer = followedPlayerId ? otherPlayers[followedPlayerId] || null : null;
 
   const survivors = useMemo(() => {
@@ -2843,6 +2914,7 @@ export default function GameWorld({
     if (!isSpectator) {
       launchAdventureSession();
     } else {
+      setSpectatorWorld("stadium");
       setCameraPreset("arena");
       setFollowedPlayerId(null);
     }
@@ -3105,14 +3177,14 @@ export default function GameWorld({
     >
       <CheerfulBGM muted={isMuted} />
 
-      {/* HUD Atas Ramping + Level Karakter & XP */}
+      {/* HUD Atas Ramping */}
       <div
         style={{
           paddingTop: "max(0.5rem, env(safe-area-inset-top))",
           paddingLeft: "max(0.75rem, env(safe-area-inset-left))",
           paddingRight: "max(0.75rem, env(safe-area-inset-right))",
         }}
-        className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between pointer-events-none gap-2"
+        className="absolute top-0 left-0 right-0 z-10 flex flex-wrap items-center justify-between pointer-events-none gap-2"
       >
         <div className="flex items-center gap-1.5 bg-slate-900/90 text-white px-2.5 py-1.5 rounded-xl border border-slate-700 shadow pointer-events-auto">
           <button
@@ -3121,12 +3193,12 @@ export default function GameWorld({
           >
             ← Fase
           </button>
-          <span className="text-xs font-bold text-yellow-400 truncate max-w-[105px] sm:max-w-none">
-            {worldMap === "school"
+          <span className="text-xs font-bold text-yellow-400 truncate max-w-[115px] sm:max-w-none">
+            {activeRenderedWorld === "school"
               ? "🏫 Gedung Sekolah"
-              : worldMap === "explore"
+              : activeRenderedWorld === "explore"
               ? "🌍 Explore PJOK"
-              : worldMap === "bridge"
+              : activeRenderedWorld === "bridge"
               ? "🌉 Jembatan Juara"
               : faseData.nama_fase}
           </span>
@@ -3171,99 +3243,92 @@ export default function GameWorld({
         ) : (
           <div className="flex flex-wrap items-center gap-1.5 bg-slate-900/90 text-white p-1.5 rounded-xl border border-slate-700 shadow-lg pointer-events-auto">
             <button
+              onClick={() => {
+                setFollowedPlayerId(null);
+                setSpectatorWorld("stadium");
+                setCameraPreset("overview");
+              }}
+              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition ${
+                !followedPlayerId && spectatorWorld === "stadium" && cameraPreset === "overview"
+                  ? "bg-yellow-400 text-slate-950"
+                  : "bg-slate-800 hover:bg-slate-700 text-slate-200"
+              }`}
+            >
+              🏟️ Stadion & Gedung
+            </button>
+            <button
+              onClick={() => {
+                setFollowedPlayerId(null);
+                setSpectatorWorld("stadium");
+                setCameraPreset("arena");
+              }}
+              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition ${
+                !followedPlayerId && spectatorWorld === "stadium" && cameraPreset === "arena"
+                  ? "bg-yellow-400 text-slate-950"
+                  : "bg-slate-800 hover:bg-slate-700 text-slate-200"
+              }`}
+            >
+              🏆 Arena Ubin
+            </button>
+            <button
+              onClick={() => {
+                setFollowedPlayerId(null);
+                setSpectatorWorld("school");
+              }}
+              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition ${
+                !followedPlayerId && spectatorWorld === "school"
+                  ? "bg-teal-400 text-slate-950"
+                  : "bg-slate-800 hover:bg-slate-700 text-slate-200"
+              }`}
+            >
+              🏫 Dalam Sekolah
+            </button>
+            <button
+              onClick={() => {
+                setFollowedPlayerId(null);
+                setSpectatorWorld("explore");
+              }}
+              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition ${
+                !followedPlayerId && spectatorWorld === "explore"
+                  ? "bg-sky-400 text-slate-950"
+                  : "bg-slate-800 hover:bg-slate-700 text-slate-200"
+              }`}
+            >
+              🌍 Explore PJOK
+            </button>
+            <button
+              onClick={() => {
+                setFollowedPlayerId(null);
+                setSpectatorWorld("bridge");
+              }}
+              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition ${
+                !followedPlayerId && spectatorWorld === "bridge"
+                  ? "bg-emerald-400 text-slate-950"
+                  : "bg-slate-800 hover:bg-slate-700 text-slate-200"
+              }`}
+            >
+              🌉 Jembatan Juara
+            </button>
+            <button
               onClick={triggerBridgeMassStart}
               className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-extrabold px-2.5 py-1 rounded-lg shadow"
             >
-              🌉 Start Jembatan Bersama
+              🚦 Start Jembatan
             </button>
             <button
               onClick={triggerGlobalAdventure}
               className="bg-purple-600 hover:bg-purple-500 text-white text-xs font-extrabold px-2.5 py-1 rounded-lg shadow"
             >
-              👑 Mulai Eliminasi Kelas
-            </button>
-            <button
-              onClick={() => {
-                setFollowedPlayerId(null);
-                setCameraPreset("overview");
-                resetCameraOrbit();
-              }}
-              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition ${
-                !followedPlayerId && cameraPreset === "overview"
-                  ? "bg-yellow-400 text-slate-950"
-                  : "bg-slate-800 hover:bg-slate-700 text-slate-200"
-              }`}
-            >
-              🗺️ Lapangan
-            </button>
-            <button
-              onClick={() => {
-                setFollowedPlayerId(null);
-                setCameraPreset("arena");
-                resetCameraOrbit();
-              }}
-              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition ${
-                !followedPlayerId && cameraPreset === "arena"
-                  ? "bg-yellow-400 text-slate-950"
-                  : "bg-slate-800 hover:bg-slate-700 text-slate-200"
-              }`}
-            >
-              🏆 Arena
+              👑 Mulai Eliminasi
             </button>
           </div>
         )}
       </div>
 
-      {/* Kontrol Kamera Bebas (Putar Kiri/Kanan, Atas/Bawah, Zoom In/Out, Reset) */}
-      <div
-        style={{
-          top: "max(3.2rem, calc(env(safe-area-inset-top) + 2.8rem))",
-          right: "max(0.75rem, env(safe-area-inset-right))",
-        }}
-        className="fixed z-10 flex items-center gap-1 bg-slate-900/85 backdrop-blur-sm text-white px-2 py-1 rounded-xl border border-slate-700 shadow-lg pointer-events-auto text-[11px] font-extrabold"
-      >
-        <span className="text-slate-300 hidden sm:inline mr-0.5">🎥 Kamera:</span>
-        <button
-          title="Putar Kamera ke Kiri"
-          onClick={() => adjustCameraOrbit(-0.35, 0, 0)}
-          className="bg-slate-800 hover:bg-slate-700 px-2 py-1 rounded-lg"
-        >
-          ↺
-        </button>
-        <button
-          title="Putar Kamera ke Kanan"
-          onClick={() => adjustCameraOrbit(0.35, 0, 0)}
-          className="bg-slate-800 hover:bg-slate-700 px-2 py-1 rounded-lg"
-        >
-          ↻
-        </button>
-        <button
-          title="Perbesar (Zoom In)"
-          onClick={() => adjustCameraOrbit(0, 0, -0.15)}
-          className="bg-slate-800 hover:bg-slate-700 px-2 py-1 rounded-lg"
-        >
-          🔍+
-        </button>
-        <button
-          title="Perkecil (Zoom Out)"
-          onClick={() => adjustCameraOrbit(0, 0, 0.15)}
-          className="bg-slate-800 hover:bg-slate-700 px-2 py-1 rounded-lg"
-        >
-          🔍-
-        </button>
-        <button
-          title="Reset Sudut Kamera"
-          onClick={resetCameraOrbit}
-          className="bg-yellow-400 hover:bg-yellow-300 text-slate-950 px-2 py-1 rounded-lg"
-        >
-          Reset
-        </button>
-      </div>
-
       {/* Notifikasi Guru */}
       {isSpectator && teacherToast && (
         <div
-          style={{ top: "max(5.8rem, calc(env(safe-area-inset-top) + 5.2rem))" }}
+          style={{ top: "max(4.5rem, calc(env(safe-area-inset-top) + 4rem))" }}
           className="fixed left-1/2 -translate-x-1/2 z-30 bg-emerald-600 text-white px-4 py-2 rounded-2xl border-2 border-white font-extrabold text-xs shadow-2xl text-center"
         >
           {teacherToast}
@@ -3273,7 +3338,7 @@ export default function GameWorld({
       {/* Notifikasi Naik Level Karakter / Misi */}
       {!isSpectator && levelUpBanner && (
         <div
-          style={{ top: "max(5.8rem, calc(env(safe-area-inset-top) + 5.2rem))" }}
+          style={{ top: "max(4.5rem, calc(env(safe-area-inset-top) + 4rem))" }}
           className="fixed left-1/2 -translate-x-1/2 z-30 bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 px-4 py-2 rounded-2xl border-2 border-white font-extrabold text-xs md:text-sm shadow-2xl animate-bounce text-center"
         >
           {levelUpBanner}
@@ -3283,7 +3348,7 @@ export default function GameWorld({
       {/* Dialog NPC Pak Lukman (Kepala Sekolah) di Depan Gedung Sekolah */}
       {!isSpectator && worldMap === "stadium" && nearPakLukman && !miniGameActive && !showModal && (
         <div
-          style={{ top: "max(5.8rem, calc(env(safe-area-inset-top) + 5.2rem))" }}
+          style={{ top: "max(4.5rem, calc(env(safe-area-inset-top) + 4rem))" }}
           className="fixed left-1/2 -translate-x-1/2 z-20 w-[92%] max-w-lg bg-slate-900/95 text-white p-3.5 rounded-2xl border-2 border-teal-400 shadow-2xl"
         >
           <div className="flex justify-between items-center mb-1">
@@ -3465,7 +3530,7 @@ export default function GameWorld({
       {/* Panel Status & Tombol Start Bersama-sama saat berada di Area Start Jembatan Juara */}
       {!isSpectator && worldMap === "bridge" && !bridgeRaceStarted && bridgeCountdown === null && !podiumModal && (
         <div
-          style={{ top: "max(5.8rem, calc(env(safe-area-inset-top) + 5.2rem))" }}
+          style={{ top: "max(4.5rem, calc(env(safe-area-inset-top) + 4rem))" }}
           className="fixed left-1/2 -translate-x-1/2 z-20 w-[92%] max-w-md bg-slate-950/90 backdrop-blur-md text-white p-3.5 rounded-2xl border-2 border-yellow-400 shadow-2xl text-center"
         >
           <p className="text-xs font-extrabold text-yellow-300 mb-1">
@@ -3486,7 +3551,7 @@ export default function GameWorld({
       {/* Indikator Level 1..20 Jembatan Juara setelah Start Dibuka */}
       {!isSpectator && worldMap === "bridge" && bridgeRaceStarted && !podiumModal && (
         <div
-          style={{ top: "max(5.8rem, calc(env(safe-area-inset-top) + 5.2rem))" }}
+          style={{ top: "max(4.5rem, calc(env(safe-area-inset-top) + 4rem))" }}
           className="fixed left-1/2 -translate-x-1/2 z-20 bg-slate-950/85 text-white px-4 py-1.5 rounded-full border border-emerald-400 text-xs font-extrabold shadow-lg pointer-events-none"
         >
           {bridgeNotice
@@ -3634,7 +3699,7 @@ export default function GameWorld({
 
       {/* Panel Mode Guru */}
       {isSpectator && (
-        <div className="absolute top-24 right-3 z-10 w-80 max-h-[78vh] overflow-y-auto bg-slate-900/95 backdrop-blur-md text-white p-3.5 rounded-2xl border border-slate-700 shadow-2xl">
+        <div className="absolute top-20 right-3 z-10 w-80 max-h-[80vh] overflow-y-auto bg-slate-900/95 backdrop-blur-md text-white p-3.5 rounded-2xl border border-slate-700 shadow-2xl">
           <div className="flex items-center justify-between border-b border-slate-700 pb-2 mb-2.5">
             <span className="text-xs font-extrabold text-yellow-400 uppercase tracking-wide">
               📊 Panel Guru ({studentList.length} Siswa)
@@ -3644,7 +3709,7 @@ export default function GameWorld({
                 onClick={() => setFollowedPlayerId(null)}
                 className="text-[11px] bg-slate-700 hover:bg-slate-600 px-2 py-0.5 rounded font-bold"
               >
-                Lepas Kamera
+                Lepas Ikuti
               </button>
             )}
           </div>
@@ -3695,6 +3760,9 @@ export default function GameWorld({
                       onClick={() => {
                         setSummaryStudentId(isSelected ? null : student.id);
                         setFollowedPlayerId(student.id);
+                        if (student.worldMap) {
+                          setSpectatorWorld(student.worldMap as WorldMapType);
+                        }
                       }}
                       className="flex items-center justify-between flex-1 min-w-0 text-left gap-2"
                     >
@@ -3711,7 +3779,7 @@ export default function GameWorld({
                       </div>
                       <div className="text-right shrink-0">
                         <span className="block text-emerald-400 font-extrabold">{stScore} XP</span>
-                        <span className="text-[10px] text-sky-300 underline">Rangkuman</span>
+                        <span className="text-[10px] text-sky-300 underline">Ikuti & Rangkum</span>
                       </div>
                     </button>
 
@@ -3750,6 +3818,9 @@ export default function GameWorld({
                       onClick={() => {
                         setFollowedPlayerId(isFocused ? null : student.id);
                         setSummaryStudentId(student.id);
+                        if (student.worldMap) {
+                          setSpectatorWorld(student.worldMap as WorldMapType);
+                        }
                       }}
                       className="flex items-center justify-between flex-1 min-w-0 text-left gap-2"
                     >
@@ -3787,7 +3858,7 @@ export default function GameWorld({
                         </span>
                       ) : (
                         <span className="text-[10px] text-emerald-400 font-bold shrink-0">
-                          ✅ Aktif
+                          ✅ Stadion
                         </span>
                       )}
                     </button>
@@ -3894,7 +3965,7 @@ export default function GameWorld({
       {/* Panel Soal Mini-Game & Mode Petualangan Eliminasi */}
       {!isSpectator && worldMap === "stadium" && miniGameActive && currentMgQuestion && !podiumModal && (
         <div
-          style={{ top: "max(5.8rem, calc(env(safe-area-inset-top) + 5.2rem))" }}
+          style={{ top: "max(4.5rem, calc(env(safe-area-inset-top) + 4rem))" }}
           className={`fixed left-1/2 -translate-x-1/2 z-20 w-[94%] max-w-xl bg-slate-950/85 backdrop-blur-sm text-white px-3 py-2.5 rounded-2xl border-2 shadow-lg pointer-events-auto ${
             gameMode === "adventure" ? "border-purple-400" : "border-yellow-400/90"
           }`}
@@ -4126,7 +4197,7 @@ export default function GameWorld({
 
       {!isSpectator && worldMap === "stadium" && nearCoach && !miniGameActive && !showModal && (
         <div
-          style={{ top: "max(5.8rem, calc(env(safe-area-inset-top) + 5.2rem))" }}
+          style={{ top: "max(4.5rem, calc(env(safe-area-inset-top) + 4rem))" }}
           className="fixed left-1/2 -translate-x-1/2 z-10 w-[92%] max-w-lg bg-slate-900/95 text-white p-3.5 rounded-2xl border-2 border-yellow-400 shadow-2xl"
         >
           <div className="flex justify-between items-center mb-1">
@@ -4226,14 +4297,13 @@ export default function GameWorld({
         </div>
       )}
 
-      {/* Area 3D dengan dukungan Sentuh / Mouse Drag untuk Memutar Kamera */}
+      {/* Area 3D: Penyesuaian kamera murni dari geser layar (drag) & scroll mouse */}
       <div
         onPointerDown={(e) => {
           cameraDragRef.current = {
             active: true,
             lastX: e.clientX,
             lastY: e.clientY,
-            pointerId: e.pointerId,
           };
         }}
         onPointerMove={(e) => {
@@ -4253,12 +4323,12 @@ export default function GameWorld({
         className="w-full h-full touch-none cursor-grab active:cursor-grabbing"
       >
         <Canvas shadows camera={{ position: [0, 18, 26], fov: 60 }}>
-          <Sky sunPosition={worldMap === "explore" ? [60, 50, 80] : [100, 30, 100]} />
+          <Sky sunPosition={activeRenderedWorld === "explore" ? [60, 50, 80] : [100, 30, 100]} />
           <ambientLight intensity={0.65} />
           <directionalLight position={[15, 25, 15]} intensity={1.2} castShadow />
           <Environment preset="park" />
 
-          {worldMap === "stadium" || isSpectator ? (
+          {activeRenderedWorld === "stadium" ? (
             <>
               <SportsEnvironment faseId={faseData.id} nearPakLukman={nearPakLukman} />
 
@@ -4293,9 +4363,9 @@ export default function GameWorld({
                 </group>
               ))}
             </>
-          ) : worldMap === "explore" ? (
+          ) : activeRenderedWorld === "explore" ? (
             <ExploreWorldEnvironment readIds={readExploreIds} />
-          ) : worldMap === "school" ? (
+          ) : activeRenderedWorld === "school" ? (
             <SchoolInteriorEnvironment completedClassIds={completedClassIds} />
           ) : (
             <ChampionBridgeEnvironment raceStarted={bridgeRaceStarted} />
@@ -4303,6 +4373,7 @@ export default function GameWorld({
 
           {isSpectator ? (
             <SpectatorCameraController
+              spectatorWorld={spectatorWorld}
               preset={cameraPreset}
               followedPlayer={followedPlayer}
               cameraOrbitRef={cameraOrbitRef}
@@ -4348,7 +4419,7 @@ export default function GameWorld({
 
           {visibleRemotePlayers.map((p: any) => (
             <RemotePlayer
-              key={p.id}
+              key={`${p.id}-${p.worldMap || "stadium"}`}
               data={p}
               isHighlighted={isSpectator && followedPlayerId === p.id}
             />
